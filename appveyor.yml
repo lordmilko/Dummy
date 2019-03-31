@@ -1,4 +1,3 @@
-version: 'Build #{build}'
 image: Visual Studio 2017
 configuration: Release
 environment:
@@ -24,6 +23,12 @@ build_script:
 after_build:
   # Set Appveyor build from PrtgAPI version
   - ps: Invoke-AppveyorAfterBuild 
+before_test:
+  # Build NuGet packages
+  - ps: Invoke-AppveyorBeforeTest
+test_script:
+  # Test all target frameworks
+  - ps:   
 artifacts:
   - path: PrtgAPI.PowerShell\bin\Release\PrtgAPI
   - path: '*.nupkg'
