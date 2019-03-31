@@ -5,6 +5,13 @@ function Invoke-AppveyorBeforeBuild
         [switch]$IsCore = $script:APPEYOR_BUILD_CORE
     )
 
+    if($env:APPVEYOR)
+    {
+        $hash = (git log -1 --format=format:"%H").Substring(0, 8)
+
+        Update-AppveyorBuild -Version "Build $hash"
+    }
+
     Write-LogHeader "Restoring NuGet Packages (Core: $IsCore)"
 
     if($IsCore)
