@@ -228,7 +228,8 @@ function Set-AppveyorVersion
     try
     {
         Write-LogInfo "Calculating version"
-        $version = Get-PrtgVersion $BuildFolder
+        #$version = Get-PrtgVersion $BuildFolder
+        $version = Get-AppveyorVersion
 
         Write-LogInfo "`tSetting AppVeyor build to version '$version'"
 
