@@ -10,10 +10,11 @@ cache:
 install:
   # Install NuGet Provider, Chocolatey dependencies
   - ps: |
+      $hash = (git log -1 --format=format:"%H").Substring(0, 8)
+      Update-AppveyorBuild -Version "Build $hash"
+
       Import-Module .\tools\build\Appveyor.psm1 -DisableNameChecking
-
       Set-AppveyorBuildMode -IsCore:$false
-
       Invoke-AppveyorInstall
 before_build:
   # Restore NuGet packages

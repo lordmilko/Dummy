@@ -8,32 +8,38 @@ function Get-AppveyorVersion
     $lastBuild = Get-LastAppveyorBuild
     $lastRelease = Get-LastAppveyorNuGetVersion
 
-    Write-Host "Pre ID: $env:APPVEYOR_BUILD_NUMBER"
-
     Write-Log "    Assembly version: $assemblyVersion"
     Write-Log "    Last build: $lastBuild"
     Write-Log "    Last release: $lastRelease"
 
     if(IsPreview $assemblyVersion $lastRelease) #what are all the combinations possible here based on the 3 values lastrelease could be? i.e. 0.1, 0.1.1 or 0.1-preview.1
     {
+        $build = $env:APPVEYOR_BUILD_NUMBER
+
         if(IsFirstPreview $lastBuild)
         {
             Reset-BuildVersion
+
+            $build = 1
         }
 
         [Version]$v = $assemblyVersion
 
         #todo: test this works after we just reset the build
-        $result = "$($v.Major).$($v.Minor).$($v.Build + 1)-preview.{build}"
+        $result = "$($v.Major).$($v.Minor).$($v.Build + 1)-preview.$build"
     }
     elseif(IsPreRelease $assemblyVersion $lastBuild $lastRelease)
     {
+        $build = $env:APPVEYOR_BUILD_NUMBER
+
         if(IsFirstPreRelease $lastBuild)
         {
             Reset-BuildVersion
+
+            $build = 1
         }
 
-        $result = "$assemblyVersion-build.{build}"
+        $result = "$assemblyVersion-build.$build"
     }
     elseif(IsFullRelease $assemblyVersion $lastRelease)
     {
@@ -45,8 +51,6 @@ function Get-AppveyorVersion
     }
 
     Write-Log "Setting Appveyor build to '$result'"
-
-    Write-Host "Post ID: $env:APPVEYOR_BUILD_NUMBER"
 
     return $result
 }
@@ -153,7 +157,8 @@ function Get-AppveyorDeployment
 
 function Reset-BuildVersion
 {
-    Invoke-AppveyorAction "settings/build-number" @{ nextBuildNumber = 1 }
+    # We are 1, so the next one will be 2
+    Invoke-AppveyorAction "settings/build-number" @{ nextBuildNumber = 2 }
 }
 
 function Invoke-AppveyorRequest
