@@ -10,9 +10,6 @@ cache:
 install:
   # Install NuGet Provider, Chocolatey dependencies
   - ps: |
-      $hash = (git log -1 --format=format:"%H").Substring(0, 8)
-      Update-AppveyorBuild -Version "Build $hash"
-
       Import-Module .\tools\build\Appveyor.psm1 -DisableNameChecking
       Set-AppveyorBuildMode -IsCore:$false
       Invoke-AppveyorInstall
@@ -30,7 +27,10 @@ before_test:
   - ps: Invoke-AppveyorBeforeTest
 test_script:
   # Test all target frameworks
-  - ps:   
+  - ps: Invoke-AppveyorTest    
+after_test:
+  # Calculate .NET coverage
+  - ps: Invoke-AppveyorAfterTest
 artifacts:
   - path: PrtgAPI.PowerShell\bin\Release\PrtgAPI
   - path: '*.nupkg'
