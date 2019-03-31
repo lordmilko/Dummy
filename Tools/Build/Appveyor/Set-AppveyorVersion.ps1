@@ -8,6 +8,8 @@ function Get-AppveyorVersion
     $lastBuild = Get-LastAppveyorBuild
     $lastRelease = Get-LastAppveyorNuGetVersion
 
+    Write-Host "Pre ID: $env:APPVEYOR_BUILD_NUMBER"
+
     Write-Log "    Assembly version: $assemblyVersion"
     Write-Log "    Last build: $lastBuild"
     Write-Log "    Last release: $lastRelease"
@@ -43,6 +45,8 @@ function Get-AppveyorVersion
     }
 
     Write-Log "Setting Appveyor build to '$result'"
+
+    Write-Host "Post ID: $env:APPVEYOR_BUILD_NUMBER"
 
     return $result
 }
