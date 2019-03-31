@@ -8,9 +8,9 @@ function Get-AppveyorVersion
     $lastBuild = Get-LastAppveyorBuild
     $lastRelease = Get-LastAppveyorNuGetVersion
 
-    Write-Log "Assembly version: $assemblyVersion"
-    Write-Log "Last build: $lastBuild"
-    Write-Log "Last release: $lastRelease"
+    Write-Log "    Assembly version: $assemblyVersion"
+    Write-Log "    Last build: $lastBuild"
+    Write-Log "    Last release: $lastRelease"
 
     if(IsPreview $assemblyVersion $lastRelease) #what are all the combinations possible here based on the 3 values lastrelease could be? i.e. 0.1, 0.1.1 or 0.1-preview.1
     {
@@ -60,20 +60,29 @@ function IsFirstPreview($lastBuild)
 
 function IsFullRelease($assemblyVersion, $lastRelease)
 {
+    if([string]::IsNullOrEmpty($lastRelease))
+    {
+        return $true
+    }
+
     return ([Version]$assemblyVersion) -gt (CleanVersion $lastRelease)
 }
 
 function IsPreRelease($assemblyVersion, $lastBuild, $lastRelease)
 {
+    if([string]::IsNullOrEmpty(($lastBuild)))
+    {
+        return $false
+    }
+
     if($lastBuild.Contains("preview"))
     {
         return $false
     }
 
     [Version]$assemblyVersion = $assemblyVersion
-    $lastRelease = CleanVersion $lastRelease
 
-    if($assemblyVersion -gt $lastRelease)
+    if([string]::IsNullOrEmpty($lastRelease) -or $assemblyVersion -gt (CleanVersion $lastRelease))
     {
         $lastBuildClean = CleanVersion $lastBuild
 
