@@ -19,7 +19,7 @@ function Invoke-AppveyorBuild
             $msbuild = Get-MSBuild
 
             $msbuildArgs = @(
-                "$env:APPVEYOR_BUILD_FOLDER\PrtgAPI.sln"
+                "$env:APPVEYOR_BUILD_FOLDER\Dummy.sln"
                 "/verbosity:minimal"
                 "/p:Configuration=$env:CONFIGURATION"
             )
