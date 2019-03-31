@@ -13,6 +13,6 @@ function Invoke-AppveyorBeforeBuild
     }
     else
     {
-        Invoke-Process { nuget restore $env:APPVEYOR_BUILD_FOLDER\PrtgAPI.sln }
+        Invoke-Process { nuget restore $env:APPVEYOR_BUILD_FOLDER\Dummy.sln }
     }
 }
