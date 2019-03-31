@@ -123,7 +123,7 @@ function Get-LastAppveyorBuild
 
     $history = Invoke-AppveyorRequest "history?recordsNumber=10"
 
-    $version = ($history.builds|where version -NotLike "Build*" | select -last 1).version
+    $version = ($history.builds|where version -NotLike "Build*" | select -first 1).version
 
     return $version
 }
