@@ -121,9 +121,9 @@ function Get-LastAppveyorBuild
     #todo: if we invoke this mid-appveyor, will the first record be the current session, or the last one? if it is the current one we need to detect if we're
     #fake appveyor for unit tests
 
-    $history = Invoke-AppveyorRequest "history?recordsNumber=2"
+    $history = Invoke-AppveyorRequest "history?recordsNumber=10"
 
-    $version = ($history.builds | select -last 1).version
+    $version = ($history.builds|where version -NotLike "Build*" | select -last 1).version
 
     return $version
 }
