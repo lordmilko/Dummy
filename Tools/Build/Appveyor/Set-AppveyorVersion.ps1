@@ -18,9 +18,11 @@ function Get-AppveyorVersion
 
         if(IsFirstPreview $lastBuild)
         {
-            Reset-BuildVersion
-
             $build = 1
+        }
+        else
+        {
+            $build = IncrementBuild $lastBuild
         }
 
         [Version]$v = $assemblyVersion
@@ -34,9 +36,11 @@ function Get-AppveyorVersion
 
         if(IsFirstPreRelease $lastBuild)
         {
-            Reset-BuildVersion
-
             $build = 1
+        }
+        else
+        {
+            $build = IncrementBuild $lastBuild
         }
 
         $result = "$assemblyVersion-build.$build"
@@ -53,6 +57,11 @@ function Get-AppveyorVersion
     Write-Log "Setting Appveyor build to '$result'"
 
     return $result
+}
+
+function IncrementBuild($version)
+{
+    ([int]($version -replace ".+-.+\.(.+)",'$1')) + 1
 }
 
 function IsPreview($assemblyVersion, $lastRelease)
