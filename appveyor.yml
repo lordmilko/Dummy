@@ -7,8 +7,11 @@ environment:
   
   matrix:
     - CLR: Full
-      before_build:
-      - ps: Write-Host "Running on $PSEdition"
     - CLR: Core
-      before_build:
-      - ps: Write-host "Running on $PSEdition"
+for:
+-
+  matrix:
+    only:
+      - CLR: Full
+  before_build:
+  - ps "Write-Host: I'm full!"
