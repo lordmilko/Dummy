@@ -14,10 +14,10 @@ for:
     only:
       - CLR: Full
   build_script:
-  - ps: Write-Host "I'm full!"
+  - ps: Write-Host "I'm $PSEdition!"
 -
   matrix:
     only:
       - CLR: Core
   build_script:
-  - ps: Write-Host "I'm core!"
+  - pwsh: Write-Host "I'm $PSEdition!"
