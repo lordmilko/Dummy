@@ -13,5 +13,11 @@ for:
   matrix:
     only:
       - CLR: Full
-  before_build:
-  - ps "Write-Host: I'm full!"
+  build_script:
+  - ps: Write-Host "I'm full!"
+-
+  matrix:
+    only:
+      - CLR: Core
+  build_script:
+  - ps: Write-Host "I'm core!"
