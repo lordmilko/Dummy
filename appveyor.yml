@@ -21,3 +21,7 @@ for:
       - CLR: Core
   build_script:
   - pwsh: Write-Host "I'm $PSEdition!"
+skip_commits:
+  files:
+    - *.md
+    - *.yml
