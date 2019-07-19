@@ -23,5 +23,5 @@ for:
   - pwsh: Write-Host "I'm $PSEdition!"
 skip_commits:
   files:
-    - *.md
-    - *.yml
+    - '*.md'
+    - '*.yml'
