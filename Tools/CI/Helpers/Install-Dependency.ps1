@@ -259,7 +259,10 @@ function Install-Chocolatey
         $existingVersion = (gcm $CommandName).Version
     }
 
-    WriteDependencyResult $PackageName "Chocolatey" $existingVersion "Success"
+    if(!$Log)
+    {
+        WriteDependencyResult $PackageName "Chocolatey" $existingVersion "Success"
+    }
 }
 
 function Install-PSPackage

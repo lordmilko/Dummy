@@ -225,6 +225,8 @@ function Install-CSharpPackageInternal($installPath)
     {
         throw "Package did not install successfully"
     }
+
+    Write-LogInfo "Package successfully installed"
 }
 
 function Test-CSharpPackageInstallInternal($config)
