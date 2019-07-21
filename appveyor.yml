@@ -29,8 +29,8 @@ test_script:
 after_test:
   # Calculate .NET coverage
   - ps: Invoke-AppveyorAfterTest
-#on_finish:
-#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+on_finish:
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 artifacts:
   - path: PrtgAPI.PowerShell\bin\Release\PrtgAPI
   - path: '*.nupkg'
