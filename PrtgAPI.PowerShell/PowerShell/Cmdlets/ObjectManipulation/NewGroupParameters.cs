@@ -15,20 +15,29 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// after the group has been created via the Set-ObjectProperty cmdlet.</para>
     /// 
     /// <example>
-    ///     <code>C:\> $params = New-GroupParameters Servers</code>
-    ///     <para>C:\> Get-Probe contoso | Add-Group $params</para>
+    ///     <code>
+    ///         C:\> $params = New-GroupParameters Servers
+    ///
+    ///         C:\> Get-Probe contoso | Add-Group $params
+    ///     </code>
     ///     <para>Add a new group called "Servers" to the Contoso probe.</para>
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $params = New-GroupParameters Servers</code>
-    ///     <para>C:\> $params.Tags = "awesomeGroup"</para>
-    ///     <para>C:\> Get-Probe Contoso | Add-Group $params</para>
+    ///     <code>
+    ///         C:\> $params = New-GroupParameters Servers
+    ///         C:\> $params.Tags = "awesomeGroup"
+    ///
+    ///         C:\> Get-Probe Contoso | Add-Group $params
+    ///     </code>
     ///     <para>Add a new group called "Servers" to the Contoso probe with a custom tag "awesomeGroup".</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Object-Creation#group-creation-1">Online version:</para>
     /// <para type="link">Add-Group</para>
     /// <para type="link">Set-ObjectProperty</para>
+    /// <para type="link">Get-Group</para>
+    /// <para type="link">Get-Probe</para>
     /// 
     /// </summary>
     [Cmdlet(VerbsCommon.New, "GroupParameters")]

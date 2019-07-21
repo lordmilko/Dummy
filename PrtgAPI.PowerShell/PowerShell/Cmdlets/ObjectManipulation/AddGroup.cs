@@ -32,15 +32,22 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $params = New-GroupParameters Servers</code>
-    ///     <para>C:\> $params.Tags = "awesomeGroup"</para>
-    ///     <para>C:\> Get-Probe contoso | Add-Device $params</para>
+    ///     <code>
+    ///         C:\> $params = New-GroupParameters Servers
+    ///         C:\> $params.Tags = "awesomeGroup"
+    ///
+    ///         C:\> Get-Probe contoso | Add-Device $params
+    ///     </code>
     ///     <para>Add a new group called "Servers" with custom tags to the Contoso probe.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Object-Creation#groups-1">Online version:</para>
+    /// <para type="link">New-GroupParameters</para>
+    /// <para type="link">Get-Group</para>
+    /// <para type="link">Get-Probe</para>
     /// </summary>
     [Cmdlet(VerbsCommon.Add, "Group", SupportsShouldProcess = true)]
-    public class AddGroup : AddObject<NewGroupParameters, Group, GroupOrProbe>
+    public class AddGroup : AddParametersObject<NewGroupParameters, Group, GroupOrProbe>
     {
         /// <summary>
         /// <para type="description">The parent object to create an object under.</para>

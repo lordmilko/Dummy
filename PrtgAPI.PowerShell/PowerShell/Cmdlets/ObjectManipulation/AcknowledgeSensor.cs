@@ -42,7 +42,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Get-Sensor Ping -Status Down | Acknowledge-Sensor -Forever</code>
     ///     <para>Acknowledge all down ping sensors forever (or until they comes back up by themselves)</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/State-Manipulation#acknowledge-1">Online version:</para>
     /// <para type="link">Get-Sensor</para>
     /// <para type="link">Pause-Object</para>
     /// </summary>
@@ -91,12 +92,10 @@ namespace PrtgAPI.PowerShell.Cmdlets
         internal override string ProgressActivity => "Acknowledge PRTG Sensors";
 
         /// <summary>
-        /// Provides a one-time, preprocessing functionality for the cmdlet.
+        /// Provides an enhanced one-time, preprocessing functionality for the cmdlet.
         /// </summary>
-        protected override void BeginProcessing()
+        protected override void BeginProcessingEx()
         {
-            base.BeginProcessing();
-
             switch (ParameterSetName)
             {
                 case ParameterSet.Default:
@@ -109,6 +108,9 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
                 case ParameterSet.Forever:
                     break;
+
+                default:
+                    throw new UnknownParameterSetException(ParameterSetName);
             }
 
             if (duration < 1 && ParameterSetName != ParameterSet.Forever)

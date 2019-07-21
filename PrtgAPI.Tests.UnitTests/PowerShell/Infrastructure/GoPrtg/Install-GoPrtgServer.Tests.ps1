@@ -1,15 +1,19 @@
-﻿. $PSScriptRoot\..\..\..\Support\PowerShell\GoPrtg.Shared.ps1
+﻿. $PSScriptRoot\..\..\..\Support\PowerShell\GoPrtg.ps1
 
 Describe "Install-GoPrtgServer" -Tag @("PowerShell", "UnitTest") {
 
-    $baseExpected = ("########################### Start GoPrtg Servers ###########################`r`n`r`n" + 
-                    "function __goPrtgGetServers {@(`r`n    `"```"prtg.example.com```",,```"username```",```"*```"`"`r`n)}`r`n`r`n" + 
-                    "############################ End GoPrtg Servers ############################`r`n").Replace("``","````")
+    $nl = [Environment]::NewLine
+
+    $baseExpected = ("########################### Start GoPrtg Servers ###########################$nl$nl" +
+                    "function __goPrtgGetServers {@($nl    `"```"prtg.example.com```",,```"username```",```"*```"`"$nl)}$nl$nl" +
+                    "############################ End GoPrtg Servers ############################$nl").Replace("``","````")
 
     BeforeAll { GoPrtgBeforeAll    }
 
     BeforeEach { GoPrtgBeforeEach }
     AfterEach { GoPrtgAfterEach }
+
+    AfterAll { GoPrtgAfterAll }
 
     It "creates a new profile and profile folder if one doesn't exist" {
 
@@ -66,7 +70,7 @@ Describe "Install-GoPrtgServer" -Tag @("PowerShell", "UnitTest") {
 
         Install-GoPrtgServer
 
-        $expected = "Write-Host `"hello`"`r`n$baseExpected"
+        $expected = "Write-Host `"hello`"$nl$baseExpected"
 
         $content = gc $Profile -Raw
 
@@ -104,13 +108,13 @@ Describe "Install-GoPrtgServer" -Tag @("PowerShell", "UnitTest") {
 
         $content = gc $Profile -Raw
 
-        $expected = "Write-Host `"hello`"`r`n"
-        $expected += "########################### Start GoPrtg Servers ###########################`r`n`r`n"
-        $expected += "function __goPrtgGetServers {@(`r`n"
-        $expected += "    `"```"prtg.example.com```",,```"username```",```"*```"`",`r`n"
-        $expected += "    `"```"prtg.example2.com```",,```"username2```",```"*```"`"`r`n"
-        $expected += ")}`r`n`r`n"
-        $expected += "############################ End GoPrtg Servers ############################`r`n"
+        $expected = "Write-Host `"hello`"$nl"
+        $expected += "########################### Start GoPrtg Servers ###########################$nl$nl"
+        $expected += "function __goPrtgGetServers {@($nl"
+        $expected += "    `"```"prtg.example.com```",,```"username```",```"*```"`",$nl"
+        $expected += "    `"```"prtg.example2.com```",,```"username2```",```"*```"`"$nl"
+        $expected += ")}$nl$nl"
+        $expected += "############################ End GoPrtg Servers ############################$nl"
 
         $expected = $expected.Replace("``", "````")
 
@@ -140,14 +144,14 @@ Describe "Install-GoPrtgServer" -Tag @("PowerShell", "UnitTest") {
 
         $content = gc $Profile -Raw
 
-        $expected = "Write-Host `"hello`"`r`n"
-        $expected += "########################### Start GoPrtg Servers ###########################`r`n`r`n"
-        $expected += "function __goPrtgGetServers {@(`r`n"
-        $expected += "    `"```"prtg.example.com```",,```"username```",```"*```"`",`r`n"
-        $expected += "    `"```"prtg.example2.com```",,```"username2```",```"*```"`"`r`n"
-        $expected += ")}`r`n`r`n"
-        $expected += "############################ End GoPrtg Servers ############################`r`n"
-        $expected += "Write-Host `"goodbye`"`r`n"
+        $expected = "Write-Host `"hello`"$nl"
+        $expected += "########################### Start GoPrtg Servers ###########################$nl$nl"
+        $expected += "function __goPrtgGetServers {@($nl"
+        $expected += "    `"```"prtg.example.com```",,```"username```",```"*```"`",$nl"
+        $expected += "    `"```"prtg.example2.com```",,```"username2```",```"*```"`"$nl"
+        $expected += ")}$nl$nl"
+        $expected += "############################ End GoPrtg Servers ############################$nl"
+        $expected += "Write-Host `"goodbye`"$nl"
 
         $expected = $expected.Replace("``", "````")
 
@@ -159,11 +163,11 @@ Describe "Install-GoPrtgServer" -Tag @("PowerShell", "UnitTest") {
 
         $content = gc $Profile -Raw
 
-        $expected = "########################### Start GoPrtg Servers ###########################`r`n`r`n"
-        $expected += "function __goPrtgGetServers {@(`r`n"
-        $expected += "    `"```"prtg.example.com```",```"prod```",```"username```",```"*```"`"`r`n"
-        $expected += ")}`r`n`r`n"
-        $expected += "############################ End GoPrtg Servers ############################`r`n"
+        $expected = "########################### Start GoPrtg Servers ###########################$nl$nl"
+        $expected += "function __goPrtgGetServers {@($nl"
+        $expected += "    `"```"prtg.example.com```",```"prod```",```"username```",```"*```"`"$nl"
+        $expected += ")}$nl$nl"
+        $expected += "############################ End GoPrtg Servers ############################$nl"
 
         $expected = $expected.Replace("``", "````")
 
@@ -175,11 +179,11 @@ Describe "Install-GoPrtgServer" -Tag @("PowerShell", "UnitTest") {
 
         $content = gc $Profile -Raw
 
-        $expected = "########################### Start GoPrtg Servers ###########################`r`n`r`n"
-        $expected += "function __goPrtgGetServers {@(`r`n"
-        $expected += "    `"```"prtg.example.com```",,```"username```",```"*```"`"`r`n"
-        $expected += ")}`r`n`r`n"
-        $expected += "############################ End GoPrtg Servers ############################`r`n"
+        $expected = "########################### Start GoPrtg Servers ###########################$nl$nl"
+        $expected += "function __goPrtgGetServers {@($nl"
+        $expected += "    `"```"prtg.example.com```",,```"username```",```"*```"`"$nl"
+        $expected += ")}$nl$nl"
+        $expected += "############################ End GoPrtg Servers ############################$nl"
 
         $expected = $expected.Replace("``", "````")
 
@@ -191,11 +195,11 @@ Describe "Install-GoPrtgServer" -Tag @("PowerShell", "UnitTest") {
 
         $content = gc $Profile -Raw
 
-        $expected = "########################### Start GoPrtg Servers ###########################`r`n`r`n"
-        $expected += "function __goPrtgGetServers {@(`r`n"
-        $expected += "    `"```"prtg.example.com```",,```"username```",```"*```"`"`r`n"
-        $expected += ")}`r`n`r`n"
-        $expected += "############################ End GoPrtg Servers ############################`r`n"
+        $expected = "########################### Start GoPrtg Servers ###########################$nl$nl"
+        $expected += "function __goPrtgGetServers {@($nl"
+        $expected += "    `"```"prtg.example.com```",,```"username```",```"*```"`"$nl"
+        $expected += ")}$nl$nl"
+        $expected += "############################ End GoPrtg Servers ############################$nl"
 
         $expected = $expected.Replace("``", "````")
 
@@ -237,12 +241,12 @@ Describe "Install-GoPrtgServer" -Tag @("PowerShell", "UnitTest") {
 
         $contents = gc $Profile -Raw
 
-        $expected = "########################### Start GoPrtg Servers ###########################`r`n`r`n"
-        $expected += "function __goPrtgGetServers {@(`r`n"
-        $expected += "    `"```"prtg.example.com```",,```"username```",```"*```"`",`r`n"
-        $expected += "    `"```"prtg.example2.com```",,```"username```",```"*```"`"`r`n"
-        $expected += ")}`r`n`r`n"
-        $expected += "############################ End GoPrtg Servers ############################`r`n"
+        $expected = "########################### Start GoPrtg Servers ###########################$nl$nl"
+        $expected += "function __goPrtgGetServers {@($nl"
+        $expected += "    `"```"prtg.example.com```",,```"username```",```"*```"`",$nl"
+        $expected += "    `"```"prtg.example2.com```",,```"username```",```"*```"`"$nl"
+        $expected += ")}$nl$nl"
+        $expected += "############################ End GoPrtg Servers ############################$nl"
 
         $expected = $expected.Replace("``", "````")
 
@@ -269,12 +273,12 @@ Describe "Install-GoPrtgServer" -Tag @("PowerShell", "UnitTest") {
 
         $contents = gc $Profile -Raw
 
-        $expected = "########################### Start GoPrtg Servers ###########################`r`n`r`n"
-        $expected += "function __goPrtgGetServers {@(`r`n"
-        $expected += "    `"```"prtg.example.com```",```"prod```",```"username```",```"*```"`",`r`n"
-        $expected += "    `"```"prtg.example.com```",```"dev```",```"username2```",```"*```"`"`r`n"
-        $expected += ")}`r`n`r`n"
-        $expected += "############################ End GoPrtg Servers ############################`r`n"
+        $expected = "########################### Start GoPrtg Servers ###########################$nl$nl"
+        $expected += "function __goPrtgGetServers {@($nl"
+        $expected += "    `"```"prtg.example.com```",```"prod```",```"username```",```"*```"`",$nl"
+        $expected += "    `"```"prtg.example.com```",```"dev```",```"username2```",```"*```"`"$nl"
+        $expected += ")}$nl$nl"
+        $expected += "############################ End GoPrtg Servers ############################$nl"
 
         $expected = $expected.Replace("``", "````")
 
@@ -286,7 +290,7 @@ Describe "Install-GoPrtgServer" -Tag @("PowerShell", "UnitTest") {
         $client = Get-PrtgClient
 
         Install-GoPrtgServer
-        
+
         { Install-GoPrtgServer } | Should Throw "Cannot add server '$($client.Server)': a record for the user '$($client.UserName)' already exists."
     }
 

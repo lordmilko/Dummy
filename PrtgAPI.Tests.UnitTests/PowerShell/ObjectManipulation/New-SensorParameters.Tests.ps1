@@ -16,7 +16,16 @@ function ValidateParams($params, $address)
 {
     $device = Run Device { Get-Device }
 
-    WithResponseArgs "AddressValidatorResponse" $address {
+    $urls = @(
+        @(
+            [Request]::Status()
+            [Request]::BeginAddSensorQuery($device.Id, $params["sensortype"])
+            [Request]::AddSensor($address + "&id=$($device.Id)")
+        ),
+        $true
+    )
+
+    WithResponseArgs "AddressValidatorResponse" $urls {
         $device | Add-Sensor $params -Resolve:$false
     }
 }
@@ -47,12 +56,33 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
         $params.ExeFile | Should Be "blah.ps1"
     }
 
+    It "has contexts for all sensor parameter types" {
+
+        $contextNames = GetScriptContexts $PSCommandPath
+
+        $baseType = [PrtgAPI.Parameters.SensorParametersInternal]
+
+        $allTypes = $baseType.Assembly.GetTypes()
+
+        $sensorParametersTypes = $allTypes | where { $baseType.IsAssignableFrom($_) -and $_ -ne $baseType } | select -ExpandProperty Name
+
+        $missingContexts = $sensorParametersTypes | where { $_ -notin $contextNames }
+
+        if($missingContexts)
+        {
+            $str = $missingContexts -join "`n"
+
+            throw "Contexts/tests are missing for the following parameter types: $str. Make sure you also add the sensor type to `$parameterTypes under the Types context!"
+        }
+    }
+
     Context "Types" {
 
         $parameterTypes = @(
             @{name = "ExeXml"}
             @{name = "WmiService"}
             @{name = "Http"}
+            @{name = "Factory"}
         )
 
         It "creates a set of <name> parameters" -TestCases $parameterTypes {
@@ -98,7 +128,7 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
         }
 
         It "throws when a raw name is null" {
-            { New-SensorParameters @{"name_" = $null; "sensortype" = "custom type"} } | Should Throw "objectName cannot be null or empty"
+            { New-SensorParameters @{"name_" = $null; "sensortype" = "custom type"} } | Should Throw "An object name cannot be null."
         }
 
         It "throws when a raw sensortype isn't specified" {
@@ -106,7 +136,7 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
         }
 
         It "throws when a raw sensortype is null" {
-            { New-SensorParameters @{"name_" = "custom name"; "sensortype" = $null} } | Should Throw "sensorType cannot be null or empty"
+            { New-SensorParameters @{"name_" = "custom name"; "sensortype" = $null} } | Should Throw "SensorType cannot be null or empty."
         }
 
         It "throws when multiple CustomParameter objects exist for a non sensor target property" {
@@ -244,7 +274,7 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
 
             $params.Name = "testName"
             $params.SensorType = "testType"
-            ValidateParams $params "test_=goodbye&name_=testName&sensortype=testType&id=40"
+            ValidateParams $params "test_=goodbye&name_=testName&sensortype=testType"
         }
 
         #endregion
@@ -410,6 +440,11 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
 
             $paramsArr = @(
                 "name_=XML+Custom+EXE%2FScript+Sensor"
+                "priority_=3"
+                "inherittriggers=1"
+                "intervalgroup=1"
+                "interval_=60%7C60+seconds"
+                "errorintervalsdown_=1"
                 "tags_=xmlexesensor"
                 "exefilelabel="
                 "exeparams_="
@@ -418,12 +453,7 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
                 "mutexname_="
                 "timeout_=60"
                 "writeresult_=0"
-                "intervalgroup=1"
-                "inherittriggers_=1"
-                "priority_=3"
                 "exefile_=Demo+Batchfile+-+Returns+static+values+in+four+channels.bat%7CDemo+Batchfile+-+Returns+static+values+in+four+channels.bat%7C%7C"
-                "interval_=60%7C60+seconds"
-                "errorintervalsdown_=1"
                 "test_=hello"
                 "sensortype=exexml"
             )
@@ -491,6 +521,11 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
 
             $paramsArr = @(
                 "name_=XML+Custom+EXE%2FScript+Sensor"
+                "priority_=3"
+                "inherittriggers=1"
+                "intervalgroup=0"
+                "interval_=60%7C60+seconds"
+                "errorintervalsdown_=1"
                 "tags_=xmlexesensor"
                 "exefilelabel="
                 "exeparams_="
@@ -499,12 +534,7 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
                 "mutexname_="
                 "timeout_=60"
                 "writeresult_=0"
-                "intervalgroup=0"
-                "inherittriggers_=1"
-                "priority_=3"
                 "exefile_=Demo+Batchfile+-+Returns+static+values+in+four+channels.bat%7CDemo+Batchfile+-+Returns+static+values+in+four+channels.bat%7C%7C"
-                "interval_=60%7C60+seconds"
-                "errorintervalsdown_=1"
                 "sensortype=exexml"
             )
 
@@ -520,6 +550,11 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
 
             $paramsArr = @(
                 "name_=XML+Custom+EXE%2FScript+Sensor"
+                "priority_=3"
+                "inherittriggers=1"
+                "intervalgroup=0"
+                "interval_=300%7C5+minutes"
+                "errorintervalsdown_=1"
                 "tags_=xmlexesensor"
                 "exefilelabel="
                 "exeparams_="
@@ -528,12 +563,7 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
                 "mutexname_="
                 "timeout_=60"
                 "writeresult_=0"
-                "intervalgroup=0"
-                "inherittriggers_=1"
-                "priority_=3"
                 "exefile_=Demo+Batchfile+-+Returns+static+values+in+four+channels.bat%7CDemo+Batchfile+-+Returns+static+values+in+four+channels.bat%7C%7C"
-                "interval_=300%7C5+minutes"
-                "errorintervalsdown_=1"
                 "sensortype=exexml"
             )
 
@@ -586,6 +616,11 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
 
             $paramsArr = @(
                 "name_=XML+Custom+EXE%2FScript+Sensor"
+                "priority_=3"
+                "inherittriggers=1"
+                "intervalgroup=1"
+                "interval_=60%7C60+seconds"
+                "errorintervalsdown_=1"
                 "tags_=xmlexesensor"
                 "exefilelabel="
                 "exeparams_="
@@ -594,11 +629,6 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
                 "mutexname_="
                 "timeout_=60"
                 "writeresult_=0"
-                "intervalgroup=1"
-                "inherittriggers_=1"
-                "priority_=3"
-                "interval_=60%7C60+seconds"
-                "errorintervalsdown_=1"
                 "exefile_=Demo+Batchfile+-+Returns+static+values+in+four+channels.bat%7CDemo+Batchfile+-+Returns+static+values+in+four+channels.bat%7C%7C"
                 "exefile_=testScript.bat%7CtestScript.bat%7C%7C"
                 "sensortype=exexml"
@@ -646,6 +676,11 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
 
             $addAddressParts = @(
                 "name_=HTTP"
+                "priority_=3"
+                "inherittriggers=1"
+                "intervalgroup=1"
+                "interval_=60%7C60+seconds"
+                "errorintervalsdown_=1"
                 "tags_=httpsensor"
                 "timeout_=60"
                 "httpurl_=http%3A%2F%2F"
@@ -659,11 +694,6 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
                 "proxyport_=8080"
                 "proxyuser_="
                 "proxypassword_="
-                "intervalgroup=1"
-                "inherittriggers_=1"
-                "priority_=3"
-                "interval_=60%7C60+seconds"
-                "errorintervalsdown_=1"
                 "postdata_="
                 "sensortype=http"
                 "id=40"
@@ -675,15 +705,21 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
 
             $final = "https://prtg.example.com/addsensor5.htm?$combined"
 
-            [object[]]$addresses = (,@(
-                "https://prtg.example.com/controls/addsensor2.htm?id=40&sensortype=http&username=username&passhash=12345678"
-                "https://prtg.example.com/api/getaddsensorprogress.htm?id=40&tmpid=2"
-                "https://prtg.example.com/api/getaddsensorprogress.htm?id=40&tmpid=2"
-                "https://prtg.example.com/addsensor4.htm?id=40&tmpid=2"
-                $final
-            ))
+            $urls = @(
+                @(
+                    [Request]::SensorTypes(40)
+                    [Request]::BeginAddSensorQuery(40, "http")
+                    [Request]::AddSensorProgress(40, 2)
+                    [Request]::AddSensorProgress(40, 2)
+                    [Request]::EndAddSensorQuery(40, 2)
+                    [Request]::Status()
+                    [Request]::BeginAddSensorQuery(40, "http")
+                    $final
+                ),
+                $true
+            )
 
-            WithResponseArgs "AddressValidatorResponse" $addresses {
+            WithResponseArgs "AddressValidatorResponse" $urls {
                 $device | New-SensorParameters -RawType http | Add-Sensor -Resolve:$false
             }
         }
@@ -785,6 +821,128 @@ Describe "New-SensorParameters" -Tag @("PowerShell", "UnitTest") {
             SetValue $params "UseCustomPostContent" $true
             SetValue $params "PostContentType" "customType"
             SetValue $params "UseSNIFromUrl" $true
+        }
+    }
+
+    Context "FactorySensorParameters" {
+
+        It "can set a value on each property" {
+            SetMultiTypeResponse
+
+            $params = New-SensorParameters Factory
+
+            SetValue $params "ChannelDefinition" "a","b"
+            SetValue $params "FactoryErrorMode" "WarnOnError"
+            SetValue $params "FactoryErrorFormula" "test"
+            SetValue $params "FactoryMissingDataMode" "CalculateWithZero"
+        }
+    }
+
+    Context "Query Target" {
+        It "parses a sensor query target" {
+            SetCustomAddressValidatorResponse "SensorQueryTargetValidatorResponse" @(
+                [Request]::SensorTypes(40) # Get initial target
+
+                [Request]::SensorTypes(40) # Verify specified target
+                [Request]::BeginAddSensorQuery(40, "snmplibrary_nolist", "APC+UPS.oidlib")
+                [Request]::AddSensorProgress(40, 2)
+                [Request]::EndAddSensorQuery(40, 2)
+            )
+
+            $target = $device | Get-SensorType snmplibrary | select -ExpandProperty QueryTargets|select -First 1
+
+            $target | Should Be "APC UPS.oidlib"
+
+            $device | New-SensorParameters -RawType snmplibrary -qt $target
+        }
+
+        It "parses a sensor query target wildcard" {
+            SetCustomAddressValidatorResponse "SensorQueryTargetValidatorResponse" @(
+                [Request]::SensorTypes(40), # Get initial target from wildcard
+
+                [Request]::SensorTypes(40) # Verify specified target
+                [Request]::BeginAddSensorQuery(40, "snmplibrary_nolist", "APC+UPS.oidlib")
+                [Request]::AddSensorProgress(40, 2)
+                [Request]::EndAddSensorQuery(40, 2)
+            )
+
+            $device | New-SensorParameters -RawType snmplibrary -qt *ups*
+        }
+
+        It "throws when a sensor query target wildcard does not match" {
+            SetCustomAddressValidatorResponse "SensorQueryTargetValidatorResponse" @(
+                [Request]::SensorTypes(40) # Get initial target from wildcard
+            )
+
+            { $device | New-SensorParameters -RawType snmplibrary -qt *potato* } | Should Throw "Could not find a query target matching the wildcard expression '*potato*'. Please specify one of the following parameters: 'APC UPS.oidlib',"
+        }
+
+        It "throws when a sensor query target wildcard is ambiguous" {
+            SetCustomAddressValidatorResponse "SensorQueryTargetValidatorResponse" @(
+                [Request]::SensorTypes(40) # Get initial target from wildcard
+            )
+
+            { $device | New-SensorParameters -RawType snmplibrary -qt *apc* } | Should Throw "Query target wildcard '*apc*' is ambiguous between the following parameters: 'APC UPS.oidlib', 'APCSensorstationlib.oidlib'. Please specify a more specific identifier."
+        }
+
+        It "throws when a sensor query target is invalid" {
+            SetCustomAddressValidatorResponse "SensorQueryTargetValidatorResponse" @(
+                [Request]::SensorTypes(40) # Get initial target from wildcard
+            )
+
+            { $device | New-SensorParameters -RawType snmplibrary -qt potato } | Should Throw "Query target 'potato' is not a valid target for sensor type 'snmplibrary' on device ID 40. Please specify one of the following targets: 'APC UPS.oidlib',"
+        }
+
+        It "throws when target is not required" {
+            SetCustomAddressValidatorResponse "SensorQueryTargetValidatorResponse" @(
+                [Request]::SensorTypes(40)
+            )
+
+            { $device | New-SensorParameters -RawType ptfadsreplfailurexml -qt potato } | Should Throw "Cannot specify query target 'potato' on sensor type 'ptfadsreplfailurexml': type does not support query targets."
+        }
+
+        It "throws when target is missing" {
+            SetCustomAddressValidatorResponse "SensorQueryTargetValidatorResponse" @(
+                [Request]::SensorTypes(40)
+            )
+
+            { $device | New-SensorParameters -RawType snmplibrary } | Should Throw "Failed to process query for sensor type 'snmplibrary': a sensor query target is required, however none was specified. Please specify one of the following targets: 'APC UPS.oidlib',"
+        }
+
+        It "parses a set of sensor query target parameters" {
+            SetCustomAddressValidatorResponse "SensorQueryTargetParametersValidatorResponse" @(
+                [Request]::SensorTypes(40)
+                [Request]::BeginAddSensorQuery(40, "ptfadsreplfailurexml")
+                [Request]::ContinueAddSensorQuery(2055, 7, "database_=XE&sid_type_=0&prefix_=0")
+                [Request]::AddSensorProgress(40, 7)
+                [Request]::EndAddSensorQuery(40, 7)
+            )
+
+            $device | New-SensorParameters -RawType ptfadsreplfailurexml -qp @{
+                database = "XE"
+                sid_type = 0
+                prefix = 0
+            }
+        }
+
+        It "throws when sensor query target parameters are not specified" {
+
+            SetCustomAddressValidatorResponse "SensorQueryTargetParametersValidatorResponse" @(
+                [Request]::SensorTypes(40) # Get initial target from wildcard
+
+                [Request]::SensorTypes(40)
+            )
+
+            { $device | New-SensorParameters -RawType ptfadsreplfailurexml -qt *ups* } | Should Throw "Cannot specify query target '*ups*' on sensor type 'ptfadsreplfailurexml': type does not support query targets."
+        }
+
+        It "throws when a sensor query target parameter is missing" {
+            SetCustomAddressValidatorResponse "SensorQueryTargetParametersValidatorResponse" @(
+                [Request]::SensorTypes(40)
+                [Request]::BeginAddSensorQuery(40, "ptfadsreplfailurexml")
+            )
+
+            { $device | New-SensorParameters -RawType ptfadsreplfailurexml } | Should Throw "Failed to process request for sensor type 'oracletablespace': sensor query target parameters are required, however none were specified. Please retry the request specifying the parameters 'database_',"
         }
     }
 }

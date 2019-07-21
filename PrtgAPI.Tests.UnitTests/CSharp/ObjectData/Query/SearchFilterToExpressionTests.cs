@@ -130,6 +130,11 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
 
         [TestMethod]
         [TestCategory("UnitTest")]
+        public void SearchFilterExpression_PrtgObjectProperties_ParentId() =>
+            Execute(new Sensor { ParentId = 1000 }, new Sensor { ParentId = 2000 }, null, Property.ParentId, 1000);
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
         public void SearchFilterExpression_PrtgObjectProperties_Active() =>
             Execute(new Sensor { Active = true }, new Sensor { Active = false }, null, Property.Active, true);
 
@@ -179,11 +184,6 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
 
         [TestMethod]
         [TestCategory("UnitTest")]
-        public void SearchFilterExpression_SensorOrDeviceOrGroupOrProbeProperties_ParentId() =>
-            Execute(new Sensor { ParentId = 1000 }, new Sensor { ParentId = 2000 }, null, Property.ParentId, 1000);
-
-        [TestMethod]
-        [TestCategory("UnitTest")]
         public void SearchFilterExpression_SensorOrDeviceOrGroupOrProbeProperties_Position() =>
             Execute(new Sensor { Position = 1 }, new Sensor { Position = 2 }, null, Property.Position, 1);
 
@@ -216,11 +216,11 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
             Execute(new Sensor { Priority = Priority.Four }, new Sensor { Priority = Priority.Three }, null, Property.Priority, Priority.Four);
 
         #endregion
-        #region SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataOrHistory
+        #region SensorOrDeviceOrGroupOrProbeOrTicketOrTicketData
 
         [TestMethod]
         [TestCategory("UnitTest")]
-        public void SearchFilterExpression_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataOrHistoryProperties_Message() =>
+        public void SearchFilterExpression_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataProperties_Message() =>
             Execute(new Sensor { Message = "goodMessage" }, new Sensor { Message = "badMessage" }, null, Property.Message, "goodMessage");
 
         #endregion

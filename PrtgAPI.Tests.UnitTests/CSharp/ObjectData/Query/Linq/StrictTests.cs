@@ -659,11 +659,14 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
                 message
             );
 
-            var flags = legalUrl.Contains("count") ? UrlFlag.Columns : UrlFlag.Columns | UrlFlag.Count;
+            var flags = UnitRequest.DefaultObjectFlags & ~UrlFlag.Count;
+
+            if (!legalUrl.Contains("count"))
+                legalUrl = "count=500" + (string.IsNullOrEmpty(legalUrl) ? legalUrl : $"&{legalUrl}");
 
             var urls = new[]
             {
-                typeof(TSource) == typeof(Log) ? TestHelpers.RequestLog(legalUrl, flags) :TestHelpers. RequestSensor(legalUrl, flags)
+                typeof(TSource) == typeof(Log) ? UnitRequest.Logs(legalUrl, flags) : UnitRequest.Sensors(legalUrl, flags)
             };
 
             ExecuteClient(c => legalAction(query(c)), urls, s => legalValidator(s.ToList()));
@@ -682,11 +685,14 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
                 message
             );
 
-            var flags = legalUrl.Contains("count") ? UrlFlag.Columns : UrlFlag.Columns | UrlFlag.Count;
+            var flags = UnitRequest.DefaultObjectFlags & ~UrlFlag.Count;
+
+            if (!legalUrl.Contains("count"))
+                legalUrl = "count=500" + (string.IsNullOrEmpty(legalUrl) ? legalUrl : $"&{legalUrl}");
 
             var urls = new[]
             {
-                TestHelpers.RequestSensor(legalUrl, flags)
+                UnitRequest.Sensors(legalUrl, flags)
             };
 
             ExecuteClient(c => legalAction(c.QuerySensors(true)), urls, legalValidator);

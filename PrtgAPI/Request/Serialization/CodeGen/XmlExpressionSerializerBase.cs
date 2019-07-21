@@ -116,21 +116,21 @@ namespace PrtgAPI.Linq.Expressions.Serialization
 
             BuildNode(badXml, ElementName, LastElementValue);
 
-            if(reader.ReadToFollowing("message"))
+            if (reader.ReadToFollowing("message"))
             {
                 var node = WebUtility.HtmlDecode(Document.ReadNode(reader).OuterXml);
 
                 badXml.Append(node);
             }
 
-            throw new XmlDeserializationException($"Could not deserialize value '{s}' as it is not a valid member of type '{type}'. Could not process XML '{badXml}'");
+            throw new XmlDeserializationException($"Could not deserialize value '{s}' as it is not a valid member of type '{type}'. Could not process XML '{badXml}'.");
         }
 
         private void BuildNode(StringBuilder builder, object elementName, object elementValue, bool allowAttribute = true)
         {
             builder.Append($"<{elementName}");
 
-            if(allowAttribute && AttributeName != null)
+            if (allowAttribute && AttributeName != null)
             {
                 builder.Append($" {AttributeName}=\"{LastAttributeValue}\"");
             }

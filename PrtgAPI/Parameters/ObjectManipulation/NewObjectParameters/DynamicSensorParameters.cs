@@ -13,7 +13,7 @@ using PrtgAPI.Utilities;
 namespace PrtgAPI.Parameters
 {
     /// <summary>
-    /// Represents a dynamic set of raw parameters used to construct a <see cref="PrtgUrl"/> for creating a new sensor.
+    /// Represents a dynamic set of raw parameters used to construct a <see cref="PrtgRequestMessage"/> for creating a new sensor.
     /// </summary>
     public class DynamicSensorParameters : ContainerSensorParameters, IDynamicMetaObjectProvider, ISourceParameters<Device>
     {
@@ -66,17 +66,20 @@ namespace PrtgAPI.Parameters
 
         internal DynamicSensorParameters(string response, string sensorType) : base(TempName, sensorType, true)
         {
-            ParseResponse(response);
+            using (ConstructorScope)
+            {
+                ParseResponse(response);
 
-            Debug.Assert(Name != TempName);
+                Debug.Assert(Name != TempName, "Response did not contain the object's name. Parameters are in an invalid state.");
+            } 
         }
 
         private void ParseResponse(string response)
         {
             var nameRegex = "(.+?name=\")(.+?_*)(\".+)";
-            var inputs = ObjectSettings.GetFilteredInputs(response, nameRegex).Where(n => n.Name != "tmpid" && n.Name != "id" && n.Name != "sensortype" && n.Name != "parenttags_").ToList();
-            var lists = ObjectSettings.GetDropDownList(response, nameRegex);
-            var text = ObjectSettings.GetTextAreaFields(response, nameRegex);
+            var inputs = HtmlParser.Default.GetFilteredInputs(response, nameRegex).Where(n => n.Name != "tmpid" && n.Name != "id" && n.Name != "sensortype" && n.Name != "parenttags_").ToList();
+            var lists = HtmlParser.Default.GetDropDownList(response, nameRegex);
+            var text = HtmlParser.Default.GetTextAreaFields(response, nameRegex);
 
             Targets = GenericSensorTarget.GetAllTargets(response).ToDictionary(t => t.Key, t => t.Value.ToArray());
 
@@ -109,6 +112,9 @@ namespace PrtgAPI.Parameters
                 var deserialized = ILazyExtensions.Serializer.DeserializeObjectProperty(prop.Item1, defaultValue);
 
                 prop.Item2.SetValue(this, deserialized);
+
+                if (propKey.EndsWith("_") && !name.EndsWith("_"))
+                    AddNameOverride(prop.Item1, name);
 
                 return;
             }

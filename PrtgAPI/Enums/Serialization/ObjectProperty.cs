@@ -63,6 +63,14 @@ namespace PrtgAPI
         [Category(ObjectPropertyCategory.Location)]
         Location,
 
+        /// <summary>
+        /// The label to use for the location. Must be used in conjunction with <see cref="Location"/>.
+        /// </summary>
+        [Mergeable(Location)]
+        [TypeLookup(typeof(SpecialPropertySettings))]
+        [Category(ObjectPropertyCategory.Location)]
+        LocationName,
+
         #endregion
         #region Credentials for Windows Systems
 
@@ -654,7 +662,9 @@ namespace PrtgAPI
 
         /// <summary>
         /// Whether to inherit Channel Unit Configuration settings from the parent object.<para/>
-        /// Corresponds to Channel Unit Configuration -> Inherit Channel Unit.
+        /// Corresponds to Channel Unit Configuration -> Inherit Channel Unit.<para/>
+        /// Note: Modifying this property may invalidate the <see cref="Channel.Factor"/> of any <see cref="Channel"/> objects under this sensor you currently hold reference to.<para/>
+        /// Attempts to modify channel properties from these objects may not work as expected until the objects are re-retrieved.
         /// </summary>
         [LiteralValue]
         [TypeLookup(typeof(TableSettings))]
@@ -663,7 +673,9 @@ namespace PrtgAPI
 
         /// <summary>
         /// Unit to use for traffic volume sensor channels.<para/>
-        /// Corresponds to Channel Unit Configuration -> Bandwidth (Bytes).
+        /// Corresponds to Channel Unit Configuration -> Bandwidth (Bytes).<para/>
+        /// Note: Modifying this property may invalidate the <see cref="Channel.Factor"/> of any <see cref="Channel"/> objects under this sensor you currently hold reference to.<para/>
+        /// Attempts to modify channel properties from these objects may not work as expected until the objects are re-retrieved.
         /// </summary>
         [LiteralValue]
         [TypeLookup(typeof(TableSettings))]
@@ -674,7 +686,9 @@ namespace PrtgAPI
 
         /// <summary>
         /// Unit to use for traffic speed sensor channels.<para/>
-        /// Corresponds to Channel Unit Configuration -> Bandwidth (Bytes).
+        /// Corresponds to Channel Unit Configuration -> Bandwidth (Bytes).<para/>
+        /// Note: Modifying this property may invalidate the <see cref="Channel.Factor"/> of any <see cref="Channel"/> objects under this sensor you currently hold reference to.<para/>
+        /// Attempts to modify channel properties from these objects may not work as expected until the objects are re-retrieved.
         /// </summary>
         [LiteralValue]
         [TypeLookup(typeof(TableSettings))]
@@ -685,7 +699,9 @@ namespace PrtgAPI
 
         /// <summary>
         /// Unit to use for rate in traffic speed sensor channels.<para/>
-        /// Corresponds to Channel Unit Configuration -> Bandwidth (Bytes).
+        /// Corresponds to Channel Unit Configuration -> Bandwidth (Bytes).<para/>
+        /// Note: Modifying this property may invalidate the <see cref="Channel.Factor"/> of any <see cref="Channel"/> objects under this sensor you currently hold reference to.<para/>
+        /// Attempts to modify channel properties from these objects may not work as expected until the objects are re-retrieved.
         /// </summary>
         [LiteralValue]
         [TypeLookup(typeof(TableSettings))]
@@ -696,7 +712,9 @@ namespace PrtgAPI
 
         /// <summary>
         /// Unit to use for memory usage in memory usage sensors.<para/>
-        /// Corresponds to Channel Unit Configuration -> Bytes (Memory).
+        /// Corresponds to Channel Unit Configuration -> Bytes (Memory).<para/>
+        /// Note: Modifying this property may invalidate the <see cref="Channel.Factor"/> of any <see cref="Channel"/> objects under this sensor you currently hold reference to.<para/>
+        /// Attempts to modify channel properties from these objects may not work as expected until the objects are re-retrieved.
         /// </summary>
         [LiteralValue]
         [TypeLookup(typeof(TableSettings))]
@@ -707,7 +725,9 @@ namespace PrtgAPI
 
         /// <summary>
         /// Unit to use for disk usage in disk usage sensors.<para/>
-        /// Corresponds to Channel Unit Configuration -> Bytes (Disk).
+        /// Corresponds to Channel Unit Configuration -> Bytes (Disk).<para/>
+        /// Note: Modifying this property may invalidate the <see cref="Channel.Factor"/> of any <see cref="Channel"/> objects under this sensor you currently hold reference to.<para/>
+        /// Attempts to modify channel properties from these objects may not work as expected until the objects are re-retrieved.
         /// </summary>
         [LiteralValue]
         [TypeLookup(typeof(TableSettings))]
@@ -715,10 +735,12 @@ namespace PrtgAPI
         [DependentProperty(ObjectPropertyInternal.ChannelUnit, "")]
         [Category(ObjectPropertyCategory.ChannelUnit)]
         DiskSizeUnit,
-        
+
         /// <summary>
         /// Unit to use for file size in file size sensors.<para/>
-        /// Corresponds to Channel Unit Configuration -> Bytes (File).
+        /// Corresponds to Channel Unit Configuration -> Bytes (File).<para/>
+        /// Note: Modifying this property may invalidate the <see cref="Channel.Factor"/> of any <see cref="Channel"/> objects under this sensor you currently hold reference to.<para/>
+        /// Attempts to modify channel properties from these objects may not work as expected until the objects are re-retrieved.
         /// </summary>
         [LiteralValue]
         [TypeLookup(typeof(TableSettings))]

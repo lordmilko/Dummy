@@ -114,7 +114,7 @@ namespace PrtgAPI.Request
             return xml;
         }
 
-        internal static List<NotificationTrigger> ParseNotificationTriggerResponse(int objectId, XDocument xmlResponse)
+        internal static List<NotificationTrigger> ParseNotificationTriggerResponse(Either<IPrtgObject, int> objectOrId, XDocument xmlResponse)
         {
             var xmlResponseContent = xmlResponse.Descendants("item").Select(x => new
             {
@@ -126,7 +126,7 @@ namespace PrtgAPI.Request
                 (e, o) =>
                 {
                     o.SubId = e.Id;
-                    o.ObjectId = objectId;
+                    o.ObjectId = objectOrId.GetId();
                 }
             );
 
@@ -164,10 +164,10 @@ namespace PrtgAPI.Request
 
         internal static void LoadTimeTable(Schedule schedule, string response)
         {
-            var input = ObjectSettings.GetInput(response, ObjectSettings.backwardsMatchRegex).Where(i => i.Name == "timetable").ToList();
+            var input = HtmlParser.Default.GetInput(response, HtmlParser.DefaultBackwardsMatchRegex).Where(i => i.Name == "timetable").ToList();
 
             //If user is read only inputs is empty
-            if(input.Count > 0)
+            if (input.Count > 0)
                 schedule.TimeTable = new TimeTable(input);
         }
 
@@ -207,7 +207,10 @@ namespace PrtgAPI.Request
         {
             var decodedResponse = WebUtility.UrlDecode(response.StringValue);
 
-            var id = Convert.ToInt32(Regex.Replace(decodedResponse, "(.+id=)(\\d+)(&.*)?", "$2"));
+            if (decodedResponse.Contains(CommandFunction.DuplicateObject.GetDescription()))
+                throw new PrtgRequestException("PRTG successfully cloned the object, however failed to return a response containing the location of the new object. This violates the Clone Object API contract and indicates a bug in PRTG.");
+
+            var id = Convert.ToInt32(Regex.Replace(decodedResponse, "(.+?id=)(\\d+)(&.*)?", "$2"));
 
             return id;
         }
@@ -260,14 +263,14 @@ namespace PrtgAPI.Request
                 return (T)val;
             }
 
-            if(typeof(T).IsArray && val == null)
+            if (typeof(T).IsArray && val == null)
             {
                 return (T)Activator.CreateInstance(typeof(T), new object[] { 0 });
             }
 
             var typeName = val?.GetType().Name ?? "null";
 
-            throw new InvalidCastException($"Cannot convert a value of type '{typeName}' to type '{typeof(T)}'");
+            throw new InvalidCastException($"Cannot convert a value of type '{typeName}' to type '{typeof(T)}'.");
         }
 
         internal static string ValidateRawObjectProperty(XDocument response, GetObjectPropertyRawParameters parameters)
@@ -283,15 +286,15 @@ namespace PrtgAPI.Request
 
         internal static T GetObjectProperties<T>(PrtgResponse response, XmlEngine xmlEngine, ObjectProperty mandatoryProperty)
         {
-            var xml = ObjectSettings.GetXml(response);
+            var xml = HtmlParser.Default.GetXml(response);
             var xDoc = new XDocument(xml);
 
             //If the response does not contain the mandatory property, we are executing as a read only user, and
             //should return null
 
-            var name = ObjectSettings.prefix + ObjectPropertyParser.GetObjectPropertyName(mandatoryProperty).TrimEnd('_');
+            var name = HtmlParser.DefaultPropertyPrefix + ObjectPropertyParser.GetObjectPropertyName(mandatoryProperty).TrimEnd('_');
 
-            if(xDoc.Descendants(name).ToList().Count > 0)
+            if (xDoc.Descendants(name).ToList().Count > 0)
             {
                 var items = xmlEngine.DeserializeObject<T>(xDoc.CreateReader());
 
@@ -343,12 +346,12 @@ namespace PrtgAPI.Request
 
         internal static PrtgResponse GetSensorHistoryResponse(HttpResponseMessage responseMessage, LogLevel logLevel, bool isDirty)
         {
-            if(RequestEngine.NeedsStringResponse(responseMessage, logLevel, isDirty))
+            if (RequestEngine.NeedsStringResponse(responseMessage, logLevel, isDirty))
             {
                 var response = responseMessage.Content.ReadAsStringAsync().Result;
 
                 if (!response.Contains("<"))
-                    throw new PrtgRequestException($"PRTG was unable to complete the request. The server responded with the following error: {response}");
+                    throw new PrtgRequestException($"PRTG was unable to complete the request. The server responded with the following error: {response.EnsurePeriod()}");
 
                 return new PrtgResponse(response, isDirty);
             }
@@ -363,7 +366,7 @@ namespace PrtgAPI.Request
                 var response = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                 if (!response.Contains("<"))
-                    throw new PrtgRequestException($"PRTG was unable to complete the request. The server responded with the following error: {response}");
+                    throw new PrtgRequestException($"PRTG was unable to complete the request. The server responded with the following error: {response.EnsurePeriod()}");
 
                 return new PrtgResponse(response, isDirty);
             }
@@ -371,44 +374,50 @@ namespace PrtgAPI.Request
             return new PrtgResponse(new SensorHistoryStream(await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false)));
         }
 
-        internal static List<SensorHistoryData> ParseSensorHistoryResponse(List<SensorHistoryData> items, int sensorId)
+        internal static List<SensorHistoryRecord> ParseSensorHistoryResponse(List<SensorHistoryRecord> items, int sensorId)
         {
             foreach (var history in items)
             {
                 history.SensorId = sensorId;
 
-                foreach (var value in history.ChannelRecords)
+                foreach (var record in history.ChannelRecords)
                 {
-                    value.Name = value.Name.Replace(" ", "");
+                    SetNewSensorHistoryChannelName(history, record);
 
-                    string newName;
-
-                    if (GetNewSensorHistoryChannelName(value.Name, out newName))
-                    {
-                        if (history.ChannelRecords.Where(r => r != value).All(r =>
-                        {
-                            //Is this new name unique amongst all the other channel names (after updating their names)?
-                            string other;
-
-                            if (!GetNewSensorHistoryChannelName(r.Name.Replace(" ", ""), out other))
-                                other = r.Name;
-
-                            return other != newName;
-                        }))
-                        {
-                            value.Name = newName;
-                        }
-                    }
-
-                    value.DateTime = history.DateTime;
-                    value.SensorId = sensorId;
+                    record.Value = GetSensorHistoryChannelValue(history, record);
+                    record.DateTime = history.DateTime;
+                    record.SensorId = sensorId;
                 }
             }
 
             return items;
         }
 
-        private static bool GetNewSensorHistoryChannelName(string oldName, out string newName)
+        private static void SetNewSensorHistoryChannelName(SensorHistoryRecord history, ChannelHistoryRecord record)
+        {
+            record.Name = record.Name.Replace(" ", "");
+
+            string newName;
+
+            if (TryGetNewSensorHistoryChannelName(record.Name, out newName))
+            {
+                if (history.ChannelRecords.Where(r => r != record).All(r =>
+                {
+                    //Is this new name unique amongst all the other channel names (after updating their names)?
+                    string other;
+
+                    if (!TryGetNewSensorHistoryChannelName(r.Name.Replace(" ", ""), out other))
+                        other = r.Name;
+
+                    return other != newName;
+                }))
+                {
+                    record.Name = newName;
+                }
+            }
+        }
+
+        private static bool TryGetNewSensorHistoryChannelName(string oldName, out string newName)
         {
             var regex = new Regex("^(.+)(\\(.+\\))$");
 
@@ -423,23 +432,95 @@ namespace PrtgAPI.Request
             return false;
         }
 
+        private static double? GetSensorHistoryChannelValue(SensorHistoryRecord history, ChannelHistoryRecord record)
+        {
+            //PRTG does not return a raw record if the sensor did not return a value
+            //(such as because it was in an error state)
+            var rawRecord = history.ChannelRecordsRaw.FirstOrDefault(r => r.ChannelId == record.ChannelId);
+
+            return rawRecord?.Value;
+        }
+
         #endregion
         #region Sensor Targets
 
-        internal static PrtgResponse GetSensorTargetTmpId(HttpResponseMessage message)
+        internal static ContinueAddSensorQueryParameters GetProcessSensorQueryParameters(string content, string sensorType, SensorMultiQueryTargetParameters queryParameters)
         {
-            var id = Regex.Replace(message.RequestMessage.RequestUri.ToString(), "(.+)(tmpid=)(.+)", "$3");
+            //We didn't automatically redirect to addsensor3.htm, indicating that we are a sensor type
+            //like Oracle Tablespace that wants to prefill some information prior to loading addsensor4.htm.
+            //Ignore this information request; these fields will automatically be included in our dynamic sensor parameters (if applicable)
 
-            return id;
+            var dictionary = HtmlParser.Default.GetDictionary(content);
+            
+            var htmlParser = new HtmlParser
+            {
+                StandardNameRegex = "(.+?name=\")(.+?_*)(\".+)"
+            };
+
+            var excluded = new[] { "id", "tmpid" };
+
+            var dict = htmlParser.GetDictionary(content);
+
+            string tmpIdStr;
+            int tmpId;
+
+            if (dict.TryGetValue("tmpid", out tmpIdStr))
+                tmpId = Convert.ToInt32(tmpIdStr);
+            else
+                return null;
+
+            var deviceId = Convert.ToInt32(dict["id"]);
+
+            dict = dict.Where(kv => !excluded.Contains(kv.Key)).ToDictionary(i => i.Key, i => i.Value);
+
+            if (queryParameters?.Parameters == null)
+            {
+                var str = string.Join(", ", dict.Select(v => $"'{v.Key}'"));
+
+                throw new InvalidOperationException($"Failed to process request for sensor type '{sensorType}': sensor query target parameters are required, however none were specified. Please retry the request specifying the parameters {str}.");
+            }
+
+            var missing = new List<string>();
+
+            foreach (var prop in dict.ToDictionary(i => i.Key, i => i.Value))
+            {
+                object v;
+
+                //Only trim name if a trimmed version of this parameter doesn't exist
+                var flexibleName = !dict.ContainsKey(prop.Key.ToLower().TrimEnd('_')); //todo: unit test having a trimmed version conflicting but we specified UPPERCASE_ non-trimmed
+
+                if (queryParameters.Parameters.TryGetValue(flexibleName ? prop.Key : prop.Key.ToLower(), out v, flexibleName, flexibleName))
+                {
+                    if (v is ISerializable)
+                        dict[prop.Key] = ((ISerializable) v).GetSerializedFormat();
+                    else
+                        dict[prop.Key] = v?.ToString();
+                }
+                else
+                    missing.Add(prop.Key);
+            }
+
+            if (missing.Count > 0)
+            {
+                var plural = "parameter".Plural(missing.Count);
+
+                throw new InvalidOperationException($"Failed to process request for sensor type '{sensorType}': sensor query target parameters did not include mandatory {plural} {missing.ToQuotedList()}.");
+            }
+
+            return new ContinueAddSensorQueryParameters(deviceId, tmpId, dict);
         }
 
-        internal static void ValidateSensorTargetProgressResult(SensorTargetProgress p)
+        internal static PrtgResponse GetSensorTargetTmpId(HttpResponseMessage message) => Regex.Replace(message.RequestMessage.RequestUri.ToString(), "(.+tmpid=)(\\d+)(.*)", "$2");
+
+        internal static void ValidateAddSensorProgressResult(AddSensorProgress p, bool addFull)
         {
             if (p.TargetUrl.StartsWith("addsensorfailed"))
             {
                 var parts = UrlUtilities.CrackUrl(p.TargetUrl);
 
                 var message = parts["errormsg"];
+
+                var action = addFull ? "add sensor" : "resolve sensor targets";
 
                 if (message != null)
                 {
@@ -449,11 +530,14 @@ namespace PrtgAPI.Request
                     if (message.StartsWith("Incomplete connection settings"))
                         throw new PrtgRequestException("Failed to retrieve data from device; required credentials for sensor type may be missing. See PRTG UI for further details.");
 
-                    throw new PrtgRequestException($"An exception occurred while trying to resolve sensor targets: {message}");
+                    throw new PrtgRequestException($"An exception occurred while trying to {action}: {message.EnsurePeriod()}");
                 }
 
-                throw new PrtgRequestException("An unspecified error occurred while trying to resolve sensor targets. Check the Device Host is still valid or try adding targets with the PRTG UI");
+                throw new PrtgRequestException($"An unspecified error occurred while trying to {action}. Specified sensor type may not be valid on this device, or sensor query target parameters may be incorrect. Check the Device 'Host' is still valid or try adding sensor with the PRTG UI.");
             }
+
+            if (addFull && p.Percent == -1)
+                throw new PrtgRequestException($"PRTG was unable to complete the request. The server responded with the following error: '{p.Error.Replace("<br/><ul><li>", " ").Replace("</li></ul><br/>", " ")}'.");
         }
 
         #endregion
@@ -461,7 +545,7 @@ namespace PrtgAPI.Request
 
         internal static List<DeviceTemplate> GetTemplates(string response)
         {
-            var checkboxes = ObjectSettings.GetInput(response).Where(
+            var checkboxes = HtmlParser.Default.GetInput(response).Where(
                 t => t.Type == Html.InputType.Checkbox && t.Name == Parameter.DeviceTemplate.GetDescription()
             ).ToList();
 
@@ -487,7 +571,7 @@ namespace PrtgAPI.Request
         internal static PrtgResponse ResolveParser(HttpResponseMessage message)
         {
             if (message.Content.Headers.ContentType.MediaType == "image/png" || message.StatusCode.ToString() == "530")
-                throw new PrtgRequestException("Could not resolve the specified address; the PRTG map provider is not currently available");
+                throw new PrtgRequestException("Could not resolve the specified address; the PRTG map provider is not currently available.");
 
             return null;
         }

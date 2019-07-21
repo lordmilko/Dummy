@@ -23,9 +23,7 @@ namespace PrtgAPI.PowerShell
             {
                 if (folder == null)
                 {
-                    var temp = Environment.GetEnvironmentVariable("temp");
-
-                    var prtgTemp = temp + "\\PrtgAPIFormats";
+                    var prtgTemp = Path.Combine(Path.GetTempPath(), "PrtgAPIFormats");
 
                     if (!Directory.Exists(prtgTemp))
                     {
@@ -56,7 +54,7 @@ namespace PrtgAPI.PowerShell
                         }
                     }
 
-                    folder = prtgTemp + $"\\PrtgAPI.DynamicFormat{{0}}_{Process.GetCurrentProcess().Id}.Format.ps1xml";
+                    folder = Path.Combine(prtgTemp, $"PrtgAPI.DynamicFormat{{0}}_{Process.GetCurrentProcess().Id}.Format.ps1xml");
                 }
 
                 return folder;
@@ -135,7 +133,7 @@ namespace PrtgAPI.PowerShell
         {
             RepairMissing();
 
-            var command = $"Update-FormatData -AppendPath {string.Join(",", Formats.Select(f => f.Item1))}";
+            var command = $"Update-FormatData -AppendPath {string.Join(",", Formats.Select(f => $"'{f.Item1}'"))}";
 
             cmdlet.InvokeCommand.InvokeScript(command);
         }

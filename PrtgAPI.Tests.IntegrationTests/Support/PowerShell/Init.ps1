@@ -2,7 +2,7 @@
 
 if(!(Get-Module -ListAvailable Assert))
 {
-    Install-Package Assert -ForceBootstrap -Force | Out-Null
+    Install-Package Assert -ProviderName PowerShellGet -RequiredVersion 0.8.1 -ForceBootstrap -Force | Out-Null
 }
 
 function ServerManager
@@ -245,7 +245,21 @@ function It {
             {
                 foreach($test in $TestCases)
                 {
-                    LogTestName "Running test '$($name): $($test["name"])'"
+                    $str = $test["name"]
+
+                    if(!$str)
+                    {
+                        $matches = $name | sls "<.+?>" -AllMatches | % matches | % Value | foreach { $_.Trim('<', '>') }
+
+                        $v = $matches | select -first 1
+
+                        if($v)
+                        {
+                            $str = $test[$v]
+                        }
+                    }
+
+                    LogTestName "Running test '$($name): $str'"
 
                     & $script @test
                 }

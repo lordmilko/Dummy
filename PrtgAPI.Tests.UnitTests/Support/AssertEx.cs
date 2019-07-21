@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -38,7 +39,7 @@ namespace PrtgAPI.Tests.UnitTests
 
             foreach (var prop in obj.GetType().GetProperties())
             {
-                if(!customHandler(prop))
+                if (!customHandler(prop))
                     Assert.IsFalse(TestReflectionUtilities.IsDefaultValue(prop, obj), $"Property '{prop.Name}' did not have a value.");
             }
         }
@@ -71,6 +72,11 @@ namespace PrtgAPI.Tests.UnitTests
 
         public static void AllPropertiesAndFieldsAreEqual<T>(T original, T clone)
         {
+            AllPropertiesAndFieldsAreEqualInternal(original, clone, new Stack<object>());
+        }
+
+        public static void AllPropertiesAndFieldsAreEqualInternal<T>(T original, T clone, Stack<object> seen)
+        {
             var firstProperties = original.GetType().GetProperties(flags).Where(p => !p.GetIndexParameters().Any()).ToList();
             var secondProperties = original.GetType().GetProperties(flags).Where(p => !p.GetIndexParameters().Any());
 
@@ -86,6 +92,9 @@ namespace PrtgAPI.Tests.UnitTests
 
                 var newValue = newProperty.GetValue(clone);
                 var originalValue = originalProperty.GetValue(original);
+
+                seen.Push(newValue);
+                seen.Push(originalValue);
 
                 if (originalValue.IsIEnumerable() && newValue.IsIEnumerable())
                 {
@@ -111,13 +120,13 @@ namespace PrtgAPI.Tests.UnitTests
                 }
                 else
                 {
-                    if(TestHelpers.IsPrtgAPIClass(originalValue) && TestHelpers.IsPrtgAPIClass(newValue))
+                    if (TestHelpers.IsPrtgAPIClass(originalValue) && TestHelpers.IsPrtgAPIClass(newValue) && seen.Where(v => v == originalValue).Count() < 3 && seen.Where(v => v == newValue).Count() < 3)
                     {
                         AllPropertiesAndFieldsAreEqual(originalValue, newValue);
                     }
                     else
                     {
-                        if(originalValue is XElement && newValue is XElement)
+                        if (originalValue is XElement && newValue is XElement)
                         {
                             originalValue = ((XElement)originalValue).ToString();
                             newValue = ((XElement)newValue).ToString();
@@ -126,6 +135,9 @@ namespace PrtgAPI.Tests.UnitTests
                         Assert.AreEqual(newValue, originalValue, $"Expected property '{newProperty.Name}' new value to be '{originalValue}' ({(originalValue?.GetType().Name ?? "null")}) however value was actually {newValue} ({(newValue?.GetType().Name ?? "null")})");
                     }
                 }
+
+                seen.Pop();
+                seen.Pop();
             }
 
             foreach (var newField in secondFields)
@@ -141,15 +153,18 @@ namespace PrtgAPI.Tests.UnitTests
                 var newValue = newField.GetValue(clone);
                 var originalValue = originalField.GetValue(original);
 
-                if (TestHelpers.IsPrtgAPIClass(originalValue) && TestHelpers.IsPrtgAPIClass(newValue))
+                seen.Push(newValue);
+                seen.Push(originalValue);
+
+                if (TestHelpers.IsPrtgAPIClass(originalValue) && TestHelpers.IsPrtgAPIClass(newValue) && seen.Where(v => v == originalValue).Count() < 3 && seen.Where(v => v == newValue).Count() < 3)
                 {
-                    AllPropertiesAndFieldsAreEqual(originalValue, newValue);
+                    AllPropertiesAndFieldsAreEqualInternal(originalValue, newValue, seen);
                 }
                 else
                 {
                     if (ReflectionExtensions.IsSubclassOfRawGeneric(newField.FieldType, typeof(IReadOnlyDictionary<,>)) && ReflectionExtensions.IsSubclassOfRawGeneric(originalField.FieldType, typeof(IReadOnlyDictionary<,>)))
                     {
-                        AllPropertiesAndFieldsAreEqual(originalValue, originalValue);
+                        AllPropertiesAndFieldsAreEqualInternal(originalValue, originalValue, seen);
                     }
                     else
                     {
@@ -158,9 +173,10 @@ namespace PrtgAPI.Tests.UnitTests
                         else
                             Assert.IsTrue((newValue == null && originalValue == null) || newValue?.Equals(originalValue) == true, $"Expected field '{newField.Name}' new value to be '{originalValue}' however value was actually '{newValue}'");
                     }
-                        
                 }
-                    
+
+                seen.Pop();
+                seen.Pop();
             }
         }
 
@@ -307,6 +323,37 @@ namespace PrtgAPI.Tests.UnitTests
 
             var japaneseClient = BaseTest.Initialize_Client(new BasicResponse(japanese));
             await ThrowsAsync<T>(async () => await action(japaneseClient), exceptionMessage);
+        }
+
+        internal static void UrlsEquivalent(string first, string second)
+        {
+            if (first.Length != second.Length)
+                Assert.Fail($"Url '{first}' is not equivalent to '{second}': lengths were different ({first.Length} vs {second.Length}).");
+
+            var firstSorted = OrderUri(first);
+            var secondSorted = OrderUri(second);
+
+            var result = Uri.Compare(firstSorted, secondSorted, UriComponents.AbsoluteUri, UriFormat.SafeUnescaped,
+                StringComparison.OrdinalIgnoreCase);
+
+            Assert.IsTrue(result == 0, "Urls were not equal");
+        }
+
+        private static Uri OrderUri(string str)
+        {
+            var sorted = new NameValueCollection();
+
+            var unsorted = UrlUtilities.CrackUrl(str);
+
+            foreach (var key in unsorted.AllKeys.OrderBy(k => k))
+            {
+                sorted.Add(key, unsorted[key]);
+            }
+
+            var builder = new UriBuilder(str);
+            builder.Query = UrlUtilities.QueryCollectionToString(sorted);
+
+            return builder.Uri;
         }
     }
 }

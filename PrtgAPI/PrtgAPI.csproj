@@ -28,11 +28,11 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\PrtgAPI\</OutputPath>
+    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\PrtgAPI\PrtgAPI.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\PrtgAPI.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -45,10 +45,13 @@
   <ItemGroup>
     <Compile Include="Attributes\AlternateDescription.cs" />
     <Compile Include="Attributes\CategoryAttribute.cs" />
+    <Compile Include="Attributes\FactorAttribute.cs" />
     <Compile Include="Attributes\FilterHandlerAttribute.cs" />
     <Compile Include="Attributes\LengthLimitAttribute.cs" />
     <Compile Include="Attributes\LiteralValueAttribute.cs" />
+    <Compile Include="Attributes\MergeableAttribute.cs" />
     <Compile Include="Attributes\MutuallyExclusiveAttribute.cs" />
+    <Compile Include="Attributes\NewSensorAttribute.cs" />
     <Compile Include="Attributes\NumericEnumAttribute.cs" />
     <Compile Include="Attributes\SecondaryPropertyAttribute.cs" />
     <Compile Include="Attributes\TypeAttribute.cs" />
@@ -114,6 +117,7 @@
     <Compile Include="Enums\NotificationType.cs" />
     <Compile Include="Enums\ProbeApproval.cs" />
     <Compile Include="Enums\RestartCoreStage.cs" />
+    <Compile Include="Enums\Serialization\SerializationMode.cs" />
     <Compile Include="Enums\Serialization\SortDirection.cs" />
     <Compile Include="Enums\Serialization\ObjectPropertyCategory.cs" />
     <Compile Include="Enums\Serialization\ObjectType.cs" />
@@ -124,15 +128,23 @@
     <Compile Include="Enums\ConfigFileType.cs" />
     <Compile Include="Enums\RequestVersion.cs" />
     <Compile Include="Enums\SystemInfoType.cs" />
-    <Compile Include="Events\EventStack.cs" />
-    <Compile Include="Events\EventState.cs" />
-    <Compile Include="Events\LogVerboseEventArgs.cs" />
+    <Compile Include="Objects\Models\Either.cs" />
+    <Compile Include="Parameters\Interfaces\ISensorQueryTargetParameters.cs" />
+    <Compile Include="Parameters\ObjectManipulation\AddSensor\ContinueAddSensorQueryParameters.cs" />
+    <Compile Include="Parameters\ObjectManipulation\AddSensor\SensorMultiQueryTargetParameters.cs" />
+    <Compile Include="Parameters\ObjectManipulation\AddSensor\SensorQueryTarget.cs" />
+    <Compile Include="Parameters\ObjectManipulation\AddSensor\SensorQueryTargetParameters.cs" />
+    <Compile Include="Parameters\TriggerParameter.cs" />
+    <Compile Include="Properties\Version.cs" />
+    <Compile Include="Request\HtmlParser.cs" />
+    <Compile Include="Request\LogVerboseEventArgs.cs" />
     <Compile Include="Exceptions\HttpDeserializationException.cs" />
     <Compile Include="Exceptions\Internal\InvalidExpressionException.cs" />
     <Compile Include="Exceptions\InvalidStateException.cs" />
     <Compile Include="Exceptions\ObjectResolutionException.cs" />
     <Compile Include="Objects\Models\Location.Google.cs" />
     <Compile Include="Objects\Models\Location.Here.cs" />
+    <Compile Include="Parameters\ConstructorScope.cs" />
     <Compile Include="Parameters\Containers\IParameterContainer.cs" />
     <Compile Include="Parameters\Containers\IParameterContainerValue.cs" />
     <Compile Include="Parameters\Containers\SimpleParameterContainer.cs" />
@@ -141,6 +153,17 @@
     <Compile Include="Parameters\Helpers\ObjectPropertyParser.cs" />
     <Compile Include="Parameters\Interfaces\ICustomParameterContainer.cs" />
     <Compile Include="Parameters\ObjectManipulation\ApproveProbeParameters.cs" />
+    <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\Sensors\FactorySensorParameters.cs" />
+    <Compile Include="Request\Serialization\ValueConverters\NotificationActionValueConverter.cs" />
+    <Compile Include="Request\Serialization\ValueConverters\ValueLookupConverter.cs" />
+    <Compile Include="Request\Version\ChannelLimitAnalysis.cs" />
+    <Compile Include="Request\Version\SetChannelPropertyGrouping.cs" />
+    <Compile Include="Request\Version\SetChannelPropertyTask.cs" />
+    <Compile Include="Request\Version\VersionClient.Generated.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>VersionClient.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Include="Request\Version\VersionClient17_4.cs" />
     <Compile Include="Utilities\DynamicParameterPropertyTypes.cs" />
     <Compile Include="Utilities\FluentExpressions.cs" />
@@ -262,7 +285,7 @@
     <Compile Include="Parameters\ObjectManipulation\LoadConfigFilesParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\RefreshObjectParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\RefreshSystemInfoParameters.cs" />
-    <Compile Include="Parameters\ObjectManipulation\SensorTarget\SensorTargetCompletedParameters.cs" />
+    <Compile Include="Parameters\ObjectManipulation\AddSensor\EndAddSensorQueryParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\SortAlphabeticallyParameters.cs" />
     <Compile Include="Request\PrtgClient.Methods.Generated.cs">
       <AutoGen>True</AutoGen>
@@ -316,12 +339,12 @@
     <Compile Include="Objects\Models\DeviceTemplate.cs" />
     <Compile Include="Objects\Models\Settings\TableSettings.cs" />
     <Compile Include="Parameters\Base\PageableParameters.cs" />
-    <Compile Include="Parameters\Base\PropertyParameter.cs" />
+    <Compile Include="Parameters\Base\PropertyParameter`1.cs" />
     <Compile Include="Parameters\Interfaces\ISourceParameters.cs" />
     <Compile Include="Parameters\ChannelParameter.cs" />
     <Compile Include="Parameters\ObjectData\ScheduleParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\AutoDiscoverParameters.cs" />
-    <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\HttpSensorParameters.cs" />
+    <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\Sensors\HttpSensorParameters.cs" />
     <Compile Include="Parameters\PropertyParameter.cs" />
     <Compile Include="Request\IShallowCloneable.cs" />
     <Compile Include="Request\RequestParser.cs" />
@@ -348,11 +371,11 @@
     <Compile Include="Objects\Models\SensorTarget\GenericSensorTarget.cs" />
     <Compile Include="Objects\PrtgObjects\UserGroup.cs" />
     <Compile Include="Objects\PrtgObjects\UserAccount.cs" />
-    <Compile Include="Objects\ProbeRestartProgress.cs" />
+    <Compile Include="Objects\Models\ProbeRestartProgress.cs" />
     <Compile Include="Objects\EventObjects\ChannelHistoryRecord.cs" />
     <Compile Include="Objects\Models\SensorTypeDescriptor.cs" />
     <Compile Include="Objects\PrtgObjects\Ticket.cs" />
-    <Compile Include="Objects\Models\SensorTarget\SensorTargetProgress.cs" />
+    <Compile Include="Objects\Models\AddSensorProgress.cs" />
     <Compile Include="Objects\Models\SensorTarget\ExeFileTarget.cs" />
     <Compile Include="Objects\Models\SensorTarget\SensorTarget.cs" />
     <Compile Include="Objects\Models\SensorTarget\SqlServerQueryTarget.cs" />
@@ -385,28 +408,23 @@
     <Compile Include="Parameters\ObjectManipulation\AcknowledgeSensorParameters.cs" />
     <Compile Include="Parameters\Base\BaseActionParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\DynamicSensorParameters.cs" />
-    <Compile Include="Parameters\ObjectManipulation\SensorTarget\SensorTargetProgressParameters.cs" />
-    <Compile Include="Parameters\ObjectManipulation\SensorTarget\SensorTargetParameters.cs" />
+    <Compile Include="Parameters\ObjectManipulation\AddSensor\AddSensorProgressParameters.cs" />
+    <Compile Include="Parameters\ObjectManipulation\AddSensor\BeginAddSensorQueryParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\CloneParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\MoveObjectParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\NewDeviceParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\NewGroupParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\NewObjectParameters.cs" />
-    <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\WmiServiceSensorParameters.cs" />
+    <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\Sensors\WmiServiceSensorParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\RenameParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\RestartProbeParameters.cs" />
-    <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\ExeXmlSensorParameters.cs" />
+    <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\Sensors\ExeXmlSensorParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\NewSensorParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\RawSensorParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\SensorParametersInternal.cs" />
     <Compile Include="Parameters\ObjectManipulation\SetObjectPropertyParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\SetPositionParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\Triggers\RemoveTriggerParameters.cs" />
-    <Compile Include="Properties\AssemblyVersion.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>AssemblyVersion.tt</DependentUpon>
-    </Compile>
     <Compile Include="Attributes\RequireValueAttribute.cs" />
     <Compile Include="Attributes\SplittableStringAttribute.cs" />
     <Compile Include="Enums\Enhanced\TriggerChannel.cs" />
@@ -420,7 +438,7 @@
     <Compile Include="Enums\Serialization\TriggerProperty.cs" />
     <Compile Include="Enums\Serialization\TriggerSensorState.cs" />
     <Compile Include="Enums\Deserialization\ObjectSettings\DataVolumeUnit.cs" />
-    <Compile Include="Events\RetryRequestEventArgs.cs" />
+    <Compile Include="Request\RetryRequestEventArgs.cs" />
     <Compile Include="Exceptions\InvalidTriggerTypeException.cs" />
     <Compile Include="Exceptions\InvalidTypeException.cs" />
     <Compile Include="Request\ConnectionDetails.cs" />
@@ -434,7 +452,7 @@
     <Compile Include="Request\Serialization\XmlAttributeType.cs" />
     <Compile Include="Objects\PrtgObjects\NotificationAction\NotificationAction.cs" />
     <Compile Include="Objects\SubObjects\NotificationTrigger.cs" />
-    <Compile Include="Objects\EventObjects\SensorHistoryData.cs" />
+    <Compile Include="Objects\EventObjects\SensorHistoryRecord.cs" />
     <Compile Include="Objects\EventObjects\ModificationEvent.cs" />
     <Compile Include="Parameters\ObjectManipulation\DeleteParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\Triggers\ChangeTriggerParameters.cs" />
@@ -460,11 +478,6 @@
       <DependentUpon>VersionClient18_1.Generated.tt</DependentUpon>
     </Compile>
     <Compile Include="_Todo.cs" />
-    <Compile Include="Properties\AssemblyFileVersion.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>AssemblyFileVersion.tt</DependentUpon>
-    </Compile>
     <Compile Include="Attributes\DependentPropertyAttribute.cs" />
     <Compile Include="Attributes\XmlEnumAlternateName.cs" />
     <Compile Include="Attributes\ParameterTypeAttribute.cs" />
@@ -545,9 +558,9 @@
     <Compile Include="Objects\PrtgObjects\Base\PrtgObject.cs" />
     <Compile Include="Objects\PrtgObjects\Base\SensorOrDeviceOrGroupOrProbe.cs" />
     <Compile Include="Objects\PrtgObjects\Base\SensorOrDeviceOrGroupOrProbeOrTicket.cs" />
-    <Compile Include="Objects\PrtgObjects\Base\SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataOrHistory.cs" />
+    <Compile Include="Objects\PrtgObjects\Base\SensorOrDeviceOrGroupOrProbeOrTicketOrTicketData.cs" />
     <Compile Include="PrtgClient.cs" />
-    <Compile Include="Request\PrtgUrl.cs" />
+    <Compile Include="Request\PrtgRequestMessage.cs" />
     <Compile Include="Request\PrtgWebClient.cs" />
     <None Include="Request\T4Functions.ttinc" />
   </ItemGroup>
@@ -555,14 +568,6 @@
     <None Include="PrtgAPI.nuspec" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Properties\AssemblyVersion.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>AssemblyVersion.cs</LastGenOutput>
-    </Content>
-    <Content Include="Properties\AssemblyFileVersion.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>AssemblyFileVersion1.cs</LastGenOutput>
-    </Content>
     <Content Include="Request\PrtgClient.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>PrtgClient.Generated.cs</LastGenOutput>
@@ -572,6 +577,10 @@
       <LastGenOutput>PrtgClient.Methods.Generated.cs</LastGenOutput>
     </Content>
     <Content Include="Request\PrtgClient.Methods.xml" />
+    <Content Include="Request\Version\VersionClient.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>VersionClient.Generated.cs</LastGenOutput>
+    </Content>
     <Content Include="Request\Version\VersionClient18_1.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>VersionClient18_1.Generated.cs</LastGenOutput>
@@ -581,18 +590,6 @@
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PreBuildEvent>if "$(ConfigurationName)" == "Release" goto :release
-goto :exit
-
-:release
-set textTemplatingPath="%25CommonProgramFiles(x86)%25\Microsoft Shared\TextTemplating\$(VisualStudioVersion)\texttransform.exe"
-if %25textTemplatingPath%25=="\Microsoft Shared\TextTemplating\$(VisualStudioVersion)\texttransform.exe" set textTemplatingPath="%25CommonProgramFiles%25\Microsoft Shared\TextTemplating\$(VisualStudioVersion)\texttransform.exe"
-%25textTemplatingPath%25 "$(ProjectDir)Properties\AssemblyFileVersion.tt"
-%25textTemplatingPath%25 "$(ProjectDir)Properties\AssemblyVersion.tt"
-
-:exit</PreBuildEvent>
-  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

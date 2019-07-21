@@ -25,7 +25,7 @@ namespace PrtgAPI
             if (obj is IEventObject)
                 return ((IEventObject) obj).ObjectId;
 
-            throw new NotSupportedException($"Don't know how to retrieve the object ID for object of type {obj.GetType()}");
+            throw new NotSupportedException($"Don't know how to retrieve the object ID for object of type {obj.GetType()}.");
         }
 
         internal static string GetTypeDescription(this IObject value)
@@ -51,6 +51,22 @@ namespace PrtgAPI
                 return attribute.Description;
 
             return type.Name;
+        }
+
+        internal static int GetId<T>(this Either<T, int> either) where T : IPrtgObject
+        {
+            if (either.IsLeft)
+                return either.Left.GetId();
+
+            return either.Right;
+        }
+
+        internal static Either<IPrtgObject, int> ToPrtgObject<T>(this Either<T, int> either) where T : IPrtgObject
+        {
+            if (either.IsLeft)
+                return either.Left;
+
+            return either.Right;
         }
     }
 }

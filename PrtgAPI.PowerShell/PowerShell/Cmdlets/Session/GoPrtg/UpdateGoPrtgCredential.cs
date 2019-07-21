@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Management.Automation;
 using PrtgAPI.PowerShell.GoPrtg;
@@ -25,7 +26,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Update-GoPrtgCredential (New-Credential prtgadmin prtgadmin)</code>
     ///     <para>Update the credentials of the currently active Goprtg server with a specified username and password.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Store-Credentials#modification">Online version:</para>
     /// <para type="link">Connect-GoPrtgServer</para>
     /// <para type="link">Get-GoPrtgServer</para>
     /// <para type="link">Install-GoPrtgServer</para>
@@ -75,7 +77,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 var duplicateServer = servers.Where(s => s.Server == newClient.Server && s.UserName == newClient.UserName).ToList();
 
                 if (duplicateServer.Count > 0)
-                    throw new InvalidOperationException($"Cannot update credential: a record with username '{newClient.UserName}' for server '{newClient.Server}' already exists");
+                    throw new InvalidOperationException($"Cannot update credential: a record with username '{newClient.UserName}' for server '{newClient.Server}' already exists.");
             }
 
             var encryptedString = EncryptString(newClient.PassHash);
@@ -99,6 +101,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
             return client;
         }
 
+        [ExcludeFromCodeCoverage]
         private PSCredential GetNewCredential(string username)
         {
             var credential = Host.UI.PromptForCredential(null, null, username, "targetname");

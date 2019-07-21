@@ -301,8 +301,8 @@ Describe "Get-Sensor" -Tag @("PowerShell", "UnitTest") {
         $groups.Count | Should Be 2
 
         SetAddressValidatorResponse @(
-            "api/table.xml?content=sensors&columns=objid,name,probe,group,favorite,lastvalue,device,downtime,downtimetime,downtimesince,uptime,uptimetime,uptimesince,knowntime,cumsince,lastcheck,lastup,lastdown,minigraph,schedule,basetype,baselink,parentid,notifiesx,intervalx,access,dependency,position,status,comments,priority,message,tags,type,active&count=*&filter_name=ping&filter_group=Windows+Infrastructure0&"
-            "api/table.xml?content=sensors&columns=objid,name,probe,group,favorite,lastvalue,device,downtime,downtimetime,downtimesince,uptime,uptimetime,uptimesince,knowntime,cumsince,lastcheck,lastup,lastdown,minigraph,schedule,basetype,baselink,parentid,notifiesx,intervalx,access,dependency,position,status,comments,priority,message,tags,type,active&count=*&filter_name=ping&filter_group=Windows+Infrastructure1&"
+            [Request]::Sensors("filter_name=ping&filter_group=Windows+Infrastructure0", [Request]::DefaultObjectFlags)
+            [Request]::Sensors("filter_name=ping&filter_group=Windows+Infrastructure1", [Request]::DefaultObjectFlags)
         )
 
         $groups | Get-Sensor -Filter (flt name eq ping) -Recurse:$false
@@ -457,6 +457,19 @@ Describe "Get-Sensor" -Tag @("PowerShell", "UnitTest") {
         SetResponseAndClient "SensorFactorySourceResponse"
 
         $sensors = Get-Sensor -Type sensorfactory
+
+        $sensors.Count | Should Be 1
+        $sensors.Type.StringValue | Should Be "aggregation"
+    }
+
+    It "filters by a supported sensor type" {
+        SetAddressValidatorResponse "filter_type=@sub(aggregation)&filter_type=@sub(ping)"
+
+        Get-Sensor -Type factory,ping
+
+        SetResponseAndClient "SensorFactorySourceResponse"
+
+        $sensors = Get-Sensor -Type factory
 
         $sensors.Count | Should Be 1
         $sensors.Type.StringValue | Should Be "aggregation"

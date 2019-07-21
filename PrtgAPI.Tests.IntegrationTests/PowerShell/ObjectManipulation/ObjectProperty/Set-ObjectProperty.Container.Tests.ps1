@@ -26,6 +26,19 @@ Describe "Set-ObjectProperty_Containers_IT" -Tag @("PowerShell", "IntegrationTes
 
         { SetChild "Location"        "410 Terry Ave. North Seattle" "InheritLocation" $false } | Should Throw "410 Terry Ave N, Seattle, WA 98109, United States"
 
+        # Location: Coordinates
+        $lat = 51.4521018
+        $lon = 13.0766654
+
+        SetValue "Location" "$lat, $lon" $true
+        $prop = $object | Get-ObjectProperty
+        $prop.Coordinates.Latitude | Should Be $lat
+        $prop.Coordinates.Longitude | Should Be $lon
+
+        # Location: Label
+        SetLabelLocation "410 Terry Ave. North Seattle" "410 Terry Ave N, Seattle, WA 98109, United States"
+        SetLabelLocation "51.4521018, 13.0766654"       "51.4521018, 13.0766654"
+
         $object | Set-ObjectProperty InheritLocation $true # InheritLocation doesn't get reverted because SetChild throws since the actual value is different after PRTG resolves it
 
         SetValue "InheritLocation" $false

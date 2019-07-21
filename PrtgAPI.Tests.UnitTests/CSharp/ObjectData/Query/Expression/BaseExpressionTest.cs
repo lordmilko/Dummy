@@ -19,12 +19,14 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
 
             var urls = new[]
             {
-                TestHelpers.RequestSensor(url)
+                UnitRequest.Sensors($"count=500" + (string.IsNullOrEmpty(url) ? url : $"&{url}"), UrlFlag.Columns)
             };
 
             var client = GetClient(urls.ToArray());
 
-            var result = client.QuerySensors().Where(predicate).ToList();
+            var result = client.Item1.QuerySensors().Where(predicate).ToList();
+
+            client.Item2.AssertFinished();
         }
 
         protected void ExecuteBinaryExpr(Property property, Func<Expr, Expr> expr, ExpressionType nodeType, string url = "")

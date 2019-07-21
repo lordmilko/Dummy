@@ -26,11 +26,14 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> Get-Sensor Memory | Rename-Object "Memory Free" -WhatIf</code>
-    ///     <para>What if: Performing the operation "Rename-Object" on target "'Memory' (ID: 2001)"</para>
+    ///     <code>
+    ///         C:\> Get-Sensor Memory | Rename-Object "Memory Free" -WhatIf
+    ///         What if: Performing the operation "Rename-Object" on target "'Memory' (ID: 2001)"
+    ///     </code>
     ///     <para>Preview what will happen when you attempt to rename all objects named "Memory"</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Object-Organization#renaming-1">Online version:</para>
     /// <para type="link">Get-Sensor</para>
     /// <para type="link">Get-Device</para>
     /// <para type="link">Get-Group</para>

@@ -68,13 +68,14 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Get-Sensor -Tags wmicpu* -count 1 | where Total -gt 90</code>
     ///     <para>Get historical values for all channels on a single WMI CPU Load sensor where the Total channel's value was greater than 90.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Historical-Information#sensor-history-1">Online version:</para>
     /// <para type="link">Get-Sensor</para>
     /// <para type="link">Select-Object</para>
     /// <para type="link">Where-Object</para>
     /// </summary>
     [Cmdlet(VerbsCommon.Get, "SensorHistory")]
-    public class GetSensorHistory : PrtgObjectCmdlet<PSObject>, IStreamableCmdlet<GetSensorHistory, SensorHistoryData, SensorHistoryParameters>
+    public class GetSensorHistory : PrtgObjectCmdlet<PSObject>, IStreamableCmdlet<GetSensorHistory, SensorHistoryRecord, SensorHistoryParameters>
     {
         /// <summary>
         /// <para type="description">Sensor to retrieve historic data for.</para>
@@ -126,7 +127,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
         /// </summary>
         public GetSensorHistory()
         {
-            ((IStreamableCmdlet<GetSensorHistory, SensorHistoryData, SensorHistoryParameters>)this).StreamProvider = new StreamableCmdletProvider<GetSensorHistory, SensorHistoryData, SensorHistoryParameters>(this, true);
+            ((IStreamableCmdlet<GetSensorHistory, SensorHistoryRecord, SensorHistoryParameters>)this).StreamProvider = new StreamableCmdletProvider<GetSensorHistory, SensorHistoryRecord, SensorHistoryParameters>(this, true);
 
             TypeDescription = "Sensor History";
             OperationTypeDescription = "sensor history results";
@@ -152,7 +153,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
             else
             {
                 if (Downtime && average == 0)
-                    throw new InvalidOperationException($"Cannot retrieve downtime with an {nameof(Average)} of 0");
+                    throw new InvalidOperationException($"Cannot retrieve downtime with an {nameof(Average)} of 0.");
             }
 
             var parameters = new SensorHistoryParameters(Id, average.Value, StartDate, EndDate, Count);
@@ -208,13 +209,13 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
         private IEnumerable<PSObject> GetFormattedRecords(SensorHistoryParameters parameters)
         {
-            IEnumerable<SensorHistoryData> records;
+            IEnumerable<SensorHistoryRecord> records;
 
             if (EndDate == null)
                 records = client.GetSensorHistoryInternal(parameters).Item1;
             else
             {
-                records = StreamProvider.StreamRecords<SensorHistoryData>(parameters, null);
+                records = StreamProvider.StreamRecords<SensorHistoryRecord>(parameters, null);
             }
 
             var formatter = new SensorHistoryFormatter(this);
@@ -234,19 +235,19 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
         #region IStreamableCmdlet
 
-        Tuple<List<SensorHistoryData>, int> IStreamableCmdlet<GetSensorHistory, SensorHistoryData, SensorHistoryParameters>.GetStreamObjects(SensorHistoryParameters parameters) =>
+        Tuple<List<SensorHistoryRecord>, int> IStreamableCmdlet<GetSensorHistory, SensorHistoryRecord, SensorHistoryParameters>.GetStreamObjects(SensorHistoryParameters parameters) =>
             client.GetSensorHistoryInternal(parameters);
 
-        async Task<List<SensorHistoryData>> IStreamableCmdlet<GetSensorHistory, SensorHistoryData, SensorHistoryParameters>.GetStreamObjectsAsync(SensorHistoryParameters parameters) =>
+        async Task<List<SensorHistoryRecord>> IStreamableCmdlet<GetSensorHistory, SensorHistoryRecord, SensorHistoryParameters>.GetStreamObjectsAsync(SensorHistoryParameters parameters) =>
             await client.GetSensorHistoryInternalAsync(parameters, CancellationToken.None).ConfigureAwait(false);
 
-        int IStreamableCmdlet<GetSensorHistory, SensorHistoryData, SensorHistoryParameters>.GetStreamTotalObjects(SensorHistoryParameters parameters) =>
+        int IStreamableCmdlet<GetSensorHistory, SensorHistoryRecord, SensorHistoryParameters>.GetStreamTotalObjects(SensorHistoryParameters parameters) =>
             client.GetSensorHistoryTotals(parameters);
 
-        StreamableCmdletProvider<GetSensorHistory, SensorHistoryData, SensorHistoryParameters> IStreamableCmdlet<GetSensorHistory, SensorHistoryData, SensorHistoryParameters>.StreamProvider { get; set; }
+        StreamableCmdletProvider<GetSensorHistory, SensorHistoryRecord, SensorHistoryParameters> IStreamableCmdlet<GetSensorHistory, SensorHistoryRecord, SensorHistoryParameters>.StreamProvider { get; set; }
 
-        private StreamableCmdletProvider<GetSensorHistory, SensorHistoryData, SensorHistoryParameters> StreamProvider => (
-            (IStreamableCmdlet<GetSensorHistory, SensorHistoryData, SensorHistoryParameters>)this).StreamProvider;
+        private StreamableCmdletProvider<GetSensorHistory, SensorHistoryRecord, SensorHistoryParameters> StreamProvider => (
+            (IStreamableCmdlet<GetSensorHistory, SensorHistoryRecord, SensorHistoryParameters>)this).StreamProvider;
 
         #endregion
     }

@@ -26,8 +26,10 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// and that PrtgAPI has interpreted your request in the way you intended.</para>
     /// 
     /// <example>
-    ///     <code>C:\> Get-Device dc-1 | Remove-Object -WhatIf</code>
-    ///     <para>"What if: Performing the operation "Remove-Object" on target "'dc-1' (ID: 2001)""</para>
+    ///     <code>
+    ///         C:\> Get-Device dc-1 | Remove-Object -WhatIf
+    ///         "What if: Performing the operation "Remove-Object" on target "'dc-1' (ID: 2001)""
+    ///     </code>
     ///     <para>Preview what will happen when you attempt to remove all devices named 'dc-1'</para>
     ///     <para/>
     /// </example>
@@ -35,7 +37,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Get-Device dc-1 | Remove-Object -Force</code>
     ///     <para>Remove all devices with name 'dc-1' without prompting for confirmation.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Object-Organization#removing-1">Online version:</para>
     /// <para type="link">Get-Sensor</para>
     /// <para type="link">Get-Device</para>
     /// <para type="link">Get-Group</para>
@@ -71,7 +74,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
         /// </summary>
         protected override void ProcessRecordEx()
         {
-            if(ShouldProcess($"'{Object.Name}' (ID: {Object.Id})"))
+            if (ShouldProcess($"'{Object.Name}' (ID: {Object.Id})"))
             {
                 if (Force.IsPresent || ShouldContinue($"Are you sure you want to delete {Object.GetTypeDescription().ToLower()} '{Object.Name}' (ID: {Object.Id})", "WARNING!"))
                 {

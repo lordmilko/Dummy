@@ -121,6 +121,21 @@ namespace PrtgAPI.Reflection
             return type.GetField(name, internalFlags);
         }
 
+        public static FieldInfo GetInternalFieldInfoFromBase(this Type type, string name)
+        {
+            var info = GetInternalFieldInfo(type, name);
+
+            if (info != null)
+                return info;
+            else
+            {
+                if (type.BaseType != null)
+                    return type.BaseType.GetInternalFieldInfoFromBase(name);
+                else
+                    return null;
+            }
+        }
+
         public static FieldInfo GetInternalStaticFieldInfo(this Type type, string name)
         {
             return type.GetField(name, BindingFlags.Static | BindingFlags.NonPublic);
@@ -138,7 +153,7 @@ namespace PrtgAPI.Reflection
 
         public static object GetInternalStaticField(this Type type, string name)
         {
-            var info = type.GetField(name, BindingFlags.Static | BindingFlags.NonPublic);
+            var info = type.GetInternalStaticFieldInfo(name);
 
             if (info == null)
                 throw new MissingMemberException(type.Name, name);
@@ -183,6 +198,15 @@ namespace PrtgAPI.Reflection
                 type = type.BaseType;
             }
             return false;
+        }
+
+        internal static bool IsPrtgAPIProperty(Type thisType, PropertyInfo property)
+        {
+            var propertyAssembly = property.PropertyType.Assembly.FullName;
+            var thisAssembly = thisType.Assembly.FullName;
+            var prtgAPIAssembly = typeof(PrtgClient).Assembly.FullName;
+
+            return propertyAssembly == thisAssembly || propertyAssembly == prtgAPIAssembly;
         }
     }
 }

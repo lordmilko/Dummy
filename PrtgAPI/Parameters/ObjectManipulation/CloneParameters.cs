@@ -8,19 +8,25 @@ namespace PrtgAPI.Parameters
     {
         CommandFunction ICommandParameters.Function => CommandFunction.DuplicateObject;
 
-        public CloneParameters(int objectId, string cloneName, int targetId) : base(objectId)
+        public CloneParameters(Either<IPrtgObject, int> sourceObject, string cloneName, Either<IPrtgObject, int> targetParentObject) : base(sourceObject)
         {
-            if (string.IsNullOrEmpty(cloneName))
-                throw new ArgumentException($"{nameof(cloneName)} cannot be null or empty", nameof(cloneName));
+            if (cloneName == null)
+                throw new ArgumentNullException(nameof(cloneName), $"Clone name cannot be null.");
+
+            if (string.IsNullOrWhiteSpace(cloneName))
+                throw new ArgumentException("CloneName cannot be empty or whitespace.", nameof(cloneName));
 
             CloneName = cloneName;
-            TargetId = targetId;
+            TargetId = targetParentObject.GetId();
         }
 
-        public CloneParameters(int objectId, string cloneName, int targetId, string host) : this(objectId, cloneName, targetId)
+        public CloneParameters(Either<Device, int> deviceOrId, string cloneName, Either<GroupOrProbe, int> targetParentObject, string host) : this(deviceOrId.ToPrtgObject(), cloneName, targetParentObject.ToPrtgObject())
         {
-            if (string.IsNullOrEmpty(host))
-                throw new ArgumentException($"{nameof(host)} cannot be null or empty", nameof(host));
+            if (host == null)
+                throw new ArgumentNullException(nameof(host), $"Host cannot be null.");
+
+            if (string.IsNullOrWhiteSpace(host))
+                throw new ArgumentException("Host cannot be empty or whitespace.", nameof(host));
 
             Host = host;
         }

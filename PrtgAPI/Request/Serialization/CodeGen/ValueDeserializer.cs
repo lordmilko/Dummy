@@ -163,7 +163,7 @@ namespace PrtgAPI.Linq.Expressions.Serialization
                     return GetNullableEnumSwitch(underlying, PropertyType);
             }
 
-            if(PropertyType.GetTypeCache().GetAttribute<XmlRootAttribute>() != null)
+            if (PropertyType.GetTypeCache().GetAttribute<XmlRootAttribute>() != null)
             {
                 var customTypeGenerator = new XmlSerializerGenerator(PropertyType, null, false);
 
@@ -182,10 +182,10 @@ namespace PrtgAPI.Linq.Expressions.Serialization
             Func<Expression, MethodCallExpression> deserializeFromConverter = null)
         {
             if (deserializeToConverter == null && deserializeFromConverter != null)
-                throw new InvalidOperationException("Cannot specify deserialize from without deserialize to");
+                throw new InvalidOperationException("Cannot specify deserialize from without deserialize to.");
 
             if (deserializeToConverter != null && deserializeFromConverter == null)
-                throw new InvalidOperationException("Cannot specify deserialize to without deserialize from");
+                throw new InvalidOperationException("Cannot specify deserialize to without deserialize from.");
 
             if (nullable)
             {
@@ -318,7 +318,7 @@ namespace PrtgAPI.Linq.Expressions.Serialization
                     var caseConditions = f.Attributes.Where(v => v.Key == typeof(XmlEnumAttribute) || v.Key == typeof(XmlEnumAlternateName))
                         .SelectMany(a => a.Value).Cast<XmlEnumAttribute>().Select(a => Expression.Constant(a.Name)).ToArray();
 
-                    if(caseConditions.Length > 0)
+                    if (caseConditions.Length > 0)
                         cases.Add(Expression.SwitchCase(Expression.Constant(val), caseConditions));
                 }
             }
@@ -375,7 +375,7 @@ namespace PrtgAPI.Linq.Expressions.Serialization
             var cast = Expression.Convert(val, nullableType);
 
             var condition = Expression.Condition(
-                isNullOrEmpty, //if(string.IsNullOrEmpty(str)
+                isNullOrEmpty, //if (string.IsNullOrEmpty(str)
                 @null,         //    return null;
                 cast           //return ToEnum(str)
             );
@@ -402,7 +402,7 @@ namespace PrtgAPI.Linq.Expressions.Serialization
             if (mapping.AttributeType == XmlAttributeType.Text)
                 return XmlExpressionConstants.Serializer_ReadTextString;
 
-            throw new NotImplementedException($"Don't know how to read string for attribute type '{mapping.AttributeType}'");
+            throw new NotImplementedException($"Don't know how to read string for attribute type '{mapping.AttributeType}'.");
         }
     }
 }

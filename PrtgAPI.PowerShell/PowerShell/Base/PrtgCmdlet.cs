@@ -68,7 +68,7 @@ namespace PrtgAPI.PowerShell.Base
 
             try
             {
-                if(client != null)
+                if (client != null)
                     client.DefaultCancellationToken = TokenSource.Token;
 
                 using (ProgressManager = new ProgressManager(this))
@@ -122,17 +122,43 @@ namespace PrtgAPI.PowerShell.Base
         /// </summary>
         protected override void EndProcessing()
         {
+            EndProcessing();
+        }
+
+        internal void EndProcessing(bool endExtended = true)
+        {
+            if (endExtended)
+                EndProcessingEx();
+
             ProgressManager?.CompleteUncompleted();
 
             UnregisterEvents(false);
         }
 
         /// <summary>
-        /// Interrupts the currently running code to signal the cmdlet has been requested to stop.
+        /// Provides an enhanced one-time, postprocessing functionality for the cmdlet.
         /// </summary>
+        protected virtual void EndProcessingEx()
+        {
+        }
+
+        /// <summary>
+        /// Interrupts the currently running code to signal the cmdlet has been requested to stop.<para/>
+        /// Do not override this method; override <see cref="StopProcessingEx"/> instead.
+        /// </summary>
+        [ExcludeFromCodeCoverage]
         protected override void StopProcessing()
         {
+            StopProcessingEx();
+
             TokenSource.Cancel();
+        }
+
+        /// <summary>
+        /// Interrupts the currently running code to signal the cmdlet has been requested to stop.
+        /// </summary>
+        protected virtual void StopProcessingEx()
+        {
         }
 
         /// <summary>
@@ -194,7 +220,7 @@ namespace PrtgAPI.PowerShell.Base
         {
             //Lazy values will execute in the context of the previous command when retrieved from the next cmdlet
             //(such as Select-Object)
-            if(CommandRuntime.GetInternalProperty("PipelineProcessor").GetInternalField("_permittedToWrite") == this)
+            if (CommandRuntime.GetInternalProperty("PipelineProcessor").GetInternalField("_permittedToWrite") == this)
                 WriteVerbose($"{MyInvocation.MyCommand}: {args.Message}");
 
             Debug.WriteLine($"{MyInvocation.MyCommand}: {args.Message}");

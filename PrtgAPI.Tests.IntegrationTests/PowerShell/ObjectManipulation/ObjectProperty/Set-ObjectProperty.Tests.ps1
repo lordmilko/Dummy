@@ -223,7 +223,7 @@ Describe "Set-ObjectProperty_IT" -Tag @("PowerShell", "IntegrationTest") {
     It "throws setting an empty value on a required property" {
         $sensor = Get-Sensor -Id (Settings UpSensor)
 
-        $message = "failed due to the following: Sensor Name: Required field, not defined. The object has not been changed"
+        $message = "Sensor Name: Required field, not defined. The object has not been changed"
 
         { $sensor | Set-ObjectProperty Name $null } | Should Throw $message
     }
@@ -321,5 +321,21 @@ Describe "Set-ObjectProperty_IT" -Tag @("PowerShell", "IntegrationTest") {
     It "can set direct properties" {
         SetDirect "InheritTriggers" $false
         SetDirect "Comments" "test comment!"
+    }
+
+    It "overrides a dependent property" {
+        $object = Get-Sensor -Id (Settings UpSensor)
+
+        $object | Set-ObjectProperty Interval 00:01:00
+
+        $properties = $object | Get-ObjectProperty
+        $properties.InheritInterval | Should Be $false
+        $properties.Interval | Should Be "00:01:00"
+
+        $object | Set-ObjectProperty -Interval 00:00:30 -InheritInterval $true
+
+        $newProperties = $object | Get-ObjectProperty
+        $newProperties.InheritInterval | Should Be $true
+        $newProperties.Interval | Should Be "00:00:30"
     }
 }

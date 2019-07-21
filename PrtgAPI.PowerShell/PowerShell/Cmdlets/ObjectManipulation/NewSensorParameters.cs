@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Management.Automation;
+using PrtgAPI.Attributes;
 using PrtgAPI.Parameters;
 using PrtgAPI.PowerShell.Base;
 using PrtgAPI.Targets;
@@ -40,10 +41,14 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// 
     /// <para type="description">For sensor types that are not natively supported, PrtgAPI provides the ability to dynamically generate
     /// the set of parameters required to add the specified sensor type. Dynamically generated sensor parameters operate as a hybrid of a
-    /// both a Dictionary and a PSObject, allowing you to interface with these types as if they are a native object. For sensor types
-    /// that require Sensor Targets, a dictionary of all identified sensor targets can be found under the dynamic sensor parameter's Targets
-    /// property. Parameters that appear to contain sensor targets will automatically be wrapped as a <see cref="GenericSensorTarget"/>, and
-    /// by default will contain the first target from the list of available candidates.</para>
+    /// both a Dictionary and a PSObject, allowing you to interface with these types as if they are a native object. For sensor types that require
+    /// additional information be provided before retrieving their sensor parameters, a -<see cref="QueryTarget"/> or a set of -<see cref="QueryParameters"/>
+    /// must be specified. New-SensorParameters will automatically advise you what should be provided for these parameters if it determines these
+    /// values are required by the specified sensor type.</para>
+    ///
+    /// <para type="description">For sensor types that require Sensor Targets, a dictionary of all identified sensor targets can be found
+    /// under the dynamic sensor parameter's Targets property. Parameters that appear to contain sensor targets will automatically be wrapped
+    /// as a <see cref="GenericSensorTarget"/>, and by default will contain the first target from the list of available candidates.</para>
     /// 
     /// <para type="description">By default, dynamically sensor parameters are "locked", as to prevent additional parameters from being
     /// added to the object in the event a typo is made. If you do wish to add additional parameters however, this can be performed by calling the
@@ -81,71 +86,94 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// type of sensor being created.</para>
     /// 
     /// <example>
-    ///     <code>C:\> $params = New-SensorParameters ExeXml "Custom Script" "CustomScript.ps1"</code>
-    ///     <para>C:\> Get-Device dc-1 | Add-Sensor $params</para>
+    ///     <code>
+    ///         C:\> $params = New-SensorParameters ExeXml "Custom Script" "CustomScript.ps1"
+    ///
+    ///         C:\> Get-Device dc-1 | Add-Sensor $params
+    ///     </code>
     ///     <para>Create a new EXE/Script Advanced sensor on the device dc-1 using the name "Custom Script", that executes the file "CustomScript.ps1", specifying the script name in the optional -Value parameter</para>
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $params = New-SensorParameters ExeXml "Custom Script"</code>
-    ///     <para>C:\> $params.ExeFile = "CustomScript.ps1"</para>
-    ///     <para>C:\> Get-Device dc-1 | Add-Sensor $params</para>
+    ///     <code>
+    ///         C:\> $params = New-SensorParameters ExeXml "Custom Script"
+    ///         C:\> $params.ExeFile = "CustomScript.ps1"
+    ///
+    ///         C:\> Get-Device dc-1 | Add-Sensor $params
+    ///     </code>
     ///     <para>Create a new EXE/Script Advanced sensor on the device dc-1 using the name "Custom Script", that executes the file "CustomScript.ps1", specifying the script name after the object has been created</para>
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $params = New-SensorParameters ExeXml</code>
-    ///     <para>C:\> $params.ExeFile = "CheckStatus.ps1"</para>
-    ///     <para>C:\> Get-Device -Id 1001 | Add-Sensor $params</para>
+    ///     <code>
+    ///         C:\> $params = New-SensorParameters ExeXml
+    ///         C:\> $params.ExeFile = "CheckStatus.ps1"
+    ///
+    ///         C:\> Get-Device -Id 1001 | Add-Sensor $params
+    ///     </code>
     ///     <para>Create a new EXE/Script Advanced sensor on the device with ID 1001 using the name "XML Custom EXE/Script Sensor" that executes the file "CheckStatus.ps1"</para>
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $params = Get-Device esxi-1 | New-SensorParameters -RawType vmwaredatastoreextern</code>
-    ///     <para>C:\> $params.datafieldlist__check = $params.Targets["datafieldlist__check"]</para>
-    ///     <para>C:\> $params | Add-Sensor</para>
+    ///     <code>
+    ///         C:\> $params = Get-Device esxi-1 | New-SensorParameters -RawType vmwaredatastoreextern
+    ///         C:\> $params.datafieldlist__check = $params.Targets["datafieldlist__check"]
+    ///
+    ///         C:\> $params | Add-Sensor
+    ///     </code>
     ///     <para>Dynamically create a new set of VMware Datastore credentials for the device named esxi-1 targeting all datastores that exist on the device.</para>
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\ $params = Get-Device esxi-1 | New-SensorParameters -RawType vmwaredatastoreextern</code>
-    ///     <para>C:\> $params[[PrtgAPI.Parameter]::Custom]</para>
+    ///     <code>
+    ///         C:\> $params = Get-Device esxi-1 | New-SensorParameters -RawType vmwaredatastoreextern
+    ///         C:\> $params[[PrtgAPI.Parameter]::Custom]
+    ///     </code>
     ///     <para>View the raw set of CustomParameters defined on an object.</para>
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $params = Get-Device esxi-1 | New-SensorParameters -RawType exchangepsdatabase</code>
-    ///     <para>C:\> $params.Unlock()</para>
-    ///     <para>C:\> $params.customparam_ = "some value"</para>
+    ///     <code>
+    ///         C:\> $params = Get-Device esxi-1 | New-SensorParameters -RawType exchangepsdatabase
+    ///         C:\> $params.Unlock()
+    /// 
+    ///         C:\> $params.customparam_ = "some value"
+    ///     </code>
     ///     <para>Create a new parameter named "customparam" on a set of Exchange Database sensor parameters.</para>
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $params = New-SensorParameters -Empty</code>
-    ///     <para>C:\> $params["name_"] = "My Sensor"</para>
-    ///     <para>C:\> $params["sensortype"] = "exexml"</para>
+    ///     <code>
+    ///         C:\> $params = New-SensorParameters -Empty
+    ///         C:\> $params["name_"] = "My Sensor"
+    ///         C:\> $params["sensortype"] = "exexml"
+    ///     </code>
     ///     <para>Create an empty set of sensor parameters to manually insert all raw parameters.</para>
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $raw = @{</code>
-    ///     <para>>>     name_ = "my raw sensor"</para>
-    ///     <para>>>     tags_ = "xmlexesensor"</para>
-    ///     <para>>>     priority_ = 4</para>
-    ///     <para>>>     exefile_ = "CustomScript.ps1|CustomScript.ps1||</para>
-    ///     <para>>>     exeparams_ = "arg1 arg2 arg3"</para>
-    ///     <para>>>     environment_ = 1</para>
-    ///     <para>>>     usewindowsauthentication_ = 1</para>
-    ///     <para>>>     mutexname_ = "testMutex"</para>
-    ///     <para>>>     timeout_ = 70</para>
-    ///     <para>>>     writeresult_ = 1</para>
-    ///     <para>>>     intervalgroup = 0</para>
-    ///     <para>>>     interval_ = "30|30 seconds"</para>
-    ///     <para>>>     errorintervalsdown_ = 2</para>
-    ///     <para>>>     sensortype = "exexml"</para>
-    ///     <para>>> }</para>
-    ///     <para>C:\> $params = New-SensorParameters $raw</para>
-    ///     <para>C:\> Get-Device dc-1 | Add-Sensor $params</para>
+    ///     <code>
+    ///         C:\> $raw = @{
+    ///         >>      name_ = "my raw sensor"
+    ///         >>      tags_ = "xmlexesensor"
+    ///         >>      priority_ = 4
+    ///         >>      exefile_ = "CustomScript.ps1|CustomScript.ps1||
+    ///         >>      exeparams_ = "arg1 arg2 arg3"
+    ///         >>      environment_ = 1
+    ///         >>      usewindowsauthentication_ = 1
+    ///         >>      mutexname_ = "testMutex"
+    ///         >>      timeout_ = 70
+    ///         >>      writeresult_ = 1
+    ///         >>      intervalgroup = 0
+    ///         >>      interval_ = "30|30 seconds"
+    ///         >>      errorintervalsdown_ = 2
+    ///         >>      sensortype = "exexml"
+    ///         >> }
+    /// 
+    ///         C:\> $params = New-SensorParameters $raw
+    /// 
+    ///         C:\> Get-Device dc-1 | Add-Sensor $params
+    ///     </code>
     ///     <para>Add a new EXE/Script Advanced sensor to the device named dc-1 using a hashtable containing its raw parameters.</para>
     ///     <para/>
     /// </example>
@@ -157,11 +185,31 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// <example>
     ///     <code>C:\> Set-StrictMode -Version 3</code>
     ///     <para>Set the Strict Mode to version 3 for the current PowerShell session.</para>
+    ///     <para/>
     /// </example>
-    /// 
+    /// <example>
+    ///     <code>C:\> $params = Get-Device -Id 1001 | New-SensorParameters -RawType snmplibrary -qt *ups*</code>
+    ///     <para>Create a set of parameters for creating a SNMP Library sensor utilizing a wildcard expression that matches the sensor query target "APC UPS.oidlib".</para>
+    ///     <para/>
+    /// </example>
+    /// <example>
+    ///     <code>
+    ///         C:\> $target = (Get-SensorType snmplibrary -Id 1001).QueryTargets | where Value -like *ups*
+    ///         C:\> $params = Get-Device -Id 1001 | New-SensorParameters -RawType snmplibrary -qt $target
+    ///     </code>
+    ///     <para>Create a set of parameters for creating a SNMP Library sensor utilizing the sensor query target "APC UPS.oidlib".</para>
+    ///     <para/>
+    /// </example>
+    /// <example>
+    ///     <code>C:\> $params = Get-Device -Id 1001 | New-SensorParameters -RawType ipmisensor -qp @{ username = "admin"; password = "password" }</code>
+    ///     <para>Create a set of parameters for creating an IPMI Sensor specifying the query target parameters required to authenticate to IPMI.</para>
+    /// </example>
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Object-Creation#parameters">Online version:</para>
     /// <para type="link">Get-Help SensorParameters</para>
     /// <para type="link">Add-Sensor</para>
     /// <para type="link">Get-Device</para>
+    /// <para type="linl">New-Sensor</para>
     /// <para type="link">Set-StrictMode</para>
     /// </summary>
     [Cmdlet(VerbsCommon.New, "SensorParameters", DefaultParameterSetName = ParameterSet.Default)]
@@ -217,6 +265,20 @@ namespace PrtgAPI.PowerShell.Cmdlets
         public int Timeout { get; set; } = 60;
 
         /// <summary>
+        /// <para type="description">A sensor query target to use when retrieving dynamic sensor parameters. Can include wildcards.</para>
+        /// </summary>
+        [Alias("qt")]
+        [Parameter(Mandatory = false, ParameterSetName = ParameterSet.Dynamic)]
+        public SensorQueryTarget QueryTarget { get; set; }
+
+        /// <summary>
+        /// <para type="description">A set of sensor query target parameters to use when retrieving dynamic sensor parameters.</para>
+        /// </summary>
+        [Alias("qp")]
+        [Parameter(Mandatory = false, ParameterSetName = ParameterSet.Dynamic)]
+        public Hashtable QueryParameters { get; set; }
+
+        /// <summary>
         /// <para type="description">Specifies that an empty set of <see cref="RawSensorParameters"/> should be returned to allow constructing
         /// a parameter set manually.</para>
         /// </summary>
@@ -230,8 +292,6 @@ namespace PrtgAPI.PowerShell.Cmdlets
         [Parameter(Mandatory = false, ParameterSetName = ParameterSet.Raw)]
         [Parameter(Mandatory = false, ParameterSetName = ParameterSet.Dynamic)]
         public SwitchParameter DynamicType { get; set; }
-
-        private bool ignoreName;
 
         private const string NameParameter = "name_";
         private const string SensorTypeParameter = "sensortype";
@@ -281,7 +341,9 @@ namespace PrtgAPI.PowerShell.Cmdlets
             {
                 parameters = ParameterSetName == ParameterSet.Raw ? CreateRawParameters() : CreateTypedParameters();
 
-                if (First != null && !ignoreName)
+                var attrib = Type.GetEnumAttribute<NewSensorAttribute>() ?? new NewSensorAttribute();
+
+                if (!string.IsNullOrWhiteSpace(First?.ToString()) && !attrib.DynamicName)
                     parameters.Name = First.ToString();
             }
 
@@ -291,10 +353,10 @@ namespace PrtgAPI.PowerShell.Cmdlets
         private NewSensorParameters CreateRawParameters()
         {
             if (!RawParameters.ContainsKey(NameParameter))
-                throw new InvalidOperationException($"Hashtable record '{NameParameter}' is mandatory, however a value was not specified");
+                throw new InvalidOperationException($"Hashtable record '{NameParameter}' is mandatory, however a value was not specified.");
 
             if (!RawParameters.ContainsKey(SensorTypeParameter))
-                throw new InvalidOperationException($"Hashtable record '{SensorTypeParameter}' is mandatory, however a value was not specified'");
+                throw new InvalidOperationException($"Hashtable record '{SensorTypeParameter}' is mandatory, however a value was not specified.");
 
             var parameters = new PSRawSensorParameters(RawParameters[NameParameter]?.ToString(), RawParameters[SensorTypeParameter]?.ToString());
 
@@ -314,9 +376,62 @@ namespace PrtgAPI.PowerShell.Cmdlets
             return parameters;
         }
 
+        internal static SensorMultiQueryTargetParameters GetQueryTargetParameters(PrtgClient client, int deviceId, string sensorType, SensorQueryTarget queryTarget, Hashtable queryParametersRaw)
+        {
+            queryTarget = GetQueryTarget(client, deviceId, sensorType, queryTarget);
+            var queryParameters = GetQueryParameters(queryParametersRaw);
+
+            if (queryTarget != null || queryParameters != null)
+                return new SensorMultiQueryTargetParameters(queryTarget, queryParameters);
+
+            return null;
+        }
+
+        private static SensorQueryTarget GetQueryTarget(PrtgClient client, int deviceId, string sensorType, SensorQueryTarget queryTarget)
+        {
+            if (queryTarget != null && queryTarget.Value.Contains("*"))
+            {
+                var allTypes = client.GetSensorTypes(deviceId);
+                var desiredType = allTypes.FirstOrDefault(t => string.Equals(t.Id, sensorType, StringComparison.OrdinalIgnoreCase));
+
+                if (desiredType != null)
+                {
+                    if (desiredType.QueryTargets == null)
+                        return queryTarget; //Type does not support query targets; leave it to internal engine to throw exception
+
+                    var wildcard = new WildcardPattern(queryTarget.Value, WildcardOptions.IgnoreCase);
+                    var candidates = desiredType.QueryTargets.Where(a => wildcard.IsMatch(a.Value)).ToList();
+
+                    if (candidates.Count == 1)
+                        return candidates.Single();
+                    else if (candidates.Count > 1)
+                        throw new InvalidOperationException($"Query target wildcard '{queryTarget}' is ambiguous between the following parameters: {candidates.ToQuotedList()}. Please specify a more specific identifier.");
+                    else
+                        throw new InvalidOperationException($"Could not find a query target matching the wildcard expression '{queryTarget}'. Please specify one of the following parameters: {desiredType.QueryTargets.ToQuotedList()}.");
+                }
+            }
+
+            return queryTarget;
+        }
+
+        private static SensorQueryTargetParameters GetQueryParameters(Hashtable queryParametersRaw)
+        {
+            if (queryParametersRaw == null)
+                return null;
+
+            var queryParameters = new SensorQueryTargetParameters();
+
+            foreach (var key in queryParametersRaw.Keys.Cast<object>())
+                queryParameters[key.ToString()] = PSObjectUtilities.CleanPSObject(queryParametersRaw[key]);
+
+            return queryParameters;
+        }
+
         private DynamicSensorParameters CreateDynamicParameters(Func<int, bool> progressCallback)
         {
-            var dynamicParamters = client.GetDynamicSensorParameters(Device.Id, RawType, progressCallback, Timeout, CancellationToken);
+            var multiQuery = GetQueryTargetParameters(client, Device.Id, RawType, QueryTarget, QueryParameters);
+
+            var dynamicParamters = client.GetDynamicSensorParameters(Device, RawType, progressCallback, Timeout, multiQuery, CancellationToken);
             dynamicParamters.Source = Device;
 
             if (!string.IsNullOrEmpty(Target) && dynamicParamters.Targets.Count > 0)
@@ -336,7 +451,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 }
                 else
                 {
-                    throw new InvalidOperationException("Cannot filter targets as multiple target fields are present. Please filter targets manually after parameter creation");
+                    throw new InvalidOperationException("Cannot filter targets as multiple target fields are present. Please filter targets manually after parameter creation.");
                 }
             }
 
@@ -353,20 +468,30 @@ namespace PrtgAPI.PowerShell.Cmdlets
             switch (Type)
             {
                 case SensorType.ExeXml:
-                    parameters = new ExeXmlSensorParameters("FAKE_VALUE") { ExeFile = GetImplicit<ExeFileTarget>(Second) };
+                    parameters = new ExeXmlSensorParameters("FAKE_VALUE")
+                    {
+                        ExeFile = GetImplicit<ExeFileTarget>(Second)
+                    };
                     break;
                 case SensorType.Http:
                     var httpParameters = new HttpSensorParameters();
-                    MaybeSet(First, v => httpParameters.Name = v?.ToString());
                     MaybeSet(Second, v => httpParameters.Url = v?.ToString());
                     parameters = httpParameters;
                     break;
                 case SensorType.WmiService:
-                    ignoreName = true;
-                    parameters = new WmiServiceSensorParameters(new List<WmiServiceTarget>()) { Services = GetList<WmiServiceTarget>(First) };
+                    parameters = new WmiServiceSensorParameters(new List<WmiServiceTarget>())
+                    {
+                        Services = GetList<WmiServiceTarget>(First)
+                    };
+                    break;
+                case SensorType.Factory:
+                    parameters = new FactorySensorParameters(Enumerable.Empty<string>())
+                    {
+                        ChannelDefinition = GetList<string>(Second)?.ToArray()
+                    };
                     break;
                 default:
-                    throw new NotImplementedException($"Sensor type '{Type}' is currently not supported");
+                    throw new NotImplementedException($"Sensor type '{Type}' is currently not supported.");
             }
 
             return parameters;
@@ -384,7 +509,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
             var implicitOp = typeof (T).GetMethod("op_Implicit", new[] {typeof (string)});
 
             if (implicitOp == null)
-                throw new InvalidOperationException($"Object type {typeof (T)} does not contain an implicit operator for objects of type string");
+                throw new InvalidOperationException($"Object type {typeof (T)} does not contain an implicit operator for objects of type string.");
 
             return (T) implicitOp.Invoke(null, new object[] {val.ToString()});
         }
@@ -420,13 +545,13 @@ namespace PrtgAPI.PowerShell.Cmdlets
                     if (obj1 is T)
                         list.Add((T)obj1);
                     else
-                        throw new ArgumentException($"Expected one or more items of type {typeof (T)}, however an item of type {obj1.GetType()} was specified");
+                        throw new ArgumentException($"Expected one or more items of type {typeof (T)}, however an item of type {obj1.GetType()} was specified.");
                 }
 
                 return list;
             }
 
-            throw new ArgumentException($"Expected one or more items of type {typeof (T)}, however an item of type {val.GetType()} was specified");
+            throw new ArgumentException($"Expected one or more items of type {typeof (T)}, however an item of type {val.GetType()} was specified.");
         }
 
         private void MaybeSet(object v, Action<object> set)

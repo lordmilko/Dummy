@@ -87,6 +87,34 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData.Query
             ExecuteSensor(s => s.Id.ToString().Contains(Settings.UpSensor.ToString()), Property.Id, Settings.UpSensor, FilterOperator.Contains);
 
         #endregion
+        #region ParentId
+
+        [TestMethod]
+        [TestCategory("IntegrationTest")]
+        public void Data_QueryFilter_PrtgObjectProperties_ParentId_Equals() =>
+            ExecuteSensor(s => s.ParentId == Settings.Device, Property.ParentId, Settings.Device);
+
+        [TestMethod]
+        [TestCategory("IntegrationTest")]
+        public void Data_QueryFilter_PrtgObjectProperties_ParentId_NotEquals() =>
+            ExecuteSensor(s => s.ParentId != Settings.Device, Property.ParentId, Settings.Device, FilterOperator.NotEquals);
+
+        [TestMethod]
+        [TestCategory("IntegrationTest")]
+        public void Data_QueryFilter_PrtgObjectProperties_ParentId_GreaterThan() =>
+            ExecuteSensor(s => s.ParentId > Settings.Device, Property.ParentId, Settings.Device, FilterOperator.GreaterThan);
+
+        [TestMethod]
+        [TestCategory("IntegrationTest")]
+        public void Data_QueryFilter_PrtgObjectProperties_ParentId_LessThan() =>
+            ExecuteSensor(s => s.ParentId < Settings.Device, Property.ParentId, Settings.Device, FilterOperator.LessThan);
+
+        [TestMethod]
+        [TestCategory("IntegrationTest")]
+        public void Data_QueryFilter_PrtgObjectProperties_ParentId_Contains() =>
+            ExecuteSensor(s => s.ParentId.ToString().Contains(Settings.Device.ToString()), Property.ParentId, Settings.Device, FilterOperator.Contains);
+
+        #endregion
         #region Active
 
         [TestMethod]
@@ -394,34 +422,6 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData.Query
             ExecuteUnsupported(Property.NotificationTypes, FilterOperator.Contains, "State", unsupported: true);
 
         #endregion
-        #region ParentId
-
-        [TestMethod]
-        [TestCategory("IntegrationTest")]
-        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeProperties_ParentId_Equals() =>
-            ExecuteSensor(s => s.ParentId == Settings.Device, Property.ParentId, Settings.Device);
-
-        [TestMethod]
-        [TestCategory("IntegrationTest")]
-        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeProperties_ParentId_NotEquals() =>
-            ExecuteSensor(s => s.ParentId != Settings.Device, Property.ParentId, Settings.Device, FilterOperator.NotEquals);
-
-        [TestMethod]
-        [TestCategory("IntegrationTest")]
-        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeProperties_ParentId_GreaterThan() =>
-            ExecuteSensor(s => s.ParentId > Settings.Device, Property.ParentId, Settings.Device, FilterOperator.GreaterThan);
-
-        [TestMethod]
-        [TestCategory("IntegrationTest")]
-        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeProperties_ParentId_LessThan() =>
-            ExecuteSensor(s => s.ParentId < Settings.Device, Property.ParentId, Settings.Device, FilterOperator.LessThan);
-
-        [TestMethod]
-        [TestCategory("IntegrationTest")]
-        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeProperties_ParentId_Contains() =>
-            ExecuteSensor(s => s.ParentId.ToString().Contains(Settings.Device.ToString()), Property.ParentId, Settings.Device, FilterOperator.Contains);
-
-        #endregion
         #region Position
 
         [TestMethod]
@@ -639,32 +639,32 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData.Query
 
         #endregion
         #endregion
-        #region SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataOrHistory
+        #region SensorOrDeviceOrGroupOrProbeOrTicketOrTicketData
         #region Message
 
         [TestMethod]
         [TestCategory("IntegrationTest")]
-        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataOrHistoryProperties_Message_Equals() =>
+        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataProperties_Message_Equals() =>
             ExecuteSensor(s => s.Message == "OK", Property.Message, "OK");
 
         [TestMethod]
         [TestCategory("IntegrationTest")]
-        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataOrHistoryProperties_Message_NotEquals() =>
+        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataProperties_Message_NotEquals() =>
             ExecuteSensor(s => s.Message != "OK", Property.Message, "OK", FilterOperator.NotEquals, filterThrows: true);
 
         [TestMethod]
         [TestCategory("IntegrationTest")]
-        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataOrHistoryProperties_Message_GreaterThan() =>
+        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataProperties_Message_GreaterThan() =>
             ExecuteUnsupported(Property.Message, FilterOperator.GreaterThan, "OK");
 
         [TestMethod]
         [TestCategory("IntegrationTest")]
-        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataOrHistoryProperties_Message_LessThan() =>
+        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataProperties_Message_LessThan() =>
             ExecuteUnsupported(Property.Message, FilterOperator.LessThan, "OK");
 
         [TestMethod]
         [TestCategory("IntegrationTest")]
-        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataOrHistoryProperties_Message_Contains() =>
+        public void Data_QueryFilter_SensorOrDeviceOrGroupOrProbeOrTicketOrTicketDataProperties_Message_Contains() =>
             ExecuteSensor(s => s.Message.Contains("OK"), Property.Message, "OK", FilterOperator.Contains, s => s.Message == "ok");
 
         #endregion
@@ -1822,13 +1822,13 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData.Query
             });
         }
 
-        private void PrepareCondition(Action<Device> action)
+        private void PrepareCondition(Action<Device> action, bool inner = false)
         {
             try
             {
                 var device = client.GetDevice(Settings.Device);
 
-                if(device.Condition != null && device.Condition.Contains("recommendation in progress"))
+                if (device.Condition != null && device.Condition.Contains("recommendation in progress"))
                 {
                     Logger.LogTestDetail("Sensor recommendation in progress. Pausing device");
                     client.PauseObject(device.Id);
@@ -1855,14 +1855,22 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData.Query
                     }
                 }
 
-                Assert.IsTrue(device.Condition?.Contains("Auto-Discovery") == true, $"Expected condition to contain the words 'Auto-Discovery', however instead contained '{device.Condition}'");
+                if (device.Condition.Contains("Sensor recommendation in progress"))
+                    PrepareCondition(action, true);
+                else
+                {
+                    Assert.IsTrue(device.Condition?.Contains("Auto-Discovery") == true, $"Expected condition to contain the words 'Auto-Discovery', however instead contained '{device.Condition}'");
 
-                action(device);
+                    action(device);
+                }
             }
             finally
             {
-                ServerManager.RepairConfig();
-                ServerManager.WaitForObjects();
+                if (!inner)
+                {
+                    ServerManager.RepairConfig();
+                    ServerManager.WaitForObjects();
+                }
             }
         }
 
@@ -2408,7 +2416,7 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData.Query
 
         private void ExecuteUnsupported(Property property, FilterOperator op, object value, bool @throw = true, bool unsupported = false)
         {
-            if(@throw)
+            if (@throw)
             {
                 var message = unsupported ? "Cannot filter by property" : "Cannot filter where property";
 
@@ -2428,7 +2436,7 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData.Query
 
         private void ExecuteDeviceUnsupported(Property property, FilterOperator op, object value, bool @throw = true)
         {
-            if(@throw)
+            if (@throw)
             {
                 AssertEx.Throws<NotSupportedException>(() => client.GetDevices(property, op, value), "Cannot filter where property");
 
@@ -2627,16 +2635,16 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData.Query
 
             builder.Append(Join(prefix, str.Select(s => s.ToString()).ToArray()));
 
-            if(lambda != null && str.Count > 0)
+            if (lambda != null && str.Count > 0)
             {
-                builder.Append($". Expected: {filter.Value}\\r\n\r\nValues of each object:\r\n");
+                builder.Append($". Expected: {filter.Value}{Environment.NewLine}{Environment.NewLine}Values of each object:{Environment.NewLine}");
                 
                 for(var i = 0; i < str.Count; i++)
                 {
                     builder.Append($"{str[i].Name}: '{lambda(str[i])}'");
 
                     if (i < str.Count - 1)
-                        builder.Append("\r\n");
+                        builder.Append(Environment.NewLine);
                 }
             }
 
@@ -2649,7 +2657,7 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData.Query
 
             if (!string.IsNullOrEmpty(newStr))
             {
-                if(prefix != null)
+                if (prefix != null)
                     return prefix + " " + newStr;
 
                 return newStr;

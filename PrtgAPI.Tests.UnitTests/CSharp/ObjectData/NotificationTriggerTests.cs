@@ -123,9 +123,10 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             var triggerClient = Initialize_Client(new NotificationTriggerResponse(NotificationTriggerItem.StateTrigger()));
             var trigger = triggerClient.GetNotificationTriggers(0).First();
 
-            var client = Initialize_Client(new AddressValidatorResponse("deletesub.htm?id=0&subid=1"));
-
-            client.RemoveNotificationTrigger(trigger);
+            Execute(
+                c => c.RemoveNotificationTrigger(trigger),
+                "deletesub.htm?id=0&subid=1"
+            );
         }
 
         [TestMethod]
@@ -135,9 +136,10 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             var triggerClient = Initialize_Client(new NotificationTriggerResponse(NotificationTriggerItem.StateTrigger()));
             var trigger = (await triggerClient.GetNotificationTriggersAsync(0)).First();
 
-            var client = Initialize_Client(new AddressValidatorResponse("deletesub.htm?id=0&subid=1"));
-
-            await client.RemoveNotificationTriggerAsync(trigger);
+            await ExecuteAsync(
+                async c => await c.RemoveNotificationTriggerAsync(trigger),
+                "deletesub.htm?id=0&subid=1"
+            );
         }
 
         [TestMethod]
@@ -158,14 +160,14 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             var validator = new EventValidator<string>(new[]
             {
                 //First - get all triggers
-                "https://prtg.example.com/api/table.xml?id=1001&content=triggers&columns=content,objid&username=username&passhash=12345678",
+                UnitRequest.Triggers(1001),
 
                 //Second - touch a trigger's action's unsupported property
-                "https://prtg.example.com/api/table.xml?content=notifications&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_objid=301&filter_objid=302&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=301&objecttype=notification&username=username&passhash=12345678",
+                UnitRequest.Notifications("filter_objid=301&filter_objid=302"),
+                UnitRequest.NotificationProperties(301),
 
                 //Third - touch an unsupported property of another action
-                "https://prtg.example.com/controls/objectdata.htm?id=302&objecttype=notification&username=username&passhash=12345678"
+                UnitRequest.NotificationProperties(302)
             });
 
             client.LogVerbose += (s, e) =>
@@ -198,12 +200,12 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             var validator = new EventValidator<string>(new[]
             {
                 //First
-                "https://prtg.example.com/api/table.xml?id=1001&content=triggers&columns=content,objid&username=username&passhash=12345678",
-                "https://prtg.example.com/api/table.xml?content=notifications&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_objid=301&filter_objid=302&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=301&objecttype=notification&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=302&objecttype=notification&username=username&passhash=12345678",
-                "https://prtg.example.com/api/table.xml?content=schedules&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_objid=623&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=623&objecttype=schedule&username=username&passhash=12345678"
+                UnitRequest.Triggers(1001),
+                UnitRequest.Notifications("filter_objid=301&filter_objid=302"),
+                UnitRequest.NotificationProperties(301),
+                UnitRequest.NotificationProperties(302),
+                UnitRequest.Schedules("filter_objid=623"),
+                UnitRequest.ScheduleProperties(623)
             });
 
             client.LogVerbose += (s, e) =>
@@ -236,23 +238,23 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             var validator = new EventValidator<string>(new[]
             {
                 //First - get all triggers
-                "https://prtg.example.com/api/table.xml?id=1001&content=triggers&columns=content,objid&username=username&passhash=12345678",
+                UnitRequest.Triggers(1001),
 
                 //Second - touch a trigger's action's schedule
-                "https://prtg.example.com/api/table.xml?content=notifications&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_objid=301&filter_objid=302&filter_objid=303&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=301&objecttype=notification&username=username&passhash=12345678",
-                "https://prtg.example.com/api/table.xml?content=schedules&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_objid=623&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=623&objecttype=schedule&username=username&passhash=12345678",
+                UnitRequest.Notifications("filter_objid=301&filter_objid=302&filter_objid=303"),
+                UnitRequest.NotificationProperties(301),
+                UnitRequest.Schedules("filter_objid=623"),
+                UnitRequest.ScheduleProperties(623),
 
                 //Third - touch the same schedule on another action
-                "https://prtg.example.com/controls/objectdata.htm?id=302&objecttype=notification&username=username&passhash=12345678",
-                "https://prtg.example.com/api/table.xml?content=schedules&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_objid=623&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=623&objecttype=schedule&username=username&passhash=12345678",
+                UnitRequest.NotificationProperties(302),
+                UnitRequest.Schedules("filter_objid=623"),
+                UnitRequest.ScheduleProperties(623),
 
                 //Fourth - touch a different schedule on another action
-                "https://prtg.example.com/controls/objectdata.htm?id=303&objecttype=notification&username=username&passhash=12345678",
-                "https://prtg.example.com/api/table.xml?content=schedules&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_objid=623&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=623&objecttype=schedule&username=username&passhash=12345678"
+                UnitRequest.NotificationProperties(303),
+                UnitRequest.Schedules("filter_objid=623"),
+                UnitRequest.ScheduleProperties(623),
             });
 
             client.LogVerbose += (s, e) =>
@@ -299,15 +301,15 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             {
                 //First - get all triggers. Automatically retrieves all notifications, and their properties.
                 //All of the schedules of the notifications are retrieved, as well as each schedule's properties
-                "https://prtg.example.com/api/table.xml?id=1001&content=triggers&columns=content,objid&username=username&passhash=12345678",
+                UnitRequest.Triggers(1001),
 
-                "https://prtg.example.com/api/table.xml?content=notifications&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_objid=301&filter_objid=302&filter_objid=303&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=301&objecttype=notification&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=302&objecttype=notification&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=303&objecttype=notification&username=username&passhash=12345678",
+                UnitRequest.Notifications("filter_objid=301&filter_objid=302&filter_objid=303"),
+                UnitRequest.NotificationProperties(301),
+                UnitRequest.NotificationProperties(302),
+                UnitRequest.NotificationProperties(303),
 
-                "https://prtg.example.com/api/table.xml?content=schedules&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_objid=623&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=623&objecttype=schedule&username=username&passhash=12345678",
+                UnitRequest.Schedules("filter_objid=623"),
+                UnitRequest.ScheduleProperties(623),
             });
 
             client.LogVerbose += (s, e) =>
@@ -450,14 +452,19 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
                 case nameof(NotificationTrigger.Latency):
                 case nameof(NotificationTrigger.Channel):
                 case nameof(NotificationTrigger.Unit):
+                case nameof(NotificationTrigger.UnitSize):
+                case nameof(NotificationTrigger.UnitTime):
+                case nameof(NotificationTrigger.Period):
                 case nameof(NotificationTrigger.OffNotificationAction):
                 case nameof(NotificationTrigger.EscalationLatency):
                 case nameof(NotificationTrigger.EscalationNotificationAction):
                 case nameof(NotificationTrigger.RepeatInterval):
+                case nameof(NotificationTrigger.State):
                 case nameof(NotificationTrigger.Threshold):
+                case nameof(NotificationTrigger.DisplayThreshold):
                     break;
                 default:
-                    Assert.IsTrue(val != null, $"Property '{propertyName}' of trigger type '{TriggerType.Change}' had value did not have a value."); //is threshold null or an empty string?
+                    Assert.IsTrue(val != null, $"Property '{propertyName}' of trigger type '{TriggerType.Change}' did not have a value."); //is threshold null or an empty string?
                     break;
             }
         }
@@ -468,9 +475,13 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             {
                 case nameof(NotificationTrigger.Channel):
                 case nameof(NotificationTrigger.Unit):
+                case nameof(NotificationTrigger.UnitSize):
+                case nameof(NotificationTrigger.UnitTime):
+                case nameof(NotificationTrigger.Period):
+                case nameof(NotificationTrigger.Threshold):
                     break;
                 default:
-                    Assert.IsTrue(val != null, $"Property '{propertyName}' of trigger type '{TriggerType.State}' had value did not have a value.");
+                    Assert.IsTrue(val != null, $"Property '{propertyName}' of trigger type '{TriggerType.State}' did not have a value.");
                     break;
             }
         }
@@ -483,9 +494,13 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
                 case nameof(NotificationTrigger.EscalationLatency):
                 case nameof(NotificationTrigger.EscalationNotificationAction):
                 case nameof(NotificationTrigger.RepeatInterval):
+                case nameof(NotificationTrigger.State):
+                case nameof(NotificationTrigger.UnitSize):
+                case nameof(NotificationTrigger.UnitTime):
+                case nameof(NotificationTrigger.Period):
                     break;
                 default:
-                    Assert.IsTrue(val != null, $"Property '{propertyName}' of trigger type '{TriggerType.Threshold}' had value did not have a value.");
+                    Assert.IsTrue(val != null, $"Property '{propertyName}' of trigger type '{TriggerType.Threshold}' did not have a value.");
                     break;
             }
         }
@@ -497,9 +512,11 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
                 case nameof(NotificationTrigger.EscalationLatency):
                 case nameof(NotificationTrigger.EscalationNotificationAction):
                 case nameof(NotificationTrigger.RepeatInterval):
+                case nameof(NotificationTrigger.State):
+                case nameof(NotificationTrigger.Period):
                     break;
                 default:
-                    Assert.IsTrue(val != null, $"Property '{propertyName}' of trigger type '{TriggerType.Speed}' had value did not have a value.");
+                    Assert.IsTrue(val != null, $"Property '{propertyName}' of trigger type '{TriggerType.Speed}' did not have a value.");
                     break;
             }
         }
@@ -513,9 +530,11 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
                 case nameof(NotificationTrigger.EscalationLatency):
                 case nameof(NotificationTrigger.EscalationNotificationAction):
                 case nameof(NotificationTrigger.RepeatInterval):
+                case nameof(NotificationTrigger.State):
+                case nameof(NotificationTrigger.UnitTime):
                     break;
                 default:
-                    Assert.IsTrue(val != null, $"Property '{propertyName}' of trigger type '{TriggerType.Volume}' had value did not have a value.");
+                    Assert.IsTrue(val != null, $"Property '{propertyName}' of trigger type '{TriggerType.Volume}' did not have a value.");
                     break;
             }
         }

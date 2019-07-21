@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
@@ -31,6 +32,10 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// by default Get-SensorTarget will attempt to guess the name of the data table within PRTG the sensor targets are stored in. If PRTG detects
     /// more than one data table exists, an <see cref="ArgumentException"/> will be thrown listing the names of all of the available tables. The name
     /// of the table to use can then be specified to the -Table parameter.</para>
+    ///
+    /// <para>For sensor types that require additional information be provided before retrieving their sensor parameters, a -<see cref="QueryTarget"/>
+    /// or a set of -<see cref="QueryParameters"/> must be specified. Get-SensorTarget will automatically advise you what should be provided for these
+    /// parameters if it determines these values are required by the specified sensor type.</para>
     /// 
     /// <para type="description">Sensor targets identified for raw types are represented as a "generic" sensor target type. Generic sensor targets
     /// allow accessing both their Name and Value as named properties. Any other properties of the sensor target can be obtained by accessing the
@@ -43,17 +48,26 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// similar to what would happen if the sensor were created normally and then the sensor's target was deleted.</para>
     /// 
     /// <example>
-    ///     <code>C:\> $device = Get-Device -Id 1001</code>
-    ///     <para>C:\> $services = $device | Get-SensorTarget WmiService *exchange*</para>
-    ///     <para>C:\> $params = New-SensorParameters WmiService $services</para>
-    ///     <para>C:\> $device | Add-Sensor $params</para>
+    ///     <code>
+    ///         C:\> $device = Get-Device -Id 1001
+    ///
+    ///         C:\> $services = $device | Get-SensorTarget WmiService *exchange*
+    ///
+    ///         C:\> $params = New-SensorParameters WmiService $services
+    ///
+    ///         C:\> $device | Add-Sensor $params
+    ///     </code>
     ///     <para>Add all WMI Services whose name contains "Exchange" to the Device with ID 1001</para>
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $device = Get-Device -Id 1001</code>
-    ///     <para>C:\> $params = $device | Get-SensorTarget WmiService *exchange* -Params</para>
-    ///     <para>C:\> $device | Add-Sensor $params</para>
+    ///     <code>
+    ///         C:\> $device = Get-Device -Id 1001
+    ///
+    ///         C:\> $params = $device | Get-SensorTarget WmiService *exchange* -Params
+    ///
+    ///         C:\> $device | Add-Sensor $params
+    ///     </code>
     ///     <para>Add all WMI Services whose name contains "Exchange" to the Device with ID 1001, creating sensor parameters immediately.</para>
     ///     <para/>
     /// </example>
@@ -63,11 +77,33 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $targets = Get-Device -Id 1001 | Get-SensorTarget -RawType wmivolume</code>
-    ///     <para>C:\> $targets | foreach { $_.Properties[3] }</para>
+    ///     <code>
+    ///         C:\> $targets = Get-Device -Id 1001 | Get-SensorTarget -RawType wmivolume
+    ///
+    ///         C:\> $targets | foreach { $_.Properties[3] }
+    ///     </code>
     ///     <para>List the disk type (Local Disk, Compact Disk etc) of all WMI Volume targets.</para>
+    ///     <para/>
     /// </example>
-    /// 
+    /// <example>
+    ///     <code>C:\> $params = Get-Device -Id 1001 | Get-SensorTarget -RawType snmplibrary -qt *ups*</code>
+    ///     <para>Get all sensor targets that can be used on an SNMP Library sensor using the sensor query target "APC UPS.oidlib".</para>
+    ///     <para/>
+    /// </example>
+    /// <example>
+    ///     <code>
+    ///         C:\> $target = (Get-SensorType snmplibrary -Id 1001).QueryTargets | where Value -like *ups*
+    ///         C:\> $params = Get-Device -Id 1001 | Get-SensorTarget -RawType snmplibrary -qt $target
+    ///     </code>
+    ///     <para>Get all sensor targets that can be used on an SNMP Library sensor using the sensor query target "APC UPS.oidlib".</para>
+    ///     <para/>
+    /// </example>
+    /// <example>
+    ///     <code>C:\> $params = Get-Device -Id 1001 | New-SensorParameters -RawType ipmisensor -qp @{ username = "admin"; password = "password" }</code>
+    ///     <para>Get all sensor targets that can be used on an IPMI Sensor, specifying the query target parameters required to authenticate to IPMI.</para>
+    /// </example>
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Sensor-Targets#powershell">Online version:</para>
     /// <para type="link">New-SensorParameters</para>
     /// <para type="link">Add-Sensor</para>
     /// <para type="link">Get-Device</para>
@@ -76,7 +112,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// </summary>
     [OutputType(typeof(SensorTarget<>))]
     [Cmdlet(VerbsCommon.Get, "SensorTarget", DefaultParameterSetName = ParameterSet.Default)]
-    public class GetSensorTarget : PrtgProgressCmdlet
+    public class GetSensorTarget : PrtgProgressCmdlet, IPSCmdletEx
     {
         /// <summary>
         /// <para type="description">The device to retrieve sensor targets from. While results returned by Get-SensorTarget are guaranteed to be compatible
@@ -95,7 +131,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
         /// <para type="description">An expression used to filter returned results to those with a specified name.</para>
         /// </summary>
         [Parameter(Mandatory = false, Position = 1)]
-        public string Name { get; set; }
+        public string[] Name { get; set; }
 
         /// <summary>
         /// <para type="description">When present, specifies that Get-SensorTarget should automatically wrap the returned items up in a set of sensor
@@ -110,6 +146,20 @@ namespace PrtgAPI.PowerShell.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, ParameterSetName = ParameterSet.Raw)]
         public string RawType { get; set; }
+
+        /// <summary>
+        /// <para type="description">A sensor query target to use when retrieving dynamic sensor parameters. Can include wildcards.</para>
+        /// </summary>
+        [Alias("qt")]
+        [Parameter(Mandatory = false, ParameterSetName = ParameterSet.Raw)]
+        public SensorQueryTarget QueryTarget { get; set; }
+
+        /// <summary>
+        /// <para type="description">A set of sensor query target parameters to use when retrieving dynamic sensor parameters.</para>
+        /// </summary>
+        [Alias("qp")]
+        [Parameter(Mandatory = false, ParameterSetName = ParameterSet.Raw)]
+        public Hashtable QueryParameters { get; set; }
 
         /// <summary>
         /// <para type="description">The name of the Dropdown List or Checkbox Group the sensor targets belong to. If this value is null,
@@ -149,7 +199,15 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
                 GetTargets(
                    str,
-                   (d, c, ti, to) => client.Targets.GetSensorTargets(d, RawType, Table, c, ti, to),
+                   (d, c, ti, to) => client.Targets.GetSensorTargets(
+                       d,
+                       RawType,
+                       Table,
+                       c,
+                       ti,
+                       NewSensorParametersCommand.GetQueryTargetParameters(client, d.GetId(), RawType, QueryTarget, QueryParameters),
+                       to
+                   ),
                    ParametersNotSupported,
                     e => e.Name
                 );
@@ -170,7 +228,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                     GetSqlServerQuery();
                     break;
                 default:
-                    throw new NotImplementedException($"Sensor type '{Type}' is not currently supported");
+                    throw new NotImplementedException($"Sensor type '{Type}' is not currently supported.");
             }
         }
 
@@ -198,35 +256,19 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 s => s.Name
             );
 
-        private SensorParametersInternal ParametersNotSupported<T>(List<T> items)
-        {
-            throw new NotSupportedException($"Creating sensor parameters for sensor type '{Type}' is not supported");
-        }
-
-        private T EnsureSingle<T>(List<T> items)
-        {
-            if (items.Count > 1)
-                throw new InvalidOperationException($"Parameters for sensor type {Type} cannot be used against multiple targets in a single request. Please filter objects further with -Name, or create parameters manually with New-SensorParameters");
-
-            if (items.Count == 1)
-                return items.First();
-
-            return default(T);
-        }
-
         private void GetTargets<T>(
             string typeDescription,
-            Func<int, Func<int, bool>, int, CancellationToken, List<T>> getItems,
+            Func<PrtgAPI.Either<Device, int>, Func<int, bool>, int, CancellationToken, List<T>> getItems,
             Func<List<T>, SensorParametersInternal> createParams,
             params Func<T, string>[] nameProperties)
         {
             if (nameProperties.Length == 0)
-                throw new NotImplementedException($"Must specify at least one name property resolver for filtering targets of type {Type}");
+                throw new NotImplementedException($"Must specify at least one name property resolver for filtering targets of type {Type}.");
 
             TypeDescription = typeDescription;
 
             WriteProcessProgressRecords(
-                f => ParseItems(getItems(Device.Id, i => f(i, $"Probing target device ({i}%)"), Timeout, CancellationToken), createParams, nameProperties)
+                f => ParseItems(getItems(Device, i => f(i, $"Probing target device ({i}%)"), Timeout, CancellationToken), createParams, nameProperties)
             );
         }
 
@@ -249,12 +291,43 @@ namespace PrtgAPI.PowerShell.Cmdlets
         {
             if (Name != null)
             {
-                var wildcard = new WildcardPattern(Name, WildcardOptions.IgnoreCase);
-
-                items = items.Where(i => nameProperties.Any(getProp => wildcard.IsMatch(getProp(i)))).ToList();
+                items = items.Where(i => Name
+                    .Select(name => new WildcardPattern(name, WildcardOptions.IgnoreCase))
+                    .Any(filter =>
+                        nameProperties.Any(getProp => filter.IsMatch(getProp(i)))
+                    )
+                ).ToList();
             }
 
             return items;
         }
+
+        internal SensorParametersInternal ParametersNotSupported<T>(List<T> items)
+        {
+            throw new NotSupportedException($"Creating sensor parameters for sensor type '{Type}' is not supported.");
+        }
+
+        private T EnsureSingle<T>(List<T> items)
+        {
+            if (items.Count > 1)
+                throw new InvalidOperationException($"Parameters for sensor type {Type} cannot be used against multiple targets in a single request. Please filter objects further with -Name, or create parameters manually with New-SensorParameters.");
+
+            if (items.Count == 1)
+                return items.First();
+
+            return default(T);
+        }
+
+        #region IPSCmdletEx
+
+        void IPSCmdletEx.BeginProcessingInternal() => BeginProcessing();
+
+        void IPSCmdletEx.ProcessRecordInternal() => ProcessRecord();
+
+        void IPSCmdletEx.EndProcessingInternal() => EndProcessing();
+
+        void IPSCmdletEx.StopProcessingInternal() => StopProcessing();
+
+        #endregion
     }
 }

@@ -34,7 +34,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Get-Probe -Id 2004 | Restart-Probe -Wait:$false</code>
     ///     <para>Restart the probe with ID 2004, without waiting for the probe to restart.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Administrative-Tools#restart-probe-service-1">Online version:</para>
     /// <para type="link">Get-Probe</para>
     /// <para type="link">Restart-PrtgCore</para>
     /// </summary>
@@ -178,14 +179,14 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
                     var plural = remaining == 1 ? "probe" : "probes";
 
-                    throw new TimeoutException($"Timed out waiting for {remaining} {plural} to restart");
+                    throw new TimeoutException($"Timed out waiting for {remaining} {plural} to restart.");
                 }
 
                 if (Stopping)
                     return false;
 
 #if DEBUG
-                if(!client.UnitTest())
+                if (!client.UnitTest())
 #endif
                 Sleep(1000);
 

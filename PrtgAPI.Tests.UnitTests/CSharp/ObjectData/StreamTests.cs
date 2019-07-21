@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrtgAPI.Parameters;
@@ -920,7 +921,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
                             list.Add($"Stream_{type}_{parameter}_{(modifier != string.Empty ? $"{modifier}_" : "")}{page}");
                         }
 
-                        if(parameter.Contains("Count"))
+                        if (parameter.Contains("Count"))
                         {
                             foreach(var count in counts)
                             {
@@ -936,7 +937,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
 
             foreach(var test in list)
             {
-                System.Diagnostics.Debug.WriteLine("[TestMethod]\r\npublic void " + test + "()\r\n{\r\nthrow new NotImplementedException()\r\n}\r\n");
+                System.Diagnostics.Debug.WriteLine($"[TestMethod]{Environment.NewLine}public void " + test + $"(){Environment.NewLine}{{{Environment.NewLine}throw new NotImplementedException(){Environment.NewLine}}}{Environment.NewLine}");
             }
 
             TestHelpers.Assert_TestClassHasMethods(GetType(), list);
@@ -950,8 +951,8 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         private void Stream(SensorParameters parameters, string[] address, int? count = null)
         {
             var url = new List<string>();
-            url.Add(TestHelpers.RequestSensorCount);
-            url.AddRange(address.Select(a => TestHelpers.RequestSensor(a, UrlFlag.Columns)));
+            url.Add(UnitRequest.SensorCount);
+            url.AddRange(address.Select(a => UnitRequest.Sensors(a, UrlFlag.Columns)));
 
             Dictionary<Content, int> countOverride = null;
 
@@ -978,13 +979,13 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             var url = new List<string>();
 
             if (requestCount)
-                url.Add(TestHelpers.RequestSensorCount);
+                url.Add(UnitRequest.SensorCount);
 
-            url.AddRange(address.Select(a => TestHelpers.RequestSensor(a, UrlFlag.Columns)));
+            url.AddRange(address.Select(a => UnitRequest.Sensors(a, UrlFlag.Columns)));
 
             Dictionary<Content, int> countOverride = null;
 
-            if(count != null)
+            if (count != null)
             {
                 countOverride = new Dictionary<Content, int>();
                 countOverride[Content.Sensors] = count.Value;
@@ -1007,9 +1008,9 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             var url = new List<string>();
 
             if (requestCount)
-                url.Add(TestHelpers.RequestLog($"count=1&columns=objid,name", null));
+                url.Add(UnitRequest.Logs($"count=1&columns=objid,name", null));
 
-            url.AddRange(address.Select(a => TestHelpers.RequestLog(a, UrlFlag.Columns)));
+            url.AddRange(address.Select(a => UnitRequest.Logs(a, UrlFlag.Columns)));
 
             Execute(
                 c => c.StreamLogs(parameters, true).ToList(),
@@ -1029,8 +1030,8 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         private void StreamLogs(LogParameters parameters, string[] address, int count = 10)
         {
             var url = new List<string>();
-            url.Add(TestHelpers.RequestLog($"count=1&columns=objid,name", null));
-            url.AddRange(address.Select(a => TestHelpers.RequestLog(a, UrlFlag.Columns)));
+            url.Add(UnitRequest.Logs($"count=1&columns=objid,name", null));
+            url.AddRange(address.Select(a => UnitRequest.Logs(a, UrlFlag.Columns)));
 
             Execute(
                 c => c.StreamLogs(parameters).ToList(),

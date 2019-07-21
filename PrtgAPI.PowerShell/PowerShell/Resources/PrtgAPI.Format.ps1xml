@@ -364,6 +364,7 @@
                     </TableColumnHeader>
                     <TableColumnHeader> <!-- Threshold -->
                         <Width>9</Width>
+                        <Label>Threshold</Label>
                     </TableColumnHeader>
                     <TableColumnHeader> <!-- Units -->
                         <Width>10</Width>
@@ -395,7 +396,7 @@
                                 <PropertyName>Condition</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>Threshold</PropertyName>
+                                <PropertyName>DisplayThreshold</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
                                 <PropertyName>Unit</PropertyName>
@@ -493,7 +494,8 @@
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
-                            <TableColumnItems><TableColumnItem>
+                        <TableColumnItems>
+                            <TableColumnItem>
                                 <PropertyName>Name</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
@@ -532,7 +534,8 @@
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
-                            <TableColumnItems><TableColumnItem>
+                        <TableColumnItems>
+                            <TableColumnItem>
                                 <PropertyName>Name</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
@@ -572,7 +575,8 @@
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
-                            <TableColumnItems><TableColumnItem>
+                        <TableColumnItems>
+                            <TableColumnItem>
                                 <PropertyName>DateTime</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
@@ -598,6 +602,40 @@
         <View>
             <Name>Default</Name>
             <ViewSelectedBy>
+                <TypeName>PrtgAPI.ModificationEvent</TypeName>
+            </ViewSelectedBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader> <!-- ObjectId -->
+                        <Alignment>Right</Alignment>
+                    </TableColumnHeader>
+                    <TableColumnHeader/> <!-- DateTime -->                    
+                    <TableColumnHeader/> <!-- UserName -->                    
+                    <TableColumnHeader/> <!-- Message -->                    
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>ObjectId</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>DateTime</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>UserName</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Message</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+        <View>
+            <Name>Default</Name>
+            <ViewSelectedBy>
                 <TypeName>PrtgAPI.ExeFileTarget</TypeName>
             </ViewSelectedBy>
             <TableControl>
@@ -607,7 +645,8 @@
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
-                            <TableColumnItems><TableColumnItem>
+                        <TableColumnItems>
+                            <TableColumnItem>
                                 <PropertyName>Name</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
@@ -1006,6 +1045,34 @@
                             </TableColumnItem>
                             <TableColumnItem>
                                 <PropertyName>LastUpdated</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+        <View>
+            <Name>Default</Name>
+            <ViewSelectedBy>
+                <TypeName>PrtgAPI.SensorTypeDescriptor</TypeName>
+            </ViewSelectedBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader/> <!-- Id -->
+                    <TableColumnHeader/> <!-- Name -->
+                    <TableColumnHeader/> <!-- Description -->
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>Id</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Name</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Description</PropertyName>
                             </TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>

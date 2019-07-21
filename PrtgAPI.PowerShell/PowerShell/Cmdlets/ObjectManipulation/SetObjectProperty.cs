@@ -47,9 +47,11 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// by specifying -Batch:$false.</para>
     /// 
     /// <example>
-    ///     <code>C:\> Get-Sensor -Id 1001 | Set-ObjectProperty Interval "00:00:30"</code>
-    ///     <para>C:\> Get-Sensor -Id 1001 | Set-ObjectProperty Interval ([TimeSpan]"00:00:30")</para>
-    ///     <para>C:\> Get-Sensor -Id 1001 | Set-ObjectProperty Interval ThirtySeconds</para>
+    ///     <code>
+    ///         C:\> Get-Sensor -Id 1001 | Set-ObjectProperty Interval "00:00:30"
+    ///         C:\> Get-Sensor -Id 1001 | Set-ObjectProperty Interval ([TimeSpan]"00:00:30")
+    ///         C:\> Get-Sensor -Id 1001 | Set-ObjectProperty Interval ThirtySeconds
+    ///     </code>
     ///     <para>Set the Scanning Interval of the sensor with ID 1001 to 30 seconds three different ways. Type "ScanningInterval"
     /// expected by property Interval will attempt to coerce strings, TimeSpans and enums into a ScanningInterval object. If the
     /// cmdlet succeeds, InheritInterval will also be set to false.</para>
@@ -66,14 +68,18 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $schedule = Get-PrtgSchedule -Id 621</code>
-    ///     <para>C:\> Get-Sensor -Id 2024 | Set-ObjectProperty -RawParameters @{</para>
-    ///     <para>C:\>     scheduledependency = 0</para>
-    ///     <para>C:\>     schedule_ = $schedule</para>
-    ///     <para>C:\> }</para>
+    ///     <code>
+    ///         C:\> $schedule = Get-PrtgSchedule -Id 621
+    ///
+    ///         C:\> Get-Sensor -Id 2024 | Set-ObjectProperty -RawParameters @{
+    ///         >>      scheduledependency = 0
+    ///         >>      schedule_ = $schedule
+    ///         >>   }
+    ///     </code>
     ///     <para>Apply the schedule with ID 621 to the sensor with ID 2024</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Property-Manipulation#set-1">Online version:</para>
     /// <para type="link">Get-Help ObjectSettings</para>
     /// <para type="link">Get-Help SensorSettings</para>
     /// <para type="link">Get-ObjectProperty</para>
@@ -134,7 +140,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
         internal override string ProgressActivity => "Modify PRTG Object Settings";
 
-        private DynamicParameterSet<ObjectProperty> dynamicParams;
+        private PropertyDynamicParameterSet<ObjectProperty> dynamicParams;
 
         private PropertyParameter[] dynamicParameters;
 
@@ -149,7 +155,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
             {
                 //Value is not required, but is required in that we need to explicitly say null
                 if (!MyInvocation.BoundParameters.ContainsKey("Value"))
-                    throw new ParameterBindingException("Value parameter is mandatory, however a value was not specified. If Value should be empty, specify $null");
+                    throw new ParameterBindingException("Value parameter is mandatory, however a value was not specified. If Value should be empty, specify $null.");
 
                 ParseValue();
             }
@@ -213,7 +219,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 continueStr = $"properties {whatIfStr}";
             }
             else
-                throw new NotImplementedException($"Don't know how to handle parameter set '{ParameterSetName}'");
+                throw new NotImplementedException($"Don't know how to handle parameter set '{ParameterSetName}'.");
 
             if (Force || ShouldContinue($"Are you sure you want to set raw object {continueStr} on {Object.GetTypeDescription().ToLower()} '{Object.Name}'? This may cause minor corruption if the specified value is not valid for the target property. Only proceed if you know what you are doing.", "WARNING!"))
             {
@@ -264,7 +270,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
         /// <param name="ids">The Object IDs of all queued items.</param>
         protected override void PerformMultiOperation(int[] ids)
         {
-            if(ParameterSetName == ParameterSet.Default)
+            if (ParameterSetName == ParameterSet.Default)
                 ExecuteMultiOperation(() => client.SetObjectProperty(ids, Property, Value), $"Setting {GetMultiTypeListSummary()} setting '{Property}' to '{Value}'");
             else if (ParameterSetName == ParameterSet.Dynamic)
             {
@@ -300,10 +306,10 @@ namespace PrtgAPI.PowerShell.Cmdlets
         /// <returns>An object that defines the dynamic parameters of this cmdlet.</returns>
         public object GetDynamicParameters()
         {
-            if(dynamicParams == null)
-                dynamicParams = new DynamicParameterSet<ObjectProperty>(
+            if (dynamicParams == null)
+                dynamicParams = new PropertyDynamicParameterSet<ObjectProperty>(
                     ParameterSet.Dynamic,
-                    e => ObjectPropertyParser.GetPropertyInfoViaTypeLookup(e).Property
+                    e => ObjectPropertyParser.GetPropertyInfoViaTypeLookup(e).Property.PropertyType
                 );
 
             return dynamicParams.Parameters;

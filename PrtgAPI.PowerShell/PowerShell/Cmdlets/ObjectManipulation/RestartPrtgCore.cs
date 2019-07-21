@@ -34,7 +34,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Restart-PrtgCore -Timeout 600</code>
     ///     <para>Restart the PRTG Core Service, waiting 10 minutes (600 seconds) for the service to restart.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Administrative-Tools#restart-core-service-1">Online version:</para>
     /// <para type="link">Restart-Probe</para>
     /// </summary>
     [Cmdlet(VerbsLifecycle.Restart, "PrtgCore", SupportsShouldProcess = true)]
@@ -125,7 +126,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
             if (completed)
             {
-                if(ProgressManager.ProgressWritten)
+                if (ProgressManager.ProgressWritten)
                     CompletePostProcessProgress();
 
                 return false;
@@ -144,12 +145,12 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 ProgressManager.CurrentRecord.SecondsRemaining = secondsRemaining;
 
                 if (secondsElapsed > Timeout)
-                    throw new TimeoutException($"Timed out waiting for PRTG Core Service to restart");
+                    throw new TimeoutException($"Timed out waiting for PRTG Core Service to restart.");
 
                 if (Stopping)
                     return false;
 #if DEBUG
-                if(!client.UnitTest())
+                if (!client.UnitTest())
 #endif
                 Sleep(1000);
 

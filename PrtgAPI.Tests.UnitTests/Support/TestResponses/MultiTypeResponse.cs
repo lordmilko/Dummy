@@ -14,7 +14,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
 {
     public class MultiTypeResponse : IWebStreamResponse
     {
-        private SensorType? newSensorType;
+        private StringEnum<SensorType> newSensorType;
 
         public MultiTypeResponse()
         {
@@ -34,6 +34,9 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
         public Dictionary<Content, Action<BaseItem>> PropertyManipulator { get; set; }
         public Dictionary<Content, BaseItem[]> ItemOverride { get; set; }
         private Dictionary<string, int> hitCount = new Dictionary<string, int>();
+        public Func<string, string, string> ResponseTextManipulator { get; set; }
+
+        public int[] HasSchedule { get; set; }
 
         public int? FixedCountOverride { get; set; }
 
@@ -46,7 +49,12 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
             else
                 hitCount.Add(function, 1);
 
-            return GetResponse(ref address, function).GetResponseText(ref address);
+            var text = GetResponse(ref address, function).GetResponseText(ref address);
+
+            if (ResponseTextManipulator != null)
+                return ResponseTextManipulator(text, address);
+
+            return text;
         }
 
         public async Task<string> GetResponseTextStream(string address)
@@ -58,7 +66,12 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
             else
                 hitCount.Add(function, 1);
 
-            return await GetResponseStream(address, function).GetResponseTextStream(address);
+            var text = await GetResponseStream(address, function).GetResponseTextStream(address);
+
+            if (ResponseTextManipulator != null)
+                return ResponseTextManipulator(address, text);
+
+            return text;
         }
 
         protected virtual IWebResponse GetResponse(ref string address, string function)
@@ -74,7 +87,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                 case nameof(HtmlFunction.ChannelEdit):
                     var components = UrlUtilities.CrackUrl(address);
 
-                    if(components["channel"] != "99")
+                    if (components["channel"] != "99")
                         return new ChannelResponse(new ChannelItem());
                     return new BasicResponse(string.Empty);
                 case nameof(CommandFunction.DuplicateObject):
@@ -94,11 +107,27 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                 case nameof(XmlFunction.GetObjectStatus):
                     return GetRawObjectProperty(address);
                 case nameof(CommandFunction.AddSensor2):
-                    newSensorType = UrlUtilities.CrackUrl(address)["sensortype"].ToEnum<SensorType>();
+
+                    var sensorTypeStr = UrlUtilities.CrackUrl(address)["sensortype"];
+
+                    try
+                    {
+                        
+                        var sensorTypeEnum = sensorTypeStr.XmlToEnum<SensorType>();
+                        newSensorType = new StringEnum<SensorType>(sensorTypeEnum);
+                    }
+                    catch
+                    {
+                        newSensorType = new StringEnum<SensorType>(sensorTypeStr);
+                    }
+
                     address = "http://prtg.example.com/controls/addsensor3.htm?id=9999&tmpid=2";
                     return new BasicResponse(string.Empty);
                 case nameof(HtmlFunction.EditNotification):
-                    return new NotificationActionResponse(new NotificationActionItem());
+                    return new NotificationActionResponse(new NotificationActionItem())
+                    {
+                        HasSchedule = HasSchedule
+                    };
                 case nameof(JsonFunction.GetAddSensorProgress):
                     var progress = hitCount[function] % 2 == 0 ? 100 : 50;
 
@@ -495,7 +524,10 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                 case ObjectType.Device:
                     return new DeviceSettingsResponse();
                 case ObjectType.Notification:
-                    return new NotificationActionResponse(new NotificationActionItem());
+                    return new NotificationActionResponse(new NotificationActionItem())
+                    {
+                        HasSchedule = HasSchedule
+                    };
                 case ObjectType.Schedule:
                     return new ScheduleResponse();
                 default:
@@ -537,7 +569,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
             if (components["name"] == "aggregationchannel")
                 return new RawPropertyResponse("#1:Channel\nchannel(4001, 0)\n#2:Channel\nchannel(4002, 0)");
 
-            if(components["name"] == "authorized")
+            if (components["name"] == "authorized")
             {
                 var str = string.Empty;
 
@@ -588,7 +620,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
 
         private IWebResponse GetSensorTargetResponse()
         {
-            switch (newSensorType)
+            switch (newSensorType.Value)
             {
                 case SensorType.ExeXml:
                     return new ExeFileTargetResponse();
@@ -597,6 +629,9 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                 case SensorType.Http:
                     return new HttpTargetResponse();
                 default:
+                    if (newSensorType.StringValue == "snmplibrary_nolist")
+                        return new ExeFileTargetResponse(); //We won't actually be utilizing the response
+
                     throw new NotSupportedException($"Sensor type {newSensorType} not supported");
             }
         }

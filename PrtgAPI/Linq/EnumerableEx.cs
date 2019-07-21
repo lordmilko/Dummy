@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace PrtgAPI.Linq
 {
-    static class EnumerableEx
+    internal static class EnumerableEx
     {
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector,
+        internal static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector,
             IEqualityComparer<TKey> comparer = null)
         {
             if (source == null)
@@ -26,7 +27,7 @@ namespace PrtgAPI.Linq
         }
 
         [ExcludeFromCodeCoverage]
-        public static IEnumerable<TSource> ExceptBy<TSource, TKey>(this IEnumerable<TSource> first,
+        internal static IEnumerable<TSource> ExceptBy<TSource, TKey>(this IEnumerable<TSource> first,
             IEnumerable<TSource> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey> comparer = null)
         {
             if (first == null)
@@ -53,19 +54,53 @@ namespace PrtgAPI.Linq
             }
         }
 
-        public static T SingleObject<T>(this List<T> source, object value, string property = "ID") where T : IObject
+        internal static T SingleObject<T>(this List<T> source, object value, string property = "ID") where T : IObject
         {
             if (source.Count == 1)
                 return source.Single();
 
             var desc = IObjectExtensions.GetTypeDescription(typeof(T));
 
-            if(source.Count == 0)
-                throw new InvalidOperationException($"Failed to retrieve {desc.ToLower()} with {property} '{value}': {desc} does not exist");
+            if (source.Count == 0)
+                throw new InvalidOperationException($"Failed to retrieve {desc.ToLower()} with {property} '{value}': {desc} does not exist.");
 
             var str = source.Select(s => $"{s} ({s.GetId()})");
 
-            throw new InvalidOperationException($"Failed to retrieve {desc.ToLower()} with {property} '{value}': Multiple {desc.ToLower()}s were returned: " + string.Join(", ", str));
+            throw new InvalidOperationException($"Failed to retrieve {desc.ToLower()} with {property} '{value}': Multiple {desc.ToLower()}s were returned: {(string.Join(", ", str))}.");
+        }
+
+        internal static T[] WithoutNull<T>(this T[] source)
+        {
+            if (source.Any(v => v == null))
+                return source.Where(v => v != null).ToArray();
+
+            return source;
+        }
+
+        internal static List<T> WithoutNull<T>(this List<T> source)
+        {
+            if (source.Any(v => v == null))
+                return source.Where(v => v != null).ToList();
+
+            return source;
+        }
+
+        internal static ICollection<T> AsCollection<T>(this IEnumerable<T> source)
+        {
+            if (source is ICollection<T>)
+                return (ICollection<T>) source;
+
+            return source.ToList();
+        }
+
+        internal static ReadOnlyCollection<T> ToReadOnly<T>(this IEnumerable<T> source)
+        {
+            var list = source as IList<T>;
+
+            if (list != null)
+                return new ReadOnlyCollection<T>(list);
+
+            return new ReadOnlyCollection<T>(source.ToList());
         }
     }
 }

@@ -24,7 +24,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Uninstall-GoPrtgServer -Force</code>
     ///     <para>Uninstalls all GoPrtg servers.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Store-Credentials#uninstallation">Online version:</para>
     /// <para type="link">Connect-GoPrtgServer</para>
     /// <para type="link">Get-GoPrtgServer</para>
     /// <para type="link">Install-GoPrtgServer</para>
@@ -74,7 +75,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
                 if (newContent != null && newContent.Count > 0)
                 {
-                    LoadFunction(string.Join("\r\n", newContent));
+                    LoadFunction(string.Join(Environment.NewLine, newContent));
                 }
                 else
                     RemoveFunction();
@@ -94,7 +95,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
             servers = servers.Where(s => wildcard.IsMatch(s.Server) || wildcard.IsMatch(s.Alias)).ToList();
 
             if (servers.Count == 0)
-                throw new InvalidOperationException($"'{server}' is not a valid server name or alias. To view all saved servers, run Get-GoPrtgServer");
+                throw new InvalidOperationException($"'{server}' is not a valid server name or alias. To view all saved servers, run Get-GoPrtgServer.");
 
             return servers;
         }
@@ -151,7 +152,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 if (string.IsNullOrEmpty(Server))
                 {
                     if (servers.Count > 1)
-                        throw new InvalidOperationException("Cannot remove servers; server name or alias must be specified when multiple entries exist. To remove all servers, specify -Force");
+                        throw new InvalidOperationException("Cannot remove servers; server name or alias must be specified when multiple entries exist. To remove all servers, specify -Force.");
 
                     server = "*";
                 }

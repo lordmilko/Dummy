@@ -73,18 +73,17 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
         internal void WriteColorOutput(string message, ConsoleColor color)
         {
-            var initialColor = Host.UI.RawUI.ForegroundColor;
+            ConsoleColor fg = Host.UI.RawUI.ForegroundColor;
 
-            if ((int)initialColor != -1)
+            Host.UI.RawUI.ForegroundColor = color;
+
+            try
             {
-                Host.UI.RawUI.ForegroundColor = color;
+                WriteObject(message);
             }
-
-            WriteObject(message);
-
-            if ((int)initialColor != -1)
+            finally
             {
-                Host.UI.RawUI.ForegroundColor = initialColor;
+                Host.UI.RawUI.ForegroundColor = fg;
             }
         }
 
@@ -134,9 +133,9 @@ namespace PrtgAPI.PowerShell.Cmdlets
                     var serversIgnoringUserName = servers.Where(s => s.Server == client.Server).ToList();
 
                     if (serversIgnoringUserName.Count == 0)
-                        throw new InvalidOperationException($"Server '{client.Server}' is not a valid GoPrtg server. To install this server, run Install-GoPrtgServer [<alias>]");
+                        throw new InvalidOperationException($"Server '{client.Server}' is not a valid GoPrtg server. To install this server, run Install-GoPrtgServer [<alias>].");
 
-                    throw new InvalidOperationException($"Server '{client.Server}' is a valid GoPrtg server, however you are not authenticated as a valid user for this server. To modify this server, first run GoPrtg [<alias>], then re-run the original command");
+                    throw new InvalidOperationException($"Server '{client.Server}' is a valid GoPrtg server, however you are not authenticated as a valid user for this server. To modify this server, first run GoPrtg [<alias>], then re-run the original command.");
                 }
                 else if (activeServer.Count == 1)
                 {
@@ -182,7 +181,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
             UpdateGoPrtgFunctionBody(final);
 
-            LoadFunction(string.Join("\r\n", final));
+            LoadFunction(string.Join(Environment.NewLine, final));
         }
 
         internal List<PSObject> FormatOutput(List<GoPrtgServer> servers)
@@ -227,14 +226,14 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
             newContent.AddRange(GoPrtgProfile.BelowFooter.Value);
 
-            var str = string.Join("\r\n", newContent);
+            var str = string.Join(Environment.NewLine, newContent);
 
             if (str == string.Empty)
             {
                 File.WriteAllText(profile, str);
             }
             else
-                File.WriteAllText(profile, str + "\r\n");
+                File.WriteAllText(profile, str + Environment.NewLine);
         }
 
         private List<string> AddGoPrtgHeaderAndFooter(List<string> funcBody)

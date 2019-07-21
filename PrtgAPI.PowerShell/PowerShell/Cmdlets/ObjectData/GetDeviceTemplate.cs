@@ -16,15 +16,29 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// <para type="description">Results returned by Get-DeviceTemplate can be filtered by specifying one or more expressions to the
     /// -<see cref="Name"/> parameter. Device template results will be filtered to those that contain a specified expression anywhere
     /// in their Name or Value properties.</para>
-    /// 
+    ///
     /// <example>
-    ///     <code>C:\> $params = New-DeviceParameters dc-1</code>
-    ///     <para>C:\> $params.AutoDiscoveryMode = "AutomaticTemplate"</para>
-    ///     <para>C:\> $params.DeviceTemplates = Get-DeviceTemplate *wmi*</para>
-    ///     <para>C:\> Get-Probe contoso | Add-Device $params</para>
+    ///     <code>
+    ///         C:\> $templates = Get-DeviceTemplate *wmi*
+    /// 
+    ///         C:\> Get-Device -Id 1001 | Start-AutoDiscovery $templates
+    ///     </code>
+    ///     <para>Perform an auto-discovery for WMI sensors on the device with ID 1001.</para>
+    ///     <para/>
+    /// </example>
+    /// <example>
+    ///     <code>
+    ///         C:\> $params = New-DeviceParameters dc-1
+    ///         C:\> $params.AutoDiscoveryMode = "AutomaticTemplate"
+    ///         C:\> $params.DeviceTemplates = Get-DeviceTemplate *wmi*
+    ///
+    ///         C:\> Get-Probe contoso | Add-Device $params
+    ///     </code>
     ///     <para>Create a new device named "dc-1" that performs an auto-discovery for WMI sensors only.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Object-Creation#auto-discovery-1">Online version:</para>
+    /// <para type="link">Start-AutoDiscovery</para> 
     /// <para type="link">New-SensorParameters</para>
     /// <para type="link">Add-Device</para>
     /// 

@@ -1,10 +1,11 @@
 ﻿using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PrtgAPI.Request;
 
 namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
 {
-    class ReadOnlyResponse : IWebResponse
+    public class ReadOnlyResponse : IWebResponse
     {
         IWebResponse normalResponse;
 
@@ -18,7 +19,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
             var func = MultiTypeResponse.GetFunctionEnum(address);
 
             if (func.Equals(CommandFunction.AddSensor2))
-                return string.Empty;
+                return "<div class=\"errormsg\"><p>PRTG Network Monitor has discovered a problem. Your last request could not be processed properly.</p><h3>Error message: Sorry, a read-only user account is not allowed to access this web page.</h3><small style=\"padding:5px;text-align:left\">Url: /controls/addsensor2.htm<br>Params: id=2055&sensortype=exexml&username=prtguser&passhash=***&</small></div>";
 
             var htmlFunc = func as HtmlFunction?;
 
@@ -32,13 +33,13 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
 
         private string CleanResponse(string response)
         {
-            response = Regex.Replace(response, ObjectSettings.basicMatchRegex, string.Empty, RegexOptions.Singleline);
-            response = Regex.Replace(response, ObjectSettings.backwardsMatchRegex, string.Empty, RegexOptions.Singleline);
-            response = Regex.Replace(response, ObjectSettings.textAreaRegex, string.Empty, RegexOptions.Singleline);
-            response = Regex.Replace(response, ObjectSettings.dropDownListRegex, string.Empty, RegexOptions.Singleline);
-            response = Regex.Replace(response, ObjectSettings.dependencyDiv, string.Empty, RegexOptions.Singleline);
+            response = Regex.Replace(response, HtmlParser.DefaultBasicMatchRegex, string.Empty, RegexOptions.Singleline);
+            response = Regex.Replace(response, HtmlParser.DefaultBackwardsMatchRegex, string.Empty, RegexOptions.Singleline);
+            response = Regex.Replace(response, HtmlParser.DefaultTextAreaRegex, string.Empty, RegexOptions.Singleline);
+            response = Regex.Replace(response, HtmlParser.DefaultDropDownListRegex, string.Empty, RegexOptions.Singleline);
+            response = Regex.Replace(response, HtmlParser.DefaultDependencyDiv, string.Empty, RegexOptions.Singleline);
 
-            var xml = ObjectSettings.GetXml(new Request.PrtgResponse(response, false));
+            var xml = HtmlParser.Default.GetXml(new PrtgResponse(response, false));
 
             var descendents = xml.Descendants().ToList();
 

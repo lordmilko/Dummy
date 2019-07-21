@@ -6,11 +6,13 @@ using PrtgAPI.Utilities;
 namespace PrtgAPI.Parameters
 {
     /// <summary>
-    ///Base class for defining type-safe parameter types used to construct a <see cref="PrtgUrl"/> for adding new <see cref="Sensor"/> objects.
+    ///Base class for defining type-safe parameter types used to construct a <see cref="PrtgRequestMessage"/> for adding new <see cref="Sensor"/> objects.
     /// </summary>
     [ExcludeFromCodeCoverage]
     public abstract class SensorParametersInternal : NewSensorParameters, ISourceParameters<Device>
     {
+        internal abstract string[] DefaultTags { get; }
+
         /// <summary>
         /// Gets the source device these parameters were derived from. If these parameters were not derived from a specific device this value is null.
         /// </summary>
@@ -24,6 +26,9 @@ namespace PrtgAPI.Parameters
         internal SensorParametersInternal(string sensorName, SensorType sensorType) : base(sensorName, "fake_type")
         {
             SensorType = sensorType;
+
+            if (DefaultTags != null && DefaultTags.Length != 0)
+                Tags = DefaultTags;
         }
 
         /// <summary>

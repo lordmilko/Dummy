@@ -121,7 +121,7 @@ namespace PrtgAPI
                     val = ((IStringEnum) value).StringValue;
             }
 
-            if(filterMode != FilterMode.Raw)
+            if (filterMode != FilterMode.Raw)
             {
                 var converter = property?.GetEnumAttribute<ValueConverterAttribute>();
 
@@ -178,7 +178,7 @@ namespace PrtgAPI
         }
 
         /// <summary>
-        /// Returns the formatted string representation of this filter for use in a <see cref="PrtgUrl"/>
+        /// Returns the formatted string representation of this filter for use in a <see cref="PrtgRequestMessage"/>
         /// </summary>
         /// <returns>A string that represents the current object.</returns>
         public override string ToString()

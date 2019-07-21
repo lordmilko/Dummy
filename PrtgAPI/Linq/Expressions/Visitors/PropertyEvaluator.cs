@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -32,7 +33,7 @@ namespace PrtgAPI.Linq.Expressions.Visitors
         /// </summary>
         private static ReadOnlyCollection<PropertyCache> propertyCache;
 
-        private static Dictionary<PropertyInfo, PropertyCache> internalPropertyMap = new Dictionary<PropertyInfo, PropertyCache>();
+        private static ConcurrentDictionary<PropertyInfo, PropertyCache> internalPropertyMap = new ConcurrentDictionary<PropertyInfo, PropertyCache>();
 
         private bool strict;
 
@@ -137,7 +138,7 @@ namespace PrtgAPI.Linq.Expressions.Visitors
                     return CreateInitializer(call.Arguments[0]);
             }
 
-            throw new NotImplementedException($"Don't know how to create intermediate expression from {source.GetType()}");
+            throw new NotImplementedException($"Don't know how to create intermediate expression from {source.GetType()}.");
         }
 
         private Expression CreateSelector<TSource>(TSource select, Func<TSource, LambdaExpression> getSelector)
@@ -243,7 +244,7 @@ namespace PrtgAPI.Linq.Expressions.Visitors
                 }
             }
 
-            throw new InvalidOperationException($"Failed to find member '{node}' in source expression array. This should be impossible");
+            throw new InvalidOperationException($"Failed to find member '{node}' in source expression array. This should be impossible.");
         }
 
         private bool IsLiteralMemberInitExpression(MemberInitExpression init, Expression source)
@@ -460,7 +461,7 @@ namespace PrtgAPI.Linq.Expressions.Visitors
 
         protected override Expression VisitExtension(Expression node)
         {
-            if(node.CanReduce)
+            if (node.CanReduce)
                 return base.VisitExtension(node);
 
             return node;

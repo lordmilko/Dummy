@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PrtgAPI.Tests.UnitTests.Support;
 using PrtgAPI.Tests.UnitTests.Support.TestItems;
 using PrtgAPI.Tests.UnitTests.Support.TestResponses;
 
@@ -69,40 +70,48 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         [TestCategory("UnitTest")]
         public void NotificationAction_FiltersByProperty()
         {
-            var client = Initialize_Client(new AddressValidatorResponse(new object[]
+            var urls = new[]
             {
-                "https://prtg.example.com/api/table.xml?content=notifications&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_name=ticket&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=300&objecttype=notification&username=username&passhash=12345678"
-            })
-            {
-                CountOverride = new Dictionary<Content, int>
-                {
-                    [Content.Notifications] = 1
-                }
-            });
+                UnitRequest.Notifications("filter_name=ticket"),
+                UnitRequest.NotificationProperties(300)
+            };
 
-            client.GetNotificationActions(Property.Name, "ticket");
+            var countOverride = new Dictionary<Content, int>
+            {
+                [Content.Notifications] = 1
+            };
+
+            Execute(
+                c => c.GetNotificationActions(Property.Name, "ticket"),
+                urls,
+                countOverride
+            );
         }
 
         [TestMethod]
         [TestCategory("UnitTest")]
         public async Task NotificationAction_FiltersByPropertyAsync()
         {
-            var client = Initialize_Client(new AddressValidatorResponse(new object[]
+            var urls = new[]
             {
-                "https://prtg.example.com/api/table.xml?content=notifications&columns=objid,name,baselink,tags,type,active,basetype&count=*&filter_name=ticket&username=username&passhash=12345678",
-                "https://prtg.example.com/controls/objectdata.htm?id=300&objecttype=notification&username=username&passhash=12345678",
-                "https://prtg.example.com/api/table.xml?content=schedules&columns=objid,name,baselink,tags,type,active,basetype&count=*&username=username&passhash=12345678"
-            })
-            {
-                CountOverride = new Dictionary<Content, int>
-                {
-                    [Content.Notifications] = 1,
-                    [Content.Schedules] = 1
-                }
-            });
+                UnitRequest.Notifications("filter_name=ticket"),
+                UnitRequest.NotificationProperties(300),
+                UnitRequest.Schedules("filter_objid=623"),
+                UnitRequest.ScheduleProperties(623)
+            };
 
-            await client.GetNotificationActionsAsync(Property.Name, "ticket");
+            var countOverride = new Dictionary<Content, int>
+            {
+                [Content.Notifications] = 1,
+                [Content.Schedules] = 1
+            };
+
+            await ExecuteAsync(
+                async c => await c.GetNotificationActionsAsync(Property.Name, "ticket"),
+                urls,
+                countOverride,
+                additionalItems: r => r.HasSchedule = new[] {300}
+            );
         }
         
         [TestMethod]

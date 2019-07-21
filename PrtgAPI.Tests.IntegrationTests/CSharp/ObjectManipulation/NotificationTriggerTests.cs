@@ -76,7 +76,7 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectManipulation
                 Latency = 90,
                 EscalationLatency = 400,
                 RepeatInterval = 3,
-                State = TriggerSensorState.PartialDown
+                State = TriggerSensorState.DownPartial
             };
 
             AddRemoveTrigger(parameters, false);
@@ -107,7 +107,7 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectManipulation
                 OnNotificationAction = actions.First(),
                 Channel = TriggerChannel.Total,
                 Period = TriggerPeriod.Month,
-                UnitSize = DataVolumeUnit.GByte,
+                UnitSize = DataUnit.GByte,
             };
 
             AddRemoveTrigger(parameters, false);
@@ -413,7 +413,7 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectManipulation
 
         private void ValidateNewTrigger(TriggerParameters parameters, NotificationTrigger trigger, bool empty, Func<object, object, string, bool> validator = null)
         {
-            if(validator == null)
+            if (validator == null)
                 validator = (o, t, n) => false;
 
             foreach (var paramProp in parameters.GetType().GetNormalProperties())
@@ -440,7 +440,7 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectManipulation
                                 case nameof(NotificationTrigger.EscalationLatency):
                                     paramValue = "300";
                                     break;
-                                case nameof(NotificationTrigger.Threshold):
+                                case nameof(NotificationTrigger.DisplayThreshold):
                                     paramValue = "0";
                                     break;
                                 case nameof(NotificationTrigger.RepeatInterval):
@@ -449,7 +449,7 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectManipulation
                             }
                         }
 
-                        if(!validator(paramProp.GetValue(parameters), triggerProp.GetValue(trigger), triggerProp.Name))
+                        if (!validator(paramProp.GetValue(parameters), triggerProp.GetValue(trigger), triggerProp.Name))
                             AssertEx.AreEqual(paramValue, triggerValue, triggerProp.Name);
 
                         //when we create a trigger without customization, some fields get default values

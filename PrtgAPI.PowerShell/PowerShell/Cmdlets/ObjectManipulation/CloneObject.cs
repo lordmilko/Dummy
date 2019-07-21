@@ -75,7 +75,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Get-Probe -Id 1234 | Get-Trigger | Clone-Object -DestinationId 5678</code>
     ///     <para>Clone all notification triggers (both inherited and explicitly defined) on the probe with ID 1234 to the object with ID 5678</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Object-Creation#cloning-1">Online version:</para>
     /// <para type="link">Get-Sensor</para>
     /// <para type="link">Get-Device</para>
     /// <para type="link">Get-Group</para>
@@ -192,7 +193,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 response.Properties.Add(new PSNoteProperty("Id", id));
                 response.Properties.Add(new PSNoteProperty("Name", config.Name));
 
-                if(config.Host != null)
+                if (config.Host != null)
                     response.Properties.Add(new PSNoteProperty("Host", config.Host));
 
                 WriteObject(response);
@@ -271,7 +272,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                     parameters = new CloneCmdletConfig(sourceObj, sourceObj.Name, sourceObjResolver);
                     break;
                 default:
-                    throw new NotImplementedException($"Don't know how to handle parameter set '{ParameterSetName}'");
+                    throw new UnknownParameterSetException(ParameterSetName);
             }
 
             if (ParameterSetName != ParameterSet.TriggerToDestination)
@@ -309,7 +310,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 return;
             }
             
-            throw new PSArgumentException($"Cannot clone object with ID '{SourceId}' as it is not a sensor, device or group");
+            throw new PSArgumentException($"Cannot clone object with ID '{SourceId}' as it is not a sensor, device or group.");
         }
 
         private void ExecuteOperation(Action action)

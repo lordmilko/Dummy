@@ -55,7 +55,7 @@ namespace PrtgAPI.PowerShell.Base
         /// The search filters that were specified via dynamic parameters.
         /// </summary>
         private List<SearchFilter> dynamicParameters;
-        private DynamicParameterSet<Property> dynamicParameterSet;
+        private PropertyDynamicParameterSet<Property> dynamicParameterSet;
 
         private List<SearchFilter> filters;
 
@@ -97,9 +97,9 @@ namespace PrtgAPI.PowerShell.Base
                         }
                     }
 
-                    if(underlying == typeof(string))
+                    if (underlying == typeof(string))
                         return GetWildcardFilters(p, cleaned, val => val.ToString());
-                    if(typeof(IStringEnum).IsAssignableFrom(underlying))
+                    if (typeof(IStringEnum).IsAssignableFrom(underlying))
                         return GetWildcardFilters(p, cleaned, val => ((IStringEnum)val).StringValue);
 
                     return new[] {GetPipelineFilter(p, cleaned)};
@@ -185,7 +185,7 @@ namespace PrtgAPI.PowerShell.Base
                     );
                 }
 
-                throw new NotImplementedException($"Don't know how to watch objects of type ({typeof(TObject).Name})");
+                throw new NotImplementedException($"Don't know how to watch objects of type ({typeof(TObject).Name}).");
             }
 
             if (Count != null && filters != null)
@@ -304,9 +304,9 @@ namespace PrtgAPI.PowerShell.Base
                     Where(p => p.GetAttribute<PropertyParameterAttribute>() != null).
                     Select(p => Tuple.Create((Property)p.GetAttribute<PropertyParameterAttribute>().Property, p)).ToList();
 
-                dynamicParameterSet = new DynamicParameterSet<Property>(
+                dynamicParameterSet = new PropertyDynamicParameterSet<Property>(
                     parameterSets,
-                    e => ReflectionCacheManager.GetArrayPropertyInfo(properties.FirstOrDefault(p => p.Item1 == e)?.Item2.Property.PropertyType),
+                    e => ReflectionCacheManager.GetArrayPropertyType(properties.FirstOrDefault(p => p.Item1 == e)?.Item2.Property.PropertyType),
                     this
                 );
             }
@@ -348,6 +348,14 @@ namespace PrtgAPI.PowerShell.Base
 
             if (result != null)
                 return result;
+
+            if (filter.Property == Property.Type)
+            {
+                SensorType type;
+
+                if (Enum.TryParse(filter.Value.ToString(), true, out type))
+                    return new SearchFilter(filter.Property, filter.Operator, type);
+            }
 
             return filter;
         }
@@ -650,7 +658,7 @@ namespace PrtgAPI.PowerShell.Base
                 );
 
             if (property.Property.PropertyType.IsArray)
-                throw new NotImplementedException("Cannot filter array properties dynamically");
+                throw new NotImplementedException("Cannot filter array properties dynamically.");
 
             //Was the value that was specified enumerable? The answer should always be yes, as
             //DynamicParameterPropertyTypes only defines array types
@@ -670,7 +678,7 @@ namespace PrtgAPI.PowerShell.Base
                 }, records);
             }
 
-            throw new NotImplementedException($"All PropertyInfo values should be array types, however type {filter.Item2.GetType().FullName} was not");
+            throw new NotImplementedException($"All PropertyInfo values should be array types, however type {filter.Item2.GetType().FullName} was not.");
         }
 
         private string[] GetDynamicWildcardFilterValues(Tuple<Property, object> filter)
@@ -689,7 +697,7 @@ namespace PrtgAPI.PowerShell.Base
 
                         if (newFilter.Value != originalFilter.Value)
                         {
-                            return ((SensorTypeInternal)newFilter.Value).EnumToXml();
+                            return ((Enum)newFilter.Value).EnumToXml();
                         }
                     }
 
@@ -757,6 +765,7 @@ namespace PrtgAPI.PowerShell.Base
             return Tuple.Create(raw.Items, raw.TotalCount);
         }
 
+        [ExcludeFromCodeCoverage]
         async Task<List<TObject>> IStreamableCmdlet<PrtgTableCmdlet<TObject, TParam>, TObject, TParam>.GetStreamObjectsAsync(TParam parameters) =>
             await client.ObjectEngine.GetObjectsAsync<TObject>(parameters).ConfigureAwait(false);
 

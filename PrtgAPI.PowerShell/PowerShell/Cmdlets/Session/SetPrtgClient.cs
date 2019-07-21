@@ -14,7 +14,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Set-PrtgClient -RetryCount 5 -LogLevel Trace,Response</code>
     ///     <para>Update the RetryCount and LogLevel on the current session's PrtgClient.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Getting-Started#session-management-1">Online version:</para>
     /// <para type="link">Connect-PrtgServer</para>
     /// <para type="link">Get-PrtgClient</para>
     /// <para type="link">Connect-GoPrtgServer</para>
@@ -107,7 +108,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 PrtgSessionState.Client.LogLevel = level;
             }
 
-            if(MyInvocation.BoundParameters.ContainsKey(nameof(Progress)))
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(Progress)))
                 PrtgSessionState.EnableProgress = Progress;
 
             WritePassThru();

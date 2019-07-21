@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Management.Automation;
 using PrtgAPI.PowerShell.Base;
 
@@ -60,10 +59,12 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> if(!(Get-PrtgClient))</code>
-    ///     <para>C:\> {</para>
-    ///     <para>C:\>     Connect-PrtgServer prtg.example.com</para>
-    ///     <para>C:\> }</para>
+    ///     <code>
+    ///         if(!(Get-PrtgClient))
+    ///         {
+    ///             Connect-PrtgServer prtg.example.com
+    ///         }
+    ///     </code>
     ///     <para>Connect to a PRTG Server only if an existing connection is not active.</para>
     ///     <para/>
     /// </example>
@@ -77,7 +78,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <para>Connect to a PRTG Server, indicating that any requests that fail during the use of the PrtgClient should be attempted
     /// at most 3 times, with a delay of 5 seconds between each attempt.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Getting-Started#powershell">Online version:</para>
     /// <para type="link">Get-PrtgClient</para>
     /// <para type="link">Set-PrtgClient</para>
     /// <para type="link">Disconnect-PrtgServer</para>
@@ -186,9 +188,11 @@ namespace PrtgAPI.PowerShell.Cmdlets
         {
             if (PrtgSessionState.Client == null || Force.IsPresent)
             {
-                PrtgSessionState.Client = PassHash.IsPresent ?
-                    new PrtgClient(Server, Credential.GetNetworkCredential().UserName, Credential.GetNetworkCredential().Password, AuthMode.PassHash, IgnoreSSL) :
-                    new PrtgClient(Server, Credential.GetNetworkCredential().UserName, Credential.GetNetworkCredential().Password, ignoreSSL: IgnoreSSL);
+                var cred = Credential.GetNetworkCredential();
+                var authMode = PassHash.IsPresent ? AuthMode.PassHash : AuthMode.Password;
+
+                PrtgSessionState.Client = new PrtgClient(Server, cred.UserName, cred.Password, authMode, IgnoreSSL);
+                PrtgSessionState.PSEdition = GetPSEdition(cmdlet);
 
                 if (RetryCount != null)
                     PrtgSessionState.Client.RetryCount = RetryCount.Value;
@@ -215,7 +219,22 @@ namespace PrtgAPI.PowerShell.Cmdlets
             }
             else
             {
-                throw new InvalidOperationException($"Already connected to server {PrtgSessionState.Client.Server}. To override please specify -Force");
+                throw new InvalidOperationException($"Already connected to server {PrtgSessionState.Client.Server}. To override please specify -Force.");
+            }
+        }
+
+        private PSEdition GetPSEdition(PSCmdlet cmdlet)
+        {
+            var variable = cmdlet.GetVariableValue("global:PSEdition")?.ToString();
+
+            switch (variable)
+            {
+                case "Desktop":
+                    return PSEdition.Desktop;
+                case "Core":
+                    return PSEdition.Core;
+                default:
+                    return PSEdition.Other;
             }
         }
     }

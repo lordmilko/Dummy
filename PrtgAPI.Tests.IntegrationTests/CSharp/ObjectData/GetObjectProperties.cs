@@ -48,7 +48,8 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData
                 ObjectProperty.BandwidthTimeUnit,
                 ObjectProperty.MemoryUsageUnit,
                 ObjectProperty.DiskSizeUnit,
-                ObjectProperty.FileSizeUnit
+                ObjectProperty.FileSizeUnit,
+                ObjectProperty.LocationName
             }.ToList();
 
             var objectProperties = Enum.GetValues(typeof(ObjectProperty)).Cast<ObjectProperty>().Where(p => !blacklist.Contains(p)).ToList();
@@ -211,7 +212,7 @@ namespace PrtgAPI.Tests.IntegrationTests.ObjectData
             return list;
         }
 
-        private List<Tuple<string, SensorOrDeviceOrGroupOrProbe, object>> GetSettings<TObject, TSettings>(Func<List<TObject>> getObjects, Func<int, TSettings> getSettings) where TObject : SensorOrDeviceOrGroupOrProbe
+        private List<Tuple<string, SensorOrDeviceOrGroupOrProbe, object>> GetSettings<TObject, TSettings>(Func<List<TObject>> getObjects, Func<Either<TObject, int>, TSettings> getSettings) where TObject : SensorOrDeviceOrGroupOrProbe
         {
             var settings = getObjects().Select(o => new ObjectPropertyMap<TObject, TSettings>(o, getSettings(o.Id))).ToList();
 

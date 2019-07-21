@@ -103,7 +103,17 @@ function WithStrict($script)
 
 function GetCustomCountDictionary($hashtable)
 {
-    $dictionary = New-Object "System.Collections.Generic.Dictionary[[PrtgAPI.Content],[int]]"
+    GetCustomContentDictionary $hashtable "int"
+}
+
+function GetCustomItemOverrideDictionary($hashtable)
+{
+    GetCustomContentDictionary $hashtable "PrtgAPI.Tests.UnitTests.Support.TestItems.BaseItem[]"
+}
+
+function GetCustomContentDictionary($hashtable, $valueType)
+{
+    $dictionary = New-Object "System.Collections.Generic.Dictionary[[PrtgAPI.Content],[$valueType]]"
 
     foreach($entry in $hashtable.GetEnumerator())
     {
@@ -154,6 +164,13 @@ function WithResponseArgs($responseName, $arguments, $scriptBlock) {
     }
 }
 
+function WithReadOnly($scriptBlock)
+{
+    $multiTypeResponse = New-Object PrtgAPI.Tests.UnitTests.Support.TestResponses.MultiTypeResponse
+
+    WithResponseArgs "ReadOnlyResponse" $multiTypeResponse $scriptBlock
+}
+
 function SetMultiTypeResponse
 {
     SetResponseAndClient "MultiTypeResponse"
@@ -172,9 +189,7 @@ function SetAddressValidatorResponse($strArr, $exactMatch = $false)
     {
         $exactMatch  = $true
 
-        $arr = @($strArr | foreach {
-            BuildStr $_
-        })
+        $arr = $strArr
     }
     else
     {
@@ -189,6 +204,11 @@ function SetAddressValidatorResponse($strArr, $exactMatch = $false)
     }
     
     SetResponseAndClientWithArguments "AddressValidatorResponse" @($arr, $exactMatch)
+}
+
+function SetCustomAddressValidatorResponse($response, $arguments)
+{
+    SetResponseAndClientWithArguments $response @($arguments, $true)
 }
 
 function SetResponseAndClient($responseName)
@@ -225,10 +245,20 @@ function BuildStr($str)
 
 function SetPrtgClient($client)
 {
-    $type = (gcm Connect-PrtgServer).ImplementingType.Assembly.GetType("PrtgAPI.PowerShell.PrtgSessionState")
-    $property = $type.GetProperty("Client", [System.Reflection.BindingFlags]::Static -bor [System.Reflection.BindingFlags]::NonPublic)
+    $assembly = (gcm Connect-PrtgServer).ImplementingType.Assembly
 
-    $property.SetValue($null, $client)
+    $sessionType = $assembly.GetType("PrtgAPI.PowerShell.PrtgSessionState")
+    $editionType = $assembly.GetType("PrtgAPI.PowerShell.PSEdition")
+
+    $edition = [enum]::GetValues($editionType) | where { $_ -eq $PSEdition }
+
+    $flags = [System.Reflection.BindingFlags]::Static -bor [System.Reflection.BindingFlags]::NonPublic
+
+    $clientProperty = $sessionType.GetProperty("Client", $flags)
+    $editionProperty = $sessionType.GetProperty("PSEdition", $flags)
+
+    $clientProperty.SetValue($null, $client)
+    $editionProperty.SetValue($null, $edition)
 }
 
 function SetVersion($versionStr)

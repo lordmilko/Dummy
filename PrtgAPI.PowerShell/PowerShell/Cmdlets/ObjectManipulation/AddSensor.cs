@@ -35,38 +35,47 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// disabled by specifying -Resolve:$false.</para>
     /// 
     /// <example>
-    ///     <code>C:\> $params = New-SensorParameters ExeXml "Monitor Traffic" "TrafficMonitor.ps1"</code>
-    ///     <para>C:\> Get-Device *fw* | Add-Sensor $params</para>
+    ///     <code>
+    ///         C:\> $params = New-SensorParameters ExeXml "Monitor Traffic" "TrafficMonitor.ps1"
+    ///
+    ///         C:\> Get-Device *fw* | Add-Sensor $params
+    ///     </code>
     ///     <para>Add an EXE/Script Advanced sensor to all firewall devices, using the script "TrafficMonitor.ps1"</para>
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $raw = @{</code>
-    ///     <para>>>     name_ = "my raw sensor"</para>
-    ///     <para>>>     tags_ = "xmlexesensor"</para>
-    ///     <para>>>     priority_ = 4</para>
-    ///     <para>>>     exefile_ = "CustomScript.ps1|CustomScript.ps1||</para>
-    ///     <para>>>     exeparams_ = "arg1 arg2 arg3"</para>
-    ///     <para>>>     environment_ = 1</para>
-    ///     <para>>>     usewindowsauthentication_ = 1</para>
-    ///     <para>>>     mutexname_ = "testMutex"</para>
-    ///     <para>>>     timeout_ = 70</para>
-    ///     <para>>>     writeresult_ = 1</para>
-    ///     <para>>>     intervalgroup = 0</para>
-    ///     <para>>>     interval_ = "30|30 seconds"</para>
-    ///     <para>>>     errorintervalsdown_ = 2</para>
-    ///     <para>>>     sensortype = "exexml"</para>
-    ///     <para>>> }</para>
-    ///     <para>C:\> $params = New-SensorParameters $raw</para>
-    ///     <para>C:\> Get-Device dc-1 | Add-Sensor $params</para>
-    ///     <para>Add a new EXE/Script Advanced sensor to the device named dc-1 using its raw parameters</para>
-    /// </example>
+    ///     <code>
+    ///         C:\> $raw = @{
+    ///         >>      name_ = "my raw sensor"
+    ///         >>      tags_ = "xmlexesensor"
+    ///         >>      priority_ = 4
+    ///         >>      exefile_ = "CustomScript.ps1|CustomScript.ps1||
+    ///         >>      exeparams_ = "arg1 arg2 arg3"
+    ///         >>      environment_ = 1
+    ///         >>      usewindowsauthentication_ = 1
+    ///         >>      mutexname_ = "testMutex"
+    ///         >>      timeout_ = 70
+    ///         >>      writeresult_ = 1
+    ///         >>      intervalgroup = 0
+    ///         >>      interval_ = "30|30 seconds"
+    ///         >>      errorintervalsdown_ = 2
+    ///         >>      sensortype = "exexml"
+    ///         >> }
     /// 
+    ///         C:\> $params = New-SensorParameters $raw
+    /// 
+    ///         C:\> Get-Device dc-1 | Add-Sensor $params
+    ///     </code>
+    ///     <para>Add a new EXE/Script Advanced sensor to the device named dc-1 using a hashtable containing its raw parameters.</para>
+    /// </example>
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Object-Creation#creation">Online version:</para>
     /// <para type="link">Get-Device</para>
     /// <para type="link">New-SensorParameters</para>
+    /// <para type="linl">New-Sensor</para>
     /// </summary>
     [Cmdlet(VerbsCommon.Add, "Sensor", SupportsShouldProcess = true, DefaultParameterSetName = ParameterSet.Default)]
-    public class AddSensor : AddObject<NewSensorParameters, Sensor, Device>
+    public class AddSensor : AddParametersObject<NewSensorParameters, Sensor, Device>
     {
         /// <summary>
         /// <para type="description">A set of parameters whose properties describe the type of object to add, with what settings.</para>
@@ -91,17 +100,27 @@ namespace PrtgAPI.PowerShell.Cmdlets
         /// </summary>
         protected override void ProcessRecordEx()
         {
-            if (ParameterSetName == ParameterSet.Default)
-                base.ProcessRecordEx();
-            else
+            switch (ParameterSetName)
             {
-                var internalParams = Parameters as ISourceParameters<Device>;
-
-                if (internalParams?.Source != null)
-                    AddObjectInternal(internalParams.Source);
-                else
-                    throw new InvalidOperationException("Only sensor parameters created by Get-SensorTarget can be piped to Add-Sensor. Please use 'Default' parameter set, specifying both -Destination and -Parameters");
+                case ParameterSet.Default:
+                    base.ProcessRecordEx();
+                    break;
+                case ParameterSet.Target:
+                    AddSensorToTarget();
+                    break;
+                default:
+                    throw new UnknownParameterSetException(ParameterSetName);
             }
+        }
+
+        private void AddSensorToTarget()
+        {
+            var internalParams = Parameters as ISourceParameters<Device>;
+
+            if (internalParams?.Source != null)
+                AddObjectInternal(internalParams.Source);
+            else
+                throw new InvalidOperationException("Only sensor parameters created by Get-SensorTarget can be piped to Add-Sensor. Please use 'Default' parameter set, specifying both -Destination and -Parameters.");
         }
 
         /// <summary>

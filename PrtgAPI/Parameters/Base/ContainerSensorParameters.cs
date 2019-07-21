@@ -14,7 +14,7 @@ using PrtgAPI.Utilities;
 namespace PrtgAPI.Parameters
 {
     /// <summary>
-    /// <para type="description">Represents parameters used to construct a <see cref="PrtgUrl"/> for adding new <see cref="Sensor"/> objects,
+    /// <para type="description">Represents parameters used to construct a <see cref="PrtgRequestMessage"/> for adding new <see cref="Sensor"/> objects,
     /// capable of functioning as both a <see cref="Dictionary{TKey, TValue}"/> and a secondary container type.</para>
     /// </summary>
     public abstract class ContainerSensorParameters : NewSensorParameters, IDynamicParameters
@@ -151,7 +151,7 @@ namespace PrtgAPI.Parameters
                 if (matches.All(o => o is GenericSensorTarget))
                     return matches.Cast<GenericSensorTarget>().ToArray();
 
-                throw new NotSupportedException($"Property '{name}' contains an invalid collection of elements");
+                throw new NotSupportedException($"Property '{name}' contains an invalid collection of elements.");
             }
 
             throw new InvalidOperationException($"Parameter with name '{name}' does not exist.");

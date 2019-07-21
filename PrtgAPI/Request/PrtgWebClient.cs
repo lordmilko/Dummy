@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,7 +22,14 @@ namespace PrtgAPI.Request
 
         public PrtgWebClient(bool ignoreSSL, string server)
         {
-            this.server = server?.ToLower();
+            //PrtgWebClient will be initialized before PrtgClient has validated server value
+            if (server != null)
+            {
+                server = server.ToLower();
+
+                //Strip the protocol and port (if applicable)
+                this.server = Regex.Replace(server, "(.+?://)?(.+?)(:.*)?", "$2");
+            }
 
             if (ignoreSSL)
                 ServicePointManager.ServerCertificateValidationCallback += IgnoreSSLCallback;
@@ -31,7 +39,7 @@ namespace PrtgAPI.Request
             //.NET Core should use DefaultProxyCredentials
             var proxy = WebRequest.DefaultWebProxy;
 
-            if (proxy.Credentials == null)
+            if (proxy != null && proxy.Credentials == null)
                 proxy.Credentials = CredentialCache.DefaultNetworkCredentials;
             
             asyncClient = new HttpClient(handler);
@@ -57,19 +65,19 @@ namespace PrtgAPI.Request
             return false;
         }
 
-        public Task<HttpResponseMessage> GetSync(string address, CancellationToken token)
+        public Task<HttpResponseMessage> SendSync(PrtgRequestMessage request, CancellationToken token)
         {
-            return GetAsync(address, token);
+            return SendAsync(request, token);
         }
 
-        public Task<HttpResponseMessage> GetAsync(string address, CancellationToken token)
+        public Task<HttpResponseMessage> SendAsync(PrtgRequestMessage request, CancellationToken token)
         {
             //Cannot use HttpCompletionOption.ResponseHeadersRead without manually disposing
             //HttpResponseMessage objects, which will also dispose internal stream. Existing code
             //needs to be refactored to have the deserialization happen in a callback to ExecuteRequest
             //so that there is no problem wrapping the HttpResponseMessage up in a using for both
             //sync/async
-            return asyncClient.GetAsync(address, token);
+            return asyncClient.GetAsync(request.Url, token);
         }
     }
 }

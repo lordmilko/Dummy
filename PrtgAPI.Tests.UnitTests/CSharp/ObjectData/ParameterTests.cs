@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PrtgAPI.Attributes;
 using PrtgAPI.Parameters;
 using PrtgAPI.Utilities;
 using PrtgAPI.Tests.UnitTests.Infrastructure;
 using PrtgAPI.Tests.UnitTests.Support;
-using PrtgAPI.Tests.UnitTests.Support.TestResponses;
 
 namespace PrtgAPI.Tests.UnitTests.ObjectData
 {
@@ -19,7 +20,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         public int RestartStage
         {
             get { return (int)GetCustomParameterEnumXml<int>(ObjectProperty.AutoDiscoverySchedule); }
-            set { SetCustomParameterEnumXml<int>(ObjectProperty.AutoDiscoverySchedule, value); }
+            set { SetCustomParameterEnumXml(ObjectProperty.AutoDiscoverySchedule, value); }
         }
     }
 
@@ -91,8 +92,8 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         {
             var parameters = new SensorParameters();
 
-            AssertEx.Throws<ArgumentNullException>(() => parameters.AddFilters(null), "Value cannot be null.\r\nParameter name: filters");
-            AssertEx.Throws<ArgumentNullException>(() => parameters.RemoveFilters(null), "Value cannot be null.\r\nParameter name: filters");
+            AssertEx.Throws<ArgumentNullException>(() => parameters.AddFilters(null), $"Value cannot be null.{Environment.NewLine}Parameter name: filters");
+            AssertEx.Throws<ArgumentNullException>(() => parameters.RemoveFilters(null), $"Value cannot be null.{Environment.NewLine}Parameter name: filters");
         }
 
         [TestMethod]
@@ -217,6 +218,17 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             SetAndGet(parameters, nameof(HttpSensorParameters.UseSNIFromUrl), true);
         }
 
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void SensorParameters_FactorySensor_CanBeGetAndSet()
+        {
+            var parameters = new FactorySensorParameters(Enumerable.Empty<string>());
+            SetAndGetArray(parameters, nameof(FactorySensorParameters.ChannelDefinition), "first", "second");
+            SetAndGet(parameters, nameof(FactorySensorParameters.FactoryErrorMode), FactoryErrorMode.WarnOnError);
+            SetAndGet(parameters, nameof(FactorySensorParameters.FactoryErrorFormula), "test");
+            SetAndGet(parameters, nameof(FactorySensorParameters.FactoryMissingDataMode), FactoryMissingDataMode.CalculateWithZero);
+        }
+
         private void SetAndGet(IParameters parameters, string property, object value)
         {
             var prop = parameters.GetType().GetProperty(property);
@@ -229,6 +241,20 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             var val = prop.GetValue(parameters);
 
             Assert.AreEqual(value, val);
+        }
+
+        private void SetAndGetArray<T>(IParameters parameters, string property, params T[] value)
+        {
+            var prop = parameters.GetType().GetProperty(property);
+
+            if (prop == null)
+                throw new ArgumentException($"Could not find property '{property}'");
+
+            prop.SetValue(parameters, value);
+
+            var val = prop.GetValue(parameters);
+
+            AssertEx.AreEqualLists(value?.ToList(), val?.ToIEnumerable().Cast<T>().ToList(), $"Property '{property}' was incorrect");
         }
 
         #endregion
@@ -326,6 +352,40 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             Assert.AreEqual(false, parameters.InheritInterval);
         }
 
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void NewSensorParameters_AllPropertiesHavePropertyParameterAttributes()
+        {
+            var properties = typeof(NewSensorParameters).Assembly.GetTypes()
+                .Where(t => typeof(NewSensorParameters).IsAssignableFrom(t))
+                .SelectMany(t => t.GetNormalProperties())
+                .Where(p => p.ReflectedType == p.DeclaringType)
+                .OrderBy(p => p.Name)
+                .ToList();
+
+            var propertiesWithoutAttributes =
+                properties.Where(p => p.GetCustomAttribute<PropertyParameterAttribute>() == null).OrderBy(p => p.DeclaringType.Name).ToList();
+
+            var excludedProperties = new[]
+            {
+                Tuple.Create(typeof(DynamicSensorParameters), nameof(DynamicSensorParameters.Targets)),
+                Tuple.Create(typeof(DynamicSensorParameters), nameof(DynamicSensorParameters.Source)),
+                Tuple.Create(typeof(NewSensorParameters), nameof(NewSensorParameters.DynamicType)),
+                Tuple.Create(typeof(RawSensorParameters), nameof(RawSensorParameters.Parameters)),
+                Tuple.Create(typeof(SensorParametersInternal), nameof(SensorParametersInternal.SensorType)),
+                Tuple.Create(typeof(SensorParametersInternal), nameof(SensorParametersInternal.Source))
+            };
+
+            propertiesWithoutAttributes = propertiesWithoutAttributes.Where(p => !excludedProperties.Any(e => p.DeclaringType == e.Item1 && p.Name == e.Item2)).ToList();
+
+            if (propertiesWithoutAttributes.Count > 0)
+            {
+                var str = string.Join(", ", propertiesWithoutAttributes.Select(p => $"{p.DeclaringType}.{p.Name}"));
+
+                Assert.Fail($"Properties {str} are missing a {nameof(PropertyParameterAttribute)}");
+            }
+        }
+
         #endregion
         #region RawSensorParameters
 
@@ -373,6 +433,9 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         }
 
         [TestMethod]
+#if MSTEST2
+        [DoNotParallelize]
+#endif
         [TestCategory("UnitTest")]
         public void RawSensorParameters_WithoutPSObjectUtilities_SingleObject()
         {
@@ -387,13 +450,16 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
 
                 Assert.IsInstanceOfType(parameters.Parameters.First(p => p.Name == "third").Value, typeof(SimpleParameterContainerValue));
 
-                var url = PrtgUrlTests.CreateUrl(parameters);
+                var url = PrtgRequestMessageTests.CreateUrl(parameters);
 
-                Assert.AreEqual("name_=first&third=True&sensortype=second", url);
+                Assert.AreEqual("name_=first&priority_=3&inherittriggers_=1&intervalgroup=1&interval_=60%7C60+seconds&errorintervalsdown_=1&third=True&sensortype=second", url);
             }, new DefaultPSObjectUtilities());
         }
 
         [TestMethod]
+#if MSTEST2
+        [DoNotParallelize]
+#endif
         [TestCategory("UnitTest")]
         public void RawSensorParameters_WithoutPSObjectUtilities_ObjectArray()
         {
@@ -408,9 +474,9 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
 
                 Assert.IsInstanceOfType(parameters.Parameters.First(p => p.Name == "third").Value, typeof(SimpleParameterContainerValue));
 
-                var url = PrtgUrlTests.CreateUrl(parameters);
+                var url = PrtgRequestMessageTests.CreateUrl(parameters);
 
-                Assert.AreEqual("name_=first&third=1&third=2&sensortype=second", url);
+                Assert.AreEqual("name_=first&priority_=3&inherittriggers_=1&intervalgroup=1&interval_=60%7C60+seconds&errorintervalsdown_=1&third=1&third=2&sensortype=second", url);
             }, new DefaultPSObjectUtilities());
         }
 
@@ -601,9 +667,9 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         {
             var parameters = new ProbeParameters(new SearchFilter(Property.ParentId, 0));
 
-            var url = PrtgUrlTests.CreateUrl(parameters, false);
+            var url = PrtgRequestMessageTests.CreateUrl(parameters, false);
 
-            Assert.AreEqual(TestHelpers.RequestProbe("count=*&filter_parentid=0", UrlFlag.Columns), url);
+            Assert.AreEqual(UnitRequest.Probes("filter_parentid=0"), url);
         }
 
         [TestMethod]
@@ -632,9 +698,9 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         {
             var parameters = new ProbeParameters(new SearchFilter(Property.ParentId, new[] {0}));
 
-            var url = PrtgUrlTests.CreateUrl(parameters, false);
+            var url = PrtgRequestMessageTests.CreateUrl(parameters, false);
 
-            Assert.AreEqual(TestHelpers.RequestProbe("count=*&filter_parentid=0", UrlFlag.Columns), url);
+            Assert.AreEqual(UnitRequest.Probes("filter_parentid=0"), url);
         }
 
         [TestMethod]
@@ -664,18 +730,20 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         [TestCategory("UnitTest")]
         public void GetObjectPropertyRawParameters_SpecifiesShow_WithStringProperty()
         {
-            var client = Initialize_Client(new AddressValidatorResponse("id=1001&name=name&show=text&username=username"));
-
-            client.GetObjectProperty(1001, ObjectProperty.Name);
+            Execute(
+                c => c.GetObjectProperty(1001, ObjectProperty.Name),
+                "id=1001&name=name&show=text&username=username"
+            );
         }
 
         [TestMethod]
         [TestCategory("UnitTest")]
         public void GetObjectPropertyRawParameters_DoesNotSpecifyShow_WithNonStringProperty()
         {
-            var client = Initialize_Client(new AddressValidatorResponse("id=1001&name=active&username=username"));
-
-            client.GetObjectProperty(1001, ObjectProperty.Active);
+            Execute(
+                c => c.GetObjectProperty(1001, ObjectProperty.Active),
+                "id=1001&name=active&username=username"
+            );
         }
 
         #endregion
@@ -687,10 +755,84 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         {
             var settings = new[] { new ChannelParameter(ChannelProperty.LimitsEnabled, true) };
 
-            AssertEx.Throws<ArgumentNullException>(() => new SetChannelPropertyParameters(null, 1, settings), "Value cannot be null.\r\nParameter name: sensorIds");
-            AssertEx.Throws<ArgumentException>(() => new SetChannelPropertyParameters(new int[] { }, 1, settings), "At least one Sensor ID must be specified.\r\nParameter name: sensorIds");
-            AssertEx.Throws<ArgumentNullException>(() => new SetChannelPropertyParameters(new[] { 1 }, 1, null), "Value cannot be null.\r\nParameter name: parameters");
-            AssertEx.Throws<ArgumentException>(() => new SetChannelPropertyParameters(new[] { 1 }, 1, new ChannelParameter[] { }), "At least one parameter must be specified.\r\nParameter name: parameters");
+            AssertEx.Throws<ArgumentNullException>(() => new SetChannelPropertyParameters(null, 1, settings), $"Value cannot be null.{Environment.NewLine}Parameter name: sensorIds");
+            AssertEx.Throws<ArgumentException>(() => new SetChannelPropertyParameters(new int[] { }, 1, settings), $"At least one Sensor ID must be specified.{Environment.NewLine}Parameter name: sensorIds");
+            AssertEx.Throws<ArgumentNullException>(() => new SetChannelPropertyParameters(new[] { 1 }, 1, null), $"Value cannot be null.{Environment.NewLine}Parameter name: parameters");
+            AssertEx.Throws<ArgumentException>(() => new SetChannelPropertyParameters(new[] { 1 }, 1, new ChannelParameter[] { }), $"At least one parameter must be specified.{Environment.NewLine}Parameter name: parameters");
+        }
+
+        #endregion
+        #region NewObjectParameters
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void NewSensorParameters_NameOverride_CanOverride()
+        {
+            var parameters = new RawSensorParameters("test", "snmplibrary");
+            
+            ValidateUrl("name_=test", parameters);
+
+            parameters.AddNameOverride(ObjectProperty.Name, "potato");
+            ValidateUrl("potato=test", parameters);
+
+            parameters.Name = "test1";
+
+            Assert.AreEqual("test1", parameters.Name);
+        }
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void NewSensorParameters_NameOverride_RemovesProperly()
+        {
+            var parameters = new RawSensorParameters("test", "snmplibrary");
+
+            ValidateUrl("name_=test", parameters);
+
+            parameters.AddNameOverride(ObjectProperty.Name, "potato");
+            ValidateUrl("potato=test", parameters);
+
+            parameters.Name = "test1";
+            Assert.AreEqual("test1", parameters.Name);
+
+            parameters.RemoveNameOverride(ObjectProperty.Name);
+            ValidateUrl("name_=test1", parameters);
+
+            Assert.AreEqual("test1", parameters.Name);
+        }
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void NewSensorParameters_NameOverride_RemovesWhenNotAdded()
+        {
+            var parameters = new RawSensorParameters("test", "snmplibrary");
+
+            Assert.IsFalse(parameters.RemoveNameOverride(ObjectProperty.Name));
+        }
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void NewSensorParameters_NameOverride_RetrievesOverrides()
+        {
+            var parameters = new RawSensorParameters("test", "snmplibrary");
+
+            parameters.AddNameOverride(ObjectProperty.Name, "potato");
+            parameters.AddNameOverride(ObjectProperty.Priority, "tomato");
+
+            var overrides = parameters.GetNameOverrides().OrderBy(kv => kv.Key).ToList();
+
+            Assert.AreEqual(ObjectProperty.Name, overrides[0].Key);
+            Assert.AreEqual("potato", overrides[0].Value);
+            Assert.AreEqual(ObjectProperty.Priority, overrides[1].Key);
+            Assert.AreEqual("tomato", overrides[1].Value);
+        }
+
+        private void ValidateUrl(string url, IParameters parameters)
+        {
+            url += "&priority_=3&inherittriggers_=1&intervalgroup=1&interval_=60%7C60+seconds&errorintervalsdown_=1&sensortype=snmplibrary";
+
+            var actual = PrtgRequestMessageTests.CreateUrl(parameters);
+
+            Assert.AreEqual(url, actual);
         }
 
         #endregion
@@ -717,6 +859,78 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             Assert.AreEqual(1, parameters.GetParameters().Keys.Count);
             Assert.AreEqual(parameters[Parameter.PassHash], "passhash");
             Assert.AreEqual(null, parameters[Parameter.Password]);
+        }
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void AllParameterProperties_CanSetAndRetrieveNull()
+        {
+            var groups = typeof(BaseParameters).Assembly.GetTypes()
+                .Where(t => typeof(BaseParameters).IsAssignableFrom(t) && !t.IsAbstract)
+                .SelectMany(t => t.GetNormalProperties())
+                .OrderBy(p => p.Name)
+                .GroupBy(p => p.ReflectedType)
+                .OrderBy(p => p.Key.Name)
+                .ToList();
+
+            foreach (var group in groups)
+            {
+                var instance = GetParametersInstance(group.Key);
+
+                foreach (var property in group)
+                {
+                    var p = property;
+
+                    if (group.Key.IsGenericType)
+                    {
+                        p = instance.GetType().GetProperty(property.Name);
+                    }
+
+                    if (p.PropertyType.IsValueType)
+                        continue;
+
+                    try
+                    {
+                        p.SetValue(instance, null);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (group.Key.Name == "SpeedTriggerParameters" && p.Name == "Channel" && ex.Message ==
+                            "Trigger property 'Channel' cannot be null for trigger type 'Speed'.")
+                        {
+                            continue;
+                        }
+                    }
+
+                    var val = p.GetValue(instance);
+                }
+            }
+        }
+
+        internal static IParameters GetParametersInstance(Type type)
+        {
+            if (type.Name == "SystemInfoParameters`1")
+                type = typeof(SystemInfoParameters<DeviceSystemInfo>);
+
+            var ctor = type.GetConstructors().FirstOrDefault();
+
+            if (ctor != null)
+            {
+                var args = PrtgClientTests.GetParameters(ctor);
+
+                return (IParameters)Activator.CreateInstance(type, args);
+            }
+            else
+            {
+                switch (type.Name)
+                {
+                    case nameof(DynamicSensorParameters):
+                        return new DynamicSensorParameters("<input name=\"name_\" value=\"test\">", "exexml");
+
+                    default:
+                        throw new NotImplementedException($"Don't know how to create instance of parameters type '{type.Name}'");
+                }
+            }
         }
     }
 }

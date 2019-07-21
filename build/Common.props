@@ -1,0 +1,55 @@
+<Project>
+
+  <!-- Framework Constants -->
+  
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('netcoreapp'))">
+    <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
+    <FrameworkType>Core</FrameworkType>
+    <FrameworkCodeName>coreclr</FrameworkCodeName>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('netstandard'))">
+    <DefineConstants>$(DefineConstants);NETSTANDARD</DefineConstants>
+    <FrameworkType>Standard</FrameworkType>
+    <FrameworkCodeName>coreclr</FrameworkCodeName>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net4'))">
+    <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
+    <!-- TODO: why dont things grey out when i rename this constant? -->
+    <FrameworkType>Full</FrameworkType>
+    <FrameworkCodeName>fullclr</FrameworkCodeName>
+    <EnableScripty>true</EnableScripty>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <DefineConstants>$(DefineConstants);MSTEST2</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Pester -->
+
+  <!-- Ensure external Pester can find Microsoft.VisualStudio.TestPlatform.TestFramework -->
+  <PropertyGroup Condition="'$(FrameworkType)' == 'Core' AND '$(IsTestProject)' == 'true'">
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- Remove all copy local assemblies but the one we're actually interested in (MSTest.TestFramework) -->
+  <Target Name="FilterCopyLocalTestItems" AfterTargets="ResolveLockFileCopyLocalProjectDeps" Condition="'$(FrameworkType)' == 'Core' AND '$(IsTestProject)' == 'true'">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.NuGetPackageId)' != 'MSTest.TestFramework'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Clear the TestResults directory under the project folder to prevent files/folders under this directory from accumulating -->
+  <Target Name="ClearTestResults" BeforeTargets="BeforeBuild" Condition="'$(IsTestProject)' == 'true'">
+    <RemoveDir Directories="$(ProjectDir)TestResults" />
+  </Target>
+
+  <!-- Contents -->
+
+  <ItemGroup>
+    <Compile Remove="$(ProjectDir)Properties\*.cs"/>
+      <None Remove="**\*.DotSettings"/>
+    <!--<None Remove="**/*" />-->
+    <!-- Hide *.DotSettings files -->
+    <!--<Content Include="**\*.*" Exclude="bin\**\*.*;obj\**\*.*;*.csproj;*.DotSettings;*.user;*.cs" Pack="false" />-->
+  </ItemGroup>
+</Project>

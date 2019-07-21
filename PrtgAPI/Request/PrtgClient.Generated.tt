@@ -21,7 +21,6 @@ using PrtgAPI.Parameters.Helpers;
 using PrtgAPI.Linq;
 using PrtgAPI.Request.Serialization;
 using PrtgAPI.Request;
-using PrtgAPI.Targets;
 using PrtgAPI.Utilities;
 
 //Methods with complex logic surrounding sync/async function calls.
@@ -41,7 +40,7 @@ namespace PrtgAPI
 for(int i = 0; i < 2; i++)
 {
 #>
-        internal <#= GetSignature("GetChannelsInternal", "List<Channel>", i) #>(int sensorId, Func<string, bool> nameFilter = null, Func<int, bool> idFilter = null, CancellationToken token = default(CancellationToken))
+        internal <#= GetSignature("GetChannelsInternal", "List<Channel>", i) #>(Either<Sensor, int> sensorOrId, Func<string, bool> nameFilter = null, Func<int, bool> idFilter = null, CancellationToken token = default(CancellationToken))
         {
             if (nameFilter == null)
                 nameFilter = n => true;
@@ -49,7 +48,7 @@ for(int i = 0; i < 2; i++)
             if (idFilter == null)
                 idFilter = i => true;
 
-            var response = <#= CallFunction("ObjectEngine.GetObjectsXml", "new ChannelParameters(sensorId), token: token", i) #>;
+            var response = <#= CallFunction("ObjectEngine.GetObjectsXml", "new ChannelParameters(sensorOrId), token: token", i) #>;
 
             response.Descendants("item").Where(item => item.Element("objid").Value == "-4").Remove();
 
@@ -66,10 +65,10 @@ for(int i = 0; i < 2; i++)
             {
                 var id = Convert.ToInt32(item.Element("objid").Value);
 
-                var properties = <#= CallFunction("GetChannelProperties", "sensorId, id, token", i) #>;
+                var properties = <#= CallFunction("GetChannelProperties", "sensorOrId, id, token", i) #>;
 
                 item.Add(properties.Nodes());
-                item.Add(new XElement("injected_sensorId", sensorId));
+                item.Add(new XElement("injected_sensorId", sensorOrId.GetId()));
             }<#= EndLoopOrTask(i) #>
 
             if (items.Count > 0)
@@ -150,6 +149,9 @@ for(int i = 0; i < 2; i++)
 #>
         private <#= GetSignature("ValidateTriggerParameters", "void", i) #>(TriggerParameters parameters, CancellationToken token)
         {
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters), "Parameters cannot be null.");
+
             if (parameters.Action == ModifyAction.Add)
             {
                 var data = <#= CallFunction("GetNotificationTriggerData", "parameters.ObjectId, token", i) #>;
@@ -167,7 +169,7 @@ for(int i = 0; i < 2; i++)
 
             if (sensor.Count > 0) //Validate this sensor has this channel
             {
-                if(channel.channel is StandardTriggerChannel)
+                if (channel.channel is StandardTriggerChannel)
                     throw new InvalidOperationException($"Channel '{channel}' is not a valid value for sensor with ID {parameters.ObjectId}. Triggers assigned directly to sensors must refer to a specific Channel or Channel ID.");
 
                 bool anyResponse = false;
@@ -206,7 +208,7 @@ for(int i = 0; i < 2; i++)
         {
             foreach (var trigger in triggers)
             {
-                if(trigger.HasChannel())
+                if (trigger.HasChannel())
                 {
                     Log($"Retrieving Channel for sensor specific, channel based Notification Trigger (Sub ID: {trigger.SubId}", LogLevel.Trace);
 
@@ -214,14 +216,14 @@ for(int i = 0; i < 2; i++)
 
                     trigger.channelObj = (<#= CallFunction("GetChannelsInternal", "trigger.ObjectId, n => { isSensor = true; return n == trigger.channelName; }, token: token", i) #>).FirstOrDefault();
 
-                    if(trigger.channelObj == null)
+                    if (trigger.channelObj == null)
                     {
                         //Either we're not a sensor, or our channel is corrupt.
                         //If we detected we had ANY channels, we must be a sensor.
                         //If SetEnumChannel fails (which should be impossible)
                         //then maybe we're a sensor with zero channels or something?
 
-                        if((isSensor && !trigger.Inherited) || !trigger.SetEnumChannel())
+                        if ((isSensor && !trigger.Inherited) || !trigger.SetEnumChannel())
                             throw new InvalidStateException($"Could not deserialize channel of {trigger.Type.ToString().ToLower()} trigger '{trigger.SubId}' of object ID '{trigger.ObjectId}'. Object may be in a corrupted state. Please check the notification triggers of object ID {trigger.ObjectId} in the PRTG UI.");
                     }
                 }
@@ -245,7 +247,7 @@ for(int i = 0; i < 2; i++)
 
             var match = Regex.Match(responseText, "\"data\": \"(.+?)\",");
 
-            if(match.Success)
+            if (match.Success)
                 responseText = responseText.Replace(match.Value, "");
 
             return responseText;
@@ -377,7 +379,7 @@ for(int i = 0; i < 2; i++)
 for(int i = 0; i < 2; i++)
 {
 #>
-        private <#= GetSignature("AddObjectWithExcessiveValue", "void", i) #>(List<KeyValuePair<Parameter, object>> lengthLimit, ICommandParameters internalParams, CancellationToken token)
+        internal <#= GetSignature("AddObjectWithExcessiveValue", "void", i) #>(List<KeyValuePair<Parameter, object>> lengthLimit, ICommandParameters internalParams, CancellationToken token)
         {
             var limitParam = lengthLimit.First();
 
@@ -397,11 +399,11 @@ for(int i = 0; i < 2; i++)
 
                         internalParams[limitParam.Key] = thisRequest;
 
-                        <#= CallFunction("RequestEngine.ExecuteRequest", "internalParams, token: token", i) #>;
+                        <#= CallFunction("AddObjectWithInternalParams", "internalParams, i, token", i) #>;
                     }
                 }
                 else
-                    <#= CallFunction("RequestEngine.ExecuteRequest", "internalParams, token: token", i) #>;
+                    <#= CallFunction("AddObjectWithInternalParams", "internalParams, 0, token", i) #>;
             }
             else
                 throw new NotImplementedException($"Don't know how to handle {nameof(LengthLimitAttribute)} applied to value of type {limitParam.Value.GetType()}.");
@@ -414,27 +416,74 @@ for(int i = 0; i < 2; i++)
         // ResolveSensorTargets
         //######################################
 
+        /*
+         * Resolving sensor targets is a four step process, accomplished by executing three requests against PRTG:
+         *
+         * | Step | Required                              | Page                     | Description                                         |
+         * | ---- | ------------------------------------- | ------------------------ | --------------------------------------------------- |
+         * |  1   | SensorType, Device ID                 | addsensor2.htm           | Request a tmpid for creating a sensor               |
+         * |  2a  |                                       | addsensor3.htm           | Response containing the tmpid requested in step 1   |
+         * |  2b  | Device ID, TmpID, Query Target Params | addsensor3.htm           | Response requesting Query Target Parameters         |
+         * |  3   | tmpid, Cookie                         | getaddsensorprogress.htm | Wait for sensor targets to be retrieved             |
+         * |  4   | tmpid, Cookie                         | addsensor4.htm           | Scrape the contents of the new sensor creation page |
+         */
+
 <#
 for(int i = 0; i < 2; i++)
 {
 #>
-        internal <#= GetSignature("ResolveSensorTargets", "List<T>", i) #><T>(int deviceId, SensorType sensorType, Func<int, bool> progressCallback, int timeout, CancellationToken token, Func<string, List<T>> parser)
+        /// <summary>
+        /// Entry point for resolving sensor targets of a supported sensor type.
+        /// </summary>
+        /// <typeparam name="T">The type of sensor targets the response should be transformed into.</typeparam>
+        /// <param name="deviceOrId">The device or ID of the device to retrieve sensor targets from.</param>
+        /// <param name="sensorType">Type of sensor to retrieve sensor targets for.</param>
+        /// <param name="progressCallback">A callback function used to monitor the progress of the request. If this function returns false, the request is aborted and this method returns null.</param>
+        /// <param name="timeout">Duration (in seconds) to wait for sensor targets to resolve.</param>
+        /// <param name="queryParameters">A <see cref="SensorQueryTarget"/>, <see cref="SensorQueryTargetParameters"/> or <see cref="SensorMultiQueryTargetParameters"/> value specifying the parameters must be known prior to interrogating a sensor's dynamic parameters (such as the SNMP Library file to use or IPMI UserName and Password).</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <param name="parser">Transforms the result of <see cref="HtmlFunction.AddSensor4"/> to instances of type <typeparamref name="T"/>.</param>
+        /// <returns>A list of targets that were extracted from PRTG.</returns>
+        internal <#= GetSignature("ResolveSensorTargets", "List<T>", i) #><T>(Either<Device, int> deviceOrId, SensorType sensorType, Func<int, bool> progressCallback, int timeout, ISensorQueryTargetParameters queryParameters, CancellationToken token, Func<string, List<T>> parser)
         {
-            var parameters = new SensorTargetParameters(deviceId, sensorType);
+            var parameters = <#= CallFunction("ValidateAddSensorQueryParameters", "new BeginAddSensorQueryParameters(deviceOrId, sensorType, queryParameters)", i) #>;
 
-            return <#= CallFunction("ResolveSensorTargets", "deviceId, parameters, progressCallback, timeout, token, parser", i) #>;
+            return <#= CallFunction("ResolveSensorTargets", "deviceOrId, parameters, progressCallback, timeout, token, parser", i) #>;
         }
 
-        internal <#= GetSignature("ResolveSensorTargets", "List<T>", i) #><T>(int deviceId, string sensorType, Func<int, bool> progressCallback, int timeout, CancellationToken token, Func<string, List<T>> parser)
+        /// <summary>
+        /// Entry point for resolving sensor targets of a raw sensor type.
+        /// </summary>
+        /// <typeparam name="T">The type of sensor targets the response should be transformed into.</typeparam>
+        /// <param name="deviceOrId">The device or ID of the device to retrieve sensor targets from.</param>
+        /// <param name="sensorType">Type of sensor to retrieve sensor targets for.</param>
+        /// <param name="progressCallback">A callback function used to monitor the progress of the request. If this function returns false, the request is aborted and this method returns null.</param>
+        /// <param name="timeout">Duration (in seconds) to wait for sensor targets to resolve.</param>
+        /// <param name="queryParameters">A <see cref="SensorQueryTarget"/>, <see cref="SensorQueryTargetParameters"/> or <see cref="SensorMultiQueryTargetParameters"/> value specifying the parameters must be known prior to interrogating a sensor's dynamic parameters (such as the SNMP Library file to use or IPMI UserName and Password).</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <param name="parser">Transforms the result of <see cref="HtmlFunction.AddSensor4"/> to instances of type <typeparamref name="T"/>.</param>
+        /// <returns>A list of targets that were extracted from PRTG.</returns>
+        internal <#= GetSignature("ResolveSensorTargets", "List<T>", i) #><T>(Either<Device, int> deviceOrId, string sensorType, Func<int, bool> progressCallback, int timeout, ISensorQueryTargetParameters queryParameters, CancellationToken token, Func<string, List<T>> parser)
         {
-            var parameters = new SensorTargetParameters(deviceId, sensorType);
+            var parameters = <#= CallFunction("ValidateAddSensorQueryParameters", "new BeginAddSensorQueryParameters(deviceOrId, sensorType, queryParameters)", i) #>; //todo: make them all use the async one. they should both have the same count of usages in the end
 
-            return <#= CallFunction("ResolveSensorTargets", "deviceId, parameters, progressCallback, timeout, token, parser", i) #>;
+            return <#= CallFunction("ResolveSensorTargets", "deviceOrId, parameters, progressCallback, timeout, token, parser", i) #>;
         }
 
-        private <#= GetSignature("ResolveSensorTargets", "List<T>", i) #><T>(int deviceId, SensorTargetParameters parameters, Func<int, bool> progressCallback, int timeout, CancellationToken token, Func<string, List<T>> parser)
+        /// <summary>
+        /// Common entry point for scraping <see cref="HtmlFunction.AddSensor4"/> for either a supported or raw sensor type and then transforming the response into a set of sensor targets.
+        /// </summary>
+        /// <typeparam name="T">The type of sensor targets the response should be transformed into.</typeparam>
+        /// <param name="deviceOrId">The device or ID of the device to retrieve sensor targets from.</param>
+        /// <param name="parameters">A set of parameters for requesting the <see cref="Parameter.TmpId"/> of either a supported or raw sensor type.</param>
+        /// <param name="progressCallback">A callback function used to monitor the progress of the request. If this function returns false, the request is aborted and this method returns null.</param>
+        /// <param name="timeout">Duration (in seconds) to wait for sensor targets to resolve.</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <param name="parser">Transforms the result of <see cref="HtmlFunction.AddSensor4"/> to instances of type <typeparamref name="T"/>.</param>
+        /// <returns>A list of targets that were extracted from PRTG.</returns>
+        private <#= GetSignature("ResolveSensorTargets", "List<T>", i) #><T>(Either<Device, int> deviceOrId, BeginAddSensorQueryParameters parameters, Func<int, bool> progressCallback, int timeout, CancellationToken token, Func<string, List<T>> parser)
         {
-            var response = <#= CallFunction("GetSensorTargetsResponse", "deviceId, parameters, progressCallback, timeout, token", i) #>;
+            var response = <#= CallFunction("GetSensorTargetsResponse", "deviceOrId, parameters, progressCallback, timeout, token", i) #>;
 
             if (response == null)
                 return null;
@@ -446,34 +495,104 @@ for(int i = 0; i < 2; i++)
 }
 #>
         //######################################
-        // GetSensorTargetsResponse
+        // GetAddSensorQueryResponse
         //######################################
 
 <#
 for(int i = 0; i < 2; i++)
 {
 #>
-        private <#= GetSignature("GetSensorTargetsResponse", "string", i) #>(int deviceId, string sensorType, Func<int, bool> progressCallback, int timeout, CancellationToken token)
+        /// <summary>
+        /// Special entry point for constructing parameters from a raw sensor type and retrieving the contents of <see cref="HtmlFunction.AddSensor4"/> without parsing into sensor targets..
+        /// </summary>
+        /// <param name="deviceOrId">The device or ID of the device to probe.</param>
+        /// <param name="sensorType">Type of sensor to retrieve parameters for.</param>
+        /// <param name="progressCallback">A callback function used to monitor the progress of the request. If this function returns false, the request is aborted and this method returns null.</param>
+        /// <param name="timeout">Duration (in seconds) to wait for sensor targets to resolve.</param>
+        /// <param name="queryParameters">A <see cref="SensorQueryTarget"/>, <see cref="SensorQueryTargetParameters"/> or <see cref="SensorMultiQueryTargetParameters"/> value specifying the parameters must be known prior to interrogating a sensor's dynamic parameters (such as the SNMP Library file to use or IPMI UserName and Password).</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>The contents of the <see cref="HtmlFunction.AddSensor4"/> page.</returns>
+        private <#= GetSignature("GetAddSensorQueryResponse", "string", i) #>(Either<Device, int> deviceOrId, string sensorType, Func<int, bool> progressCallback, int timeout, ISensorQueryTargetParameters queryParameters, CancellationToken token)
         {
-            var parameters = new SensorTargetParameters(deviceId, sensorType);
+            var parameters = <#= CallFunction("ValidateAddSensorQueryParameters", "new BeginAddSensorQueryParameters(deviceOrId, sensorType, queryParameters)", i) #>; //todo: make them all use the async one. they should both have the same count of usages in the end
 
-            return <#= CallFunction("GetSensorTargetsResponse", "deviceId, parameters, progressCallback, timeout, token", i) #>;
+            return <#= CallFunction("GetSensorTargetsResponse", "deviceOrId, parameters, progressCallback, timeout, token", i) #>;
         }
 
-        private <#= GetSignature("GetSensorTargetsResponse", "string", i) #>(int deviceId, SensorTargetParameters parameters, Func<int, bool> progressCallback, int timeout, CancellationToken token)
+        /// <summary>
+        /// Entry point for retrieving the raw contents of the <see cref="HtmlFunction.AddSensor4"/> page (without performing any post-request manipulations)
+        /// </summary>
+        /// <param name="deviceOrId">The device or ID of the device to probe.</param>
+        /// <param name="parameters">A set of parameters for requesting the <see cref="Parameter.TmpId"/> of either a supported or raw sensor type.</param>
+        /// <param name="progressCallback">A callback function used to monitor the progress of the request. If this function returns false, the request is aborted and this method returns null.</param>
+        /// <param name="timeout">Duration (in seconds) to wait for sensor targets to resolve.</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>The contents of the <see cref="HtmlFunction.AddSensor4"/> page.</returns>
+        private <#= GetSignature("GetSensorTargetsResponse", "string", i) #>(Either<Device, int> deviceOrId, BeginAddSensorQueryParameters parameters, Func<int, bool> progressCallback, int timeout, CancellationToken token)
         {
-            <#= DeclareLightFunc1("getSensorTargetTmpId", "HttpResponseMessage", "PrtgResponse", "ResponseParser.GetSensorTargetTmpId", i) #>;
+            var tmpId = (<#= CallFunction("GetAddSensorTmpId", "parameters, token", i) #>);
 
+            if (tmpId == null)
+                throw new PrtgRequestException($"Failed to resolve sensor targets for sensor type '{parameters[Parameter.SensorType]}': type was not valid or you do not have sufficient permissions on the specified object.");
+
+            var response = <#= CallFunction("WaitForSensorTargetResolution", "deviceOrId, tmpId.Value, progressCallback, timeout, token", i) #>;
+
+            return response;
+        }
+
+        internal <#= GetSignature("GetAddSensorTmpId", "int?", i) #>(BeginAddSensorQueryParameters parameters, CancellationToken token)
+        {
+            <#= DeclareFunc("getSensorTargetTmpId", "m", "HttpResponseMessage", "GetSensorTargetTmpId", "m, parameters.QueryParameters, token", "PrtgResponse", i) #>;
+
+            //Execute the request against addsensor2.htm to retrieve our tmpid
             var tmpIdStr = (<#= CallFunction("RequestEngine.ExecuteRequest", "parameters, getSensorTargetTmpId, token", i) #>).StringValue;
 
             int tmpId;
 
-            if (!int.TryParse(tmpIdStr, out tmpId))
-                throw new PrtgRequestException($"Failed to resolve sensor targets for sensor type '{parameters[Parameter.SensorType]}': type was not valid or you do not have sufficient permissions on the specified object.");
+            if (int.TryParse(tmpIdStr, out tmpId))
+                return tmpId;
 
-            var response = <#= CallFunction("WaitForSensorTargetResolution", "deviceId, tmpId, progressCallback, timeout, token", i) #>;
+            return null;
+        }
 
-            return response;
+        internal <#= GetSignature("GetSensorTargetTmpId", "PrtgResponse", i) #>(HttpResponseMessage message, SensorMultiQueryTargetParameters queryParameters, CancellationToken token)
+        {
+            var uri = message.RequestMessage.RequestUri.ToString();
+
+            if (uri.Contains(CommandFunction.AddSensor3.GetDescription()))
+                return ResponseParser.GetSensorTargetTmpId(message);
+            {
+                var content = message.Content.ReadAsStringAsync().Result;
+
+                var components = UrlUtilities.CrackUrl(uri);
+
+                try
+                {
+                    RequestEngine.ValidateHttpResponse(message, content);
+                }
+                catch (PrtgRequestException ex)
+                {
+                    var exceptionMessage = ex.Message;
+
+                    var str = "PRTG was unable to complete the request. ";
+
+                    if (exceptionMessage.StartsWith(str))
+                        exceptionMessage = exceptionMessage.Substring(str.Length);
+
+                    throw new PrtgRequestException($"Failed to process query for sensor type '{components["sensortype"]}': you may not have sufficient permissions on the specified object. {exceptionMessage.EnsurePeriod()}");
+                }
+
+                var parameters = ResponseParser.GetProcessSensorQueryParameters(content, components["sensortype"], queryParameters);
+
+                //If we couldn't find our tmpid (e.g. because we're a read-only user) return null for the tmpid and let
+                //the calling method handle it
+                if (parameters == null)
+                    return null;
+
+                <#= DeclareLightFunc1("getSensorTargetTmpId", "HttpResponseMessage", "PrtgResponse", "ResponseParser.GetSensorTargetTmpId", i) #>;
+
+                return <#= CallFunction("RequestEngine.ExecuteRequest", "parameters, getSensorTargetTmpId, token", i) #>;
+            }
         }
 
 <#
@@ -487,11 +606,11 @@ for(int i = 0; i < 2; i++)
 for(int i = 0; i < 2; i++)
 {
 #>
-        private <#= GetSignature("WaitForSensorTargetResolution", "string", i) #>(int deviceId, int tmpId, Func<int, bool> progressCallback, int timeout, CancellationToken token)
+        private <#= GetSignature("WaitForSensorTargetResolution", "string", i) #>(Either<Device, int> deviceOrId, int tmpId, Func<int, bool> progressCallback, int timeout, CancellationToken token)
         {
-            var parameters = new SensorTargetProgressParameters(deviceId, tmpId);
+            var parameters = new AddSensorProgressParameters(deviceOrId, tmpId);
 
-            SensorTargetProgress p;
+            AddSensorProgress p;
             bool continueQuery = true;
 
             var stopwatch = new Stopwatch();
@@ -501,9 +620,10 @@ for(int i = 0; i < 2; i++)
 
             do
             {
-                p = <#= CallGenericFunction("ObjectEngine.GetObject", "SensorTargetProgress", "parameters, token: token", i) #>;
+                //Probe getaddsensorprogress.htm
+                p = <#= CallGenericFunction("ObjectEngine.GetObject", "AddSensorProgress", "parameters, token: token", i) #>;
 
-                if(progressCallback != null)
+                if (progressCallback != null)
                     continueQuery = progressCallback(p.Percent);
 
                 if (p.Percent < 100)
@@ -523,9 +643,10 @@ for(int i = 0; i < 2; i++)
             if (!continueQuery)
                 return null;
 
-            ResponseParser.ValidateSensorTargetProgressResult(p);
+            ResponseParser.ValidateAddSensorProgressResult(p, false);
 
-            var page = (<#= CallFunction("RequestEngine.ExecuteRequest", "new SensorTargetCompletedParameters(deviceId, tmpId), token: token", i) #>).StringValue;
+            //Scrape addsensor4.htm
+            var page = (<#= CallFunction("RequestEngine.ExecuteRequest", "new EndAddSensorQueryParameters(deviceOrId, tmpId), token: token", i) #>).StringValue;
 
             return page;
         }
@@ -541,38 +662,57 @@ for(int i = 0; i < 2; i++)
 for(int i = 0; i < 2; i++)
 {
 #>
-        internal <#= GetSignature("AddObject", "List<T>", i) #><T>(int parentId, NewObjectParameters parameters,
+        internal <#= GetSignature("AddObject", "List<T>", i) #><T>(Either<IPrtgObject, int> parent, NewObjectParameters parameters,
             Func<SearchFilter[], CancellationToken, <#= GetFuncRet("List<T>", i) #>> getObjects, bool resolve, CancellationToken token, Action<Type, int> errorCallback = null,
             Func<bool> shouldStop = null, bool allowMultiple = false) where T : SensorOrDeviceOrGroupOrProbe
         {
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters), "Parameters cannot be null.");
+
             if (resolve)
             {
-                var filters = RequestParser.GetFilters(parentId, parameters);
+                var filters = RequestParser.GetFilters(parent, parameters);
 
-                <#= DeclareTokenAction0("addObjectInternal", "AddObjectInternal", "parentId, parameters", i) #>;
+                <#= DeclareTokenAction0("addObjectInternal", "AddObjectInternal", "parent, parameters", i) #>;
                 <#= DeclareTokenFuncFromVariable0("getObjs", "getObjects", "filters", "List<T>", i) #>;
 
                 return (<#= CallFunction("ResolveWithDiff", "addObjectInternal, getObjs, ResponseParser.ExceptTableObject, token, errorCallback, shouldStop, allowMultiple", i) #>).OrderBy(o => o.Id).ToList();
             }
             else
             {
-                <#= CallFunction("AddObjectInternal", "parentId, parameters, token", i) #>;
+                <#= CallFunction("AddObjectInternal", "parent, parameters, token", i) #>;
 
                 return null;
             }
         }
 
-        private <#= GetSignature("AddObjectInternal", "void", i) #>(int objectId, NewObjectParameters parameters, CancellationToken token)
+        private <#= GetSignature("AddObjectInternal", "void", i) #>(Either<IPrtgObject, int> parent, NewObjectParameters parameters, CancellationToken token)
         {
             var lengthLimit = RequestParser.ValidateObjectParameters(parameters);
 
-            var internalParams = RequestParser.GetInternalNewObjectParameters(objectId, parameters);
+            var internalParams = RequestParser.GetInternalNewObjectParameters(parent, parameters);
 
             if (lengthLimit.Count > 0)
                 <#= CallFunction("AddObjectWithExcessiveValue", "lengthLimit, internalParams, token", i) #>;
             else
-                <#= CallFunction("RequestEngine.ExecuteRequest", "internalParams, token: token", i) #>;
+            {
+                if (RequestParser.IsAddSensor(internalParams))
+                    <#= CallFunction("GetVersionClient().AddSensorInternal", "internalParams, 0, token", i) #>;
+                else
+                    <#= CallFunction("AddObjectInternalDefault", "internalParams, token", i) #>;
+            }
         }
+
+        private <#= GetSignature("AddObjectWithInternalParams", "void", i) #>(ICommandParameters internalParams, int index, CancellationToken token)
+        {
+            if (RequestParser.IsAddSensor(internalParams))
+                <#= CallFunction("GetVersionClient().AddSensorInternal", "internalParams, index, token", i) #>;
+            else
+                <#= CallFunction("AddObjectInternalDefault", "internalParams, token", i) #>;
+        }
+
+        internal <#= GetSignature("AddObjectInternalDefault", "void", i)#>(ICommandParameters internalParams, CancellationToken token) =>
+            <#= CallFunction("RequestEngine.ExecuteRequest", "internalParams, token: token", i) #>;
 
         private <#= GetSignature("ResolveWithDiff", "List<T>", i) #><T>(<#= GetTokenActionParam0(i) #> createObject, Func<CancellationToken, <#= GetFuncRet("List<T>", i) #>> getObjects, Func<List<T>, List<T>, List<T>> exceptFunc,
              CancellationToken token, Action<Type, int> errorCallback, Func<bool> shouldStop, bool allowMultiple = false)
@@ -585,7 +725,7 @@ for(int i = 0; i < 2; i++)
 
             var newObjects = exceptFunc(before, after);
 
-            if(!allowMultiple && newObjects.Count > 1)
+            if (!allowMultiple && newObjects.Count > 1)
             {
                 var typeName = typeof (T).Name;
 
@@ -663,11 +803,11 @@ for(int i = 0; i < 2; i++)
                     if (obj.Name.StartsWith(" "))
                     {
                         modified = true;
-                        <#= CallAsyncTokenFunction("RenameObject", "obj.Id, obj.Name.Trim(' ')", "token", i) #>;
+                        <#= CallFunctionWithAsyncOnlyToken("RenameObject", "obj.Id, obj.Name.Trim(' ')", "token", i) #>;
                     }
                 }
 
-                if(modified)
+                if (modified)
                     newObjects = (<#= CallFunction("GetSensors", "Property.Id, sensors.Select(s => s.Id), token", i) #>).Cast<T>().ToList();
             }
 
@@ -688,6 +828,9 @@ for(int i = 0; i < 2; i++)
         internal <#= GetSignature("AddNotificationTriggerInternal", "List<NotificationTrigger>", i)#>(TriggerParameters parameters, bool resolve,
             CancellationToken token, Action<Type, int> errorCallback = null, Func<bool> shouldStop = null)
         {
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters), "Parameters cannot be null.");
+
             if (resolve)
             {
                 <#= DeclareTokenAction0("addTrigger", "SetNotificationTriggerInternal", "parameters", i) #>;
@@ -716,9 +859,9 @@ for(int i = 0; i < 2; i++)
 for(int i = 0; i < 2; i++)
 {
 #>
-        internal <#= GetAsyncTokenSignature("GetObjectInternal", "PrtgObject", "int objectId, bool resolve", "token", i)#>
+        internal <#= GetSignatureWithAsyncOnlyToken("GetObjectInternal", "PrtgObject", "int objectId, bool resolve", "token", i)#>
         {
-            var objs = <#= CallAsyncTokenFunction("GetObjects", "Property.Id, objectId", "token", i) #>;
+            var objs = <#= CallFunctionWithAsyncOnlyToken("GetObjects", "Property.Id, objectId", "token", i) #>;
 
             if (objs.Count != 1)
                 return objs.SingleObject(objectId);
@@ -729,12 +872,12 @@ for(int i = 0; i < 2; i++)
             {
                 switch (obj.Type.Value)
                 {
-                    case ObjectType.Sensor:       return <#= CallAsyncTokenFunction("GetSensor", "objectId", "token", i) #>;
-                    case ObjectType.Device:       return <#= CallAsyncTokenFunction("GetDevice", "objectId", "token", i) #>;
-                    case ObjectType.Group:        return <#= CallAsyncTokenFunction("GetGroup", "objectId", "token", i) #>;
-                    case ObjectType.Probe:        return <#= CallAsyncTokenFunction("GetProbe", "objectId", "token", i) #>;
-                    case ObjectType.Notification: return <#= CallAsyncTokenFunction("GetNotificationAction", "objectId", "token", i) #>;
-                    case ObjectType.Schedule:     return <#= CallAsyncTokenFunction("GetSchedule", "objectId", "token", i) #>;
+                    case ObjectType.Sensor:       return <#= CallFunctionWithAsyncOnlyToken("GetSensor", "objectId", "token", i) #>;
+                    case ObjectType.Device:       return <#= CallFunctionWithAsyncOnlyToken("GetDevice", "objectId", "token", i) #>;
+                    case ObjectType.Group:        return <#= CallFunctionWithAsyncOnlyToken("GetGroup", "objectId", "token", i) #>;
+                    case ObjectType.Probe:        return <#= CallFunctionWithAsyncOnlyToken("GetProbe", "objectId", "token", i) #>;
+                    case ObjectType.Notification: return <#= CallFunctionWithAsyncOnlyToken("GetNotificationAction", "objectId", "token", i) #>;
+                    case ObjectType.Schedule:     return <#= CallFunctionWithAsyncOnlyToken("GetSchedule", "objectId", "token", i) #>;
                     default:
                         return obj;
                 }
@@ -754,8 +897,10 @@ for(int i = 0; i < 2; i++)
 for(int i = 0; i < 2; i++)
 {
 #>
-        internal <#= GetGenericTokenSignature("GetSystemInfoInternal", "List<T>", "T", "int deviceId", "token", i)#> where T : IDeviceInfo
+        internal <#= GetGenericTokenSignature("GetSystemInfoInternal", "List<T>", "T", "Either<Device, int> deviceOrId", "token", i)#> where T : IDeviceInfo
         {
+            var deviceId = deviceOrId.GetId();
+
             var parameters = new SystemInfoParameters<T>(deviceId);
 
             <#= DeclareFunc("func", "m", "HttpResponseMessage", "ParseSystemInfoResponse", "m, parameters.Columns", "PrtgResponse", i) #>;
@@ -768,8 +913,10 @@ for(int i = 0; i < 2; i++)
             return info.Items;
         }
 
-        internal <#= GetAsyncTokenSignature("GetSystemInfoInternal", "List<IDeviceInfo>", "int deviceId, SystemInfoType type", "token", i)#>
+        internal <#= GetSignatureWithAsyncOnlyToken("GetSystemInfoInternal", "List<IDeviceInfo>", "Either<Device, int> deviceOrId, SystemInfoType type", "token", i)#>
         {
+            var deviceId = deviceOrId.GetId();
+
             switch (type)
             {
                 case SystemInfoType.System:
@@ -827,12 +974,12 @@ for(int i = 0; i < 2; i++)
 for(int i = 0; i < 2; i++)
 {
 #>
-        private <#= GetAsyncTokenSignature("GetObjectPropertyRawInternal", "string", "int objectId, Enum property", "token", i) #>
+        private <#= GetSignatureWithAsyncOnlyToken("GetObjectPropertyRawInternal", "string", "Either<IPrtgObject, int> objectOrId, Enum property", "token", i) #>
         {
             var cache = ObjectPropertyParser.GetPropertyInfoViaTypeLookup(property);
             var rawName = ObjectPropertyParser.GetObjectPropertyNameViaCache(property, cache);
 
-            var rawValue = <#= CallAsyncTokenFunction("GetObjectPropertyRaw", "objectId, rawName, cache.Property.PropertyType == typeof(string)", "token", i) #>;
+            var rawValue = <#= CallFunctionWithAsyncOnlyToken("GetObjectPropertyRaw", "objectOrId, rawName, cache.Property.PropertyType == typeof(string)", "token", i) #>;
 
             return rawValue;
         }
@@ -848,9 +995,9 @@ for(int i = 0; i < 2; i++)
 for(int i = 0; i < 2; i++)
 {
 #>
-        private <#= GetAsyncTokenSignature("GetObjectPropertyInternal", "object", "int objectId, Enum property", "token", i) #>
+        private <#= GetSignatureWithAsyncOnlyToken("GetObjectPropertyInternal", "object", "Either<IPrtgObject, int> objectOrId, Enum property", "token", i) #>
         {
-            var rawValue = <#= CallAsyncTokenFunction("GetObjectPropertyRawInternal", "objectId, property", "token", i) #>;
+            var rawValue = <#= CallFunctionWithAsyncOnlyToken("GetObjectPropertyRawInternal", "objectOrId, property", "token", i) #>;
 
             if (property is ObjectProperty)
                 return ObjectEngine.XmlEngine.DeserializeObjectProperty((ObjectProperty) property, rawValue);
@@ -869,11 +1016,11 @@ for(int i = 0; i < 2; i++)
 for(int i = 0; i < 2; i++)
 {
 #>
-        internal <#= GetAsyncTokenSignature("GetProbeApprovalStatus", "bool", "int probeId", "token", i) #>
+        internal <#= GetSignatureWithAsyncOnlyToken("GetProbeApprovalStatus", "bool", "Either<Probe, int> probeOrId", "token", i) #>
         {
             try
             {
-                var result = <#= CallAsyncTokenFunction("GetObjectPropertyRawInternal", "probeId, ObjectPropertyInternal.ProbeApproved", "token", i) #>;
+                var result = <#= CallFunctionWithAsyncOnlyToken("GetObjectPropertyRawInternal", "probeOrId.GetId(), ObjectPropertyInternal.ProbeApproved", "token", i) #>;
 
                 if (result != "0" && result != "1")
                     throw new PrtgRequestException($"Probe authorization status was '{result}', however should have been '0' or '1'. Object is most likely not a probe.");
@@ -882,11 +1029,132 @@ for(int i = 0; i < 2; i++)
             }
             catch(PrtgRequestException ex)
             {
-                throw new InvalidOperationException($"Cannot change approval status of object with ID '{probeId}': object does not appear to be a probe.", ex);
+                throw new InvalidOperationException($"Cannot change approval status of object with ID '{probeOrId.GetId()}': object does not appear to be a probe.", ex);
+            }
+        }
+
+<#
+}
+#>
+        //#######################################
+        // CreateSetObjectPropertyParameters
+        //#######################################
+
+<#
+for(int i = 0; i < 2; i++)
+{
+#>
+        private <#= GetSignature("CreateSetObjectPropertyParameters", "SetObjectPropertyParameters", i) #>(int[] objectIds, PropertyParameter[] parameters, CancellationToken token)
+        {
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters), "Parameters cannot be null.");
+
+            if (parameters.Any(p => p == null))
+                throw new ArgumentException("Cannot process a null parameter.", nameof(parameters));
+
+            var paramLists = RequestParser.GetSetObjectPropertyParamLists(parameters); //Item1: Normal items. Item2: Mergeable items
+
+            for (var i = 0; i < paramLists.Item1.Length; i++)
+            {
+                var prop = paramLists.Item1[i];
+
+                var attrib = prop.Property.GetEnumAttribute<TypeAttribute>();
+
+                if (attrib != null)
+                {
+                    if (attrib.Class == typeof(Location) && !(prop.Value is Location))
+                    {
+                        var str = Location.GetAddress(prop.Value);
+
+                        var newValue = <#= CallFunctionWithMandatoryTokenWithAsyncTokenOnly("ResolveAddress", "str", "token", i) #>;
+
+                        paramLists.Item1[i] = new PropertyParameter(prop.Property, newValue);
+                    }
+                }
+            }
+
+            parameters = RequestParser.MergeParameters(paramLists);
+
+            var @params = new SetObjectPropertyParameters(objectIds, parameters);
+
+            return @params;
+        }
+
+<#
+}
+#>
+        //#######################################
+        // SetChannelPropertyInternal
+        //#######################################
+
+<#
+for(int i = 0; i < 2; i++)
+{
+#>
+        internal <#= GetSignature("SetChannelPropertyInternal", "void", i)#>(IEnumerable<Channel> channels, int[] sensorIds, int? channelId, ChannelParameter[] parameters, CancellationToken token)
+        {
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters), "Parameters cannot be null.");
+
+            if (parameters.Any(p => p == null))
+                throw new ArgumentException("Cannot process a null parameter.", nameof(parameters));
+
+            if (parameters.Length == 0)
+                throw new ArgumentException("At least one parameter must be specified.", nameof(parameters));
+
+            var versionClient = GetVersionClient<ChannelParameter, ChannelProperty>(parameters.ToList());
+
+            if (channels != null)
+            {
+                var channelsList = channels.AsCollection();
+
+                if (channelsList.Any(c => c == null))
+                    throw new ArgumentException("Cannot process a null channel.", nameof(channels));
+
+                <#= CallFunction("versionClient.SetChannelProperty", "channelsList, parameters, token", i) #>;
+            }
+            else
+                <#= CallFunction("versionClient.SetChannelProperty", "sensorIds, channelId.Value, parameters, token", i) #>;
+        }
+
+<#
+}
+#>
+        //#######################################
+        // SetTriggerPropertyInternal
+        //#######################################
+
+<#
+for(int i = 0; i < 2; i++)
+{
+#>
+        internal <#= GetSignature("SetTriggerPropertyInternal", "void", i)#>(IEnumerable<NotificationTrigger> triggers, TriggerParameter[] parameters, CancellationToken token)
+        {
+            AssertHasValue(triggers, nameof(triggers));
+
+            var triggersList = triggers.AsCollection();
+
+            if (triggersList.Any(c => c == null))
+                throw new ArgumentException("Cannot process a null trigger.", nameof(triggers));
+
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters), "Parameters cannot be null.");
+
+            if (parameters.Any(p => p == null))
+                throw new ArgumentException("Cannot process a null parameter.", nameof(parameters));
+
+            if (parameters.Length == 0)
+                throw new ArgumentException("At least one parameter must be specified.", nameof(parameters));
+
+            foreach (var trigger in triggersList)
+            {
+                var triggerParameters = TriggerParameters.Create(trigger, parameters);
+
+                <#= CallFunctionWithAsyncOnlyToken("SetNotificationTrigger", "triggerParameters", "token", i) #>;
             }
         }
 <#
-if(i == 0)
+if (i == 0)
     WriteLine("");
 }
 #>

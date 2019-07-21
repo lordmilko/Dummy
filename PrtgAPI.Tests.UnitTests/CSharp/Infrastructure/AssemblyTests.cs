@@ -88,8 +88,10 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             }
         }
 
+#if WINDOWS
         [TestMethod]
         [TestCategory("SkipCI")]
+        [TestCategory("UnitTest")]
         public void AllTextFiles_UseSpaces_AndCRLF()
         {
             var path = TestHelpers.GetProjectRoot(true);
@@ -99,13 +101,14 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 ".tt",
                 ".cs",
                 ".ps1",
+                ".psm1",
                 ".txt",
                 ".md",
                 ".ps1xml"
             };
 
             var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Where(f =>
-                types.Any(f.EndsWith)
+                types.Any(f.EndsWith) && IsNotExcludedFolder(path, f)
             );
 
             var badNewLines = new List<string>();
@@ -136,6 +139,101 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             if (badNewLines.Count > 0)
                 throw new Exception($"{string.Join(", ", badNewLines) } are missing CRLF");
         }
+#endif
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void AllTextFiles_UseEnvironmentNewLine_AndNotCRLF()
+        {
+            var path = TestHelpers.GetProjectRoot(true);
+
+            var types = new[]
+            {
+                ".tt",
+                ".cs",
+                ".ps1",
+                ".psm1"
+            };
+
+            var allowed = new[]
+            {
+                "Location.cs",
+                "SensorSettings.cs",
+                "RequestParser.cs",
+                "NewSensor.cs",
+                "ConnectGoPrtgServer.cs",
+                "GetGoPrtgServer.cs",
+                "UpdateGoPrtgCredential.cs",
+                "New-AppveyorPackage.ps1",
+                "Get-CIVersion.ps1",
+                "Get-CodeCoverage.ps1",
+                "Invoke-Process.ps1",
+                "Appveyor.Tests.ps1",
+                "Start-PrtgAPI.ps1",
+                "MethodXmlDocBuilder.cs"
+            };
+
+            var exprs = new[]
+            {
+                "\\\\n",
+                "\\\\r",
+                "`r",
+                "`n"
+            };
+
+            var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Where(f =>
+                types.Any(f.EndsWith) && IsNotExcludedFolder(path, f) && !f.Contains("PrtgAPI.Tests")
+            );
+
+            foreach (var file in files)
+            {
+                var info = new FileInfo(file);
+
+                if (allowed.Contains(info.Name))
+                    continue;
+
+                var text = File.ReadAllText(file);
+
+                foreach (var expr in exprs)
+                {
+                    var matches = Regex.Matches(text, expr);
+
+                    foreach (Match match in matches)
+                    {
+                        var index = match.Index;
+
+                        var prev = text[index - 1];
+                        var next = text[index + 2];
+
+                        if (prev == '\'' && next == '\'')
+                            continue;
+
+                        throw new Exception($"{file} contains {expr}");
+                    }
+                }
+            }
+        }
+
+        private bool IsNotExcludedFolder(string root, string f)
+        {
+            var illegal = new[]
+            {
+                "obj",
+                "packages"
+            };
+
+            var info = new FileInfo(new Uri(f).LocalPath);
+
+            if (root.Length > info.DirectoryName.Length)
+                return true; //File in the root
+
+            var str = info.DirectoryName.Substring(root.Length);
+
+            if (illegal.Any(n => str.Contains($"{n}{Path.DirectorySeparatorChar}")))
+                return false;
+
+            return true;
+        }
 
         [TestMethod]
         [TestCategory("UnitTest")]
@@ -146,7 +244,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 foreach (var item in tree.GetRoot().DescendantNodesAndTokens())
                 {
                     if (item.IsKind(SyntaxKind.InvocationExpression))
-                        InspectMethodCall(item, model);
+                        InspectMethodCall(item, model.Value);
                 }
             });
         }
@@ -210,7 +308,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 "XmlSerializerMembers"
             };
 
-            var invocationNode = (InvocationExpressionSyntax)item.AsNode();
+            var invocationNode = (InvocationExpressionSyntax) item.AsNode();
 
             var methodName = GetMethodName(invocationNode).Text;
 
@@ -241,6 +339,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
 
         [TestMethod]
         [TestCategory("SlowCoverage")]
+        [TestCategory("UnitTest")]
         public void AllAwaits_Call_ConfigureAwaitFalse()
         {
             WithTree((file, tree, model) =>
@@ -277,16 +376,239 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
 
                             var location = awaitNode.GetLocation();
 
-                            throw new Exception($"{file}: Missing ConfigureAwait with method\r\n\r\n{method.Identifier}\r\n\r\nat {location.GetLineSpan()}");
+                            throw new Exception($"{file}: Missing ConfigureAwait with method{Environment.NewLine}{Environment.NewLine}{method.Identifier}{Environment.NewLine}{Environment.NewLine}at {location.GetLineSpan()}");
                         }
                     }
                 }
             });
         }
 
-        private void WithTree(Action<string, SyntaxTree, SemanticModel> action)
+        [TestMethod]
+        [TestCategory("SlowCoverage")]
+        [TestCategory("UnitTest")]
+        public void AllPowerShellExamples_Have_ProperSpacingBetweenEachOne()
+        {
+            WithTree((file, tree, model) =>
+            {
+                if (!file.Contains("Cmdlets"))
+                    return;
+
+                foreach (var item in tree.GetRoot().DescendantNodes())
+                {
+                    if (item.IsKind(SyntaxKind.ClassDeclaration))
+                    {
+                        var trivia = item.GetLeadingTrivia().Select(t => t.GetStructure()).OfType<DocumentationCommentTriviaSyntax>().FirstOrDefault();
+
+                        if (trivia == null)
+                            return;
+
+                        var summary = trivia.ChildNodes().OfType<XmlElementSyntax>().FirstOrDefault();
+
+                        if (summary != null && summary.StartTag.Name.ToString() == "summary")
+                        {
+                            var examples = summary.ChildNodes().OfType<XmlElementSyntax>().Where(c => c.StartTag.Name.ToString() == "example").ToList();
+
+                            for (var i = 0; i < examples.Count; i++)
+                            {
+                                var exampleChildren = examples[i].ChildNodes().Where(n => n is XmlElementSyntax || n is XmlEmptyElementSyntax).ToList();
+
+                                var code = exampleChildren.First();
+                                var para = exampleChildren.Skip(1).Take(exampleChildren.Count - 2);
+                                var last = exampleChildren.Last();
+
+                                Assert.IsInstanceOfType(code, typeof(XmlElementSyntax), $"File '{file}' contains an example with a <code> block of an invalid type. Example is '{examples[i]}'");
+                                Assert.AreEqual("code", ((XmlElementSyntax)code).StartTag.Name.ToString(), $"File '{file}' contains an example that does not start with <code>...</code>. Example is '{examples[i]}'");
+
+                                foreach (var p in para)
+                                {
+                                    Assert.IsInstanceOfType(p, typeof(XmlElementSyntax), $"File '{file}' contains an example with a <para> block of an invalid type. Example is '{examples[i]}'");
+                                    Assert.AreEqual("para", ((XmlElementSyntax) p).StartTag.Name.ToString(), $"File '{file}' contains an example with an invalid tag where a <para> should be. Example is '{examples[i]}'");
+                                }
+
+                                if (i < examples.Count - 1)
+                                {
+                                    //If this is NOT the last example, it SHOULD end with an empty <para/>
+
+                                    //first should be xmlelementsyntax with code
+                                    //after first, all but last should be xmlelementsyntax with para
+                                    //last should be empty xmlelementsyntax
+
+                                    Assert.IsInstanceOfType(last, typeof(XmlEmptyElementSyntax), $"File '{file}' does not contain a trailing <para/> in example '{examples[i]}'");
+                                    Assert.AreEqual("para", ((XmlEmptyElementSyntax)last).Name.ToString(), $"File '{file}' has an empty trailing tag of the wrong type instead of <para/> in example '{examples[i]}'");
+                                }
+                                else
+                                {
+                                    //If this IS the last example, it should NOT end with an empty <para/>
+                                    Assert.IsNotInstanceOfType(last, typeof(XmlEmptyElementSyntax), $"The last example in file '{file}' contained an empty <para/>, but it shouldn't have");
+                                    Assert.AreEqual("para", ((XmlElementSyntax)last).StartTag.Name.ToString(), $"The last example in file '{file}' did not end with a <para>...</para>, but it should have");
+                                }
+                            }
+                        }
+                    }
+                }
+            }, true);
+        }
+
+        [TestMethod]
+        [TestCategory("SlowCoverage")]
+        [TestCategory("UnitTest")]
+        public void All_PrtgAPI_ExceptionMessages_EndInAPeriod()
+        {
+            WithTree(AllExceptionMessages_EndInAPeriodInternal);
+        }
+
+        [TestMethod]
+        [TestCategory("SlowCoverage")]
+        [TestCategory("UnitTest")]
+        public void All_PowerShell_ExceptionMessages_EndInAPeriod()
+        {
+            WithTree(AllExceptionMessages_EndInAPeriodInternal, true);
+        }
+
+        [TestMethod]
+        [TestCategory("SlowCoverage")]
+        [TestCategory("UnitTest")]
+        public void AllExceptionMessages_EndInAPeriod()
+        {
+            WithTree(AllExceptionMessages_EndInAPeriodInternal);
+        }
+
+        private void AllExceptionMessages_EndInAPeriodInternal(string file, SyntaxTree tree, Lazy<SemanticModel> model)
+        {
+            foreach (var item in tree.GetRoot().DescendantNodes())
+            {
+                if (item.IsKind(SyntaxKind.ThrowStatement))
+                {
+                    var child = item.ChildNodes().FirstOrDefault();
+
+                    if (child != null && child.IsKind(SyntaxKind.ObjectCreationExpression))
+                    {
+                        var syntax = child as ObjectCreationExpressionSyntax;
+
+                        var args = syntax.ArgumentList.Arguments.Where(IsNotNameOfParameter).ToList();
+
+                        if (args.Count > 0)
+                        {
+                            var str = args.Select(a => a.ToString().TrimEnd('"').TrimEnd('\\')).ToList();
+
+                            if (str.Count == 1)
+                            {
+                                if (args[0].ToString() != "str")
+                                    AssertEndsInPeriod(syntax, str.Single(), file);
+                            }
+                            else
+                            {
+                                if (str[0] == "paramName" && str.Count == 2)
+                                {
+                                    AssertEndsInPeriod(syntax, str.Last(), file);
+                                }
+                                else if ((str[1] == "paramName" || str[1] == "ex") && str.Count == 2)
+                                {
+                                    AssertEndsInPeriod(syntax, str.First(), file);
+                                }
+                                else
+                                {
+                                    var exceptionType = ((IdentifierNameSyntax) syntax.Type).Identifier.ToString();
+
+                                    var allowedExceptions = new string[]
+                                    {
+                                        nameof(InvalidTypeException),
+                                        nameof(Exceptions.Internal.MissingAttributeException),
+                                        nameof(InvalidTriggerTypeException),
+                                        nameof(XmlDeserializationException),
+                                        nameof(MissingMemberException)
+                                    };
+
+                                    if (!allowedExceptions.Contains(exceptionType))
+                                        throw new NotImplementedException($"Don't know where exception message should be in exception '{syntax}' in file '{file}'");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void AssertEndsInPeriod(ObjectCreationExpressionSyntax syntax, string str, string file)
+        {
+            if (!str.EndsWith(".") && !str.EndsWith("?") && !str.EndsWith("EnsurePeriod()}") && !str.EndsWith("{str}") && (str.StartsWith("$") || str.StartsWith("\"")))
+                Assert.Fail($"Exception message in exception '{syntax}' in file '{file}' does not end in a period.");
+        }
+
+        private bool IsNotNameOfParameter(ArgumentSyntax syntax)
+        {
+            var invocation = syntax.Expression as InvocationExpressionSyntax;
+
+            if (invocation != null)
+            {
+                var identifier = invocation.Expression as IdentifierNameSyntax;
+
+                if (identifier != null && identifier.Identifier.Value?.ToString() == "nameof")
+                    return false;
+            }
+
+            return true;
+        }
+
+        [TestMethod]
+        [TestCategory("SlowCoverage")]
+        [TestCategory("UnitTest")]
+        public void AllPowerShellCmdlets_HaveOnlineHelp()
+        {
+            WithTree((file, tree, model) =>
+            {
+                if (!file.Contains("Cmdlets"))
+                    return;
+
+                foreach (var item in tree.GetRoot().DescendantNodes())
+                {
+                    if (item.IsKind(SyntaxKind.ClassDeclaration))
+                    {
+                        var trivia = item.GetLeadingTrivia().Select(t => t.GetStructure()).OfType<DocumentationCommentTriviaSyntax>().FirstOrDefault();
+
+                        if (trivia == null)
+                            return;
+
+                        var summary = trivia.ChildNodes().OfType<XmlElementSyntax>().FirstOrDefault();
+
+                        if (summary != null && summary.StartTag.Name.ToString() == "summary")
+                        {
+                            var links = summary.ChildNodes().OfType<XmlElementSyntax>().Where(IsLinkPara).ToList();
+
+                            var firstLink = links.FirstOrDefault();
+
+                            if (firstLink == null)
+                                Assert.Fail($"File '{file}' is missing an Online version link (has no links at all)");
+                            else
+                            {
+                                var content = firstLink.Content.ToString();
+                                var uri = firstLink.StartTag.Attributes.OfType<XmlTextAttributeSyntax>().FirstOrDefault(a => a.Name.ToString() == "uri");
+
+                                Assert.AreEqual("Online version:", content, $"File '{file}' is missing an Online version link");
+                                Assert.IsTrue(uri != null && uri.TextTokens.ToString().StartsWith("https://github.com/lordmilko/PrtgAPI/wiki"), $"File '{file}' is missing an Online version URI");
+                            }
+                        }
+                    }
+                }
+            }, true);
+        }
+
+        private bool IsLinkPara(XmlElementSyntax elm)
+        {
+            if (elm.StartTag.Name.ToString() == "para")
+            {
+                return elm.StartTag.Attributes.OfType<XmlTextAttributeSyntax>().Any(a => a.TextTokens.ToString() == "link");
+            }
+
+            return false;
+        }
+
+        private void WithTree(Action<string, SyntaxTree, Lazy<SemanticModel>> action, bool powerShell = false)
         {
             var path = TestHelpers.GetProjectRoot();
+
+            if (powerShell)
+                path += ".PowerShell";
 
             var files = Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories);
 
@@ -294,10 +616,13 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             {
                 var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file));
 
-                var mscorlib = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
-                var compilation = CSharpCompilation.Create("MyCompilation", syntaxTrees: new[] { tree }, references: new[] { mscorlib });
+                var model = new Lazy<SemanticModel>(() =>
+                {
+                    var mscorlib = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+                    var compilation = CSharpCompilation.Create("MyCompilation", syntaxTrees: new[] { tree }, references: new[] { mscorlib });
 
-                var model = compilation.GetSemanticModel(tree);
+                    return compilation.GetSemanticModel(tree);
+                });
 
                 action(file, tree, model);
             }

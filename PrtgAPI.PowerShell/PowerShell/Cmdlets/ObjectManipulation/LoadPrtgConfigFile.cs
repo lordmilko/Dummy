@@ -25,6 +25,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Load-PrtgConfigFile Lookups</code>
     ///     <para>Loads or reloads any sensor lookups that may have been changed or installed since PRTG was started.</para>
     /// </example>
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Administrative-Tools#load-config-files-1">Online version:</para>
     /// </summary>
     [Cmdlet(VerbsData.Sync, "PrtgConfigFile", SupportsShouldProcess = true)]
     public class LoadPrtgConfigFile : PrtgCmdlet
@@ -53,7 +55,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
             if (fileType == ConfigFileType.Lookups)
                 return "Lookups";
 
-            throw new NotImplementedException($"Don't know how to handle file type '{fileType}'");
+            throw new NotImplementedException($"Don't know how to handle file type '{fileType}'.");
         }
     }
 }

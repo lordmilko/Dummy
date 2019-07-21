@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrtgAPI.Parameters;
 using PrtgAPI.Request;
 using PrtgAPI.Targets;
+using PrtgAPI.Tests.UnitTests.Support;
 using PrtgAPI.Tests.UnitTests.Support.TestResponses;
 
 namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
@@ -19,75 +20,140 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
 
         [TestMethod]
         [TestCategory("UnitTest")]
-        public void AddSensor_CanExecute()
-        {
-            var builder = new StringBuilder();
-
-            builder.Append("addsensor5.htm?name_=XML+Custom+EXE%2FScript+Sensor&exefile_=test.ps1%7Ctest.ps1%7C%7C&");
-            builder.Append("tags_=xmlexesensor&exeparams_=&environment_=0&usewindowsauthentication_=0&mutexname_=&timeout_=60&writeresult_=0");
-            builder.Append("&intervalgroup=1&interval_=60%7C60+seconds&errorintervalsdown_=1&sensortype=exexml&id=1001");
-
-            var client = Initialize_Client(new AddressValidatorResponse(builder.ToString()));
-
-            var parameters = new ExeXmlSensorParameters("test.ps1");
-
-            client.AddSensor(1001, parameters, false);
-        }
+        public void AddSensor_CanExecute_v14() => AddSensor(RequestVersion.v14_4);
 
         [TestMethod]
         [TestCategory("UnitTest")]
-        public async Task AddSensor_CanExecuteAsync()
-        {
-            var builder = new StringBuilder();
-
-            builder.Append("addsensor5.htm?name_=XML+Custom+EXE%2FScript+Sensor&exefile_=test.ps1%7Ctest.ps1%7C%7C&");
-            builder.Append("tags_=xmlexesensor&exeparams_=&environment_=0&usewindowsauthentication_=0&mutexname_=&timeout_=60&writeresult_=0");
-            builder.Append("&intervalgroup=1&interval_=60%7C60+seconds&errorintervalsdown_=1&sensortype=exexml&id=1001");
-
-            var client = Initialize_Client(new AddressValidatorResponse(builder.ToString()));
-
-            var parameters = new ExeXmlSensorParameters("test.ps1");
-
-            await client.AddSensorAsync(1001, parameters, false);
-        }
+        public async Task AddSensor_CanExecuteAsync_v14() => await AddSensorAsync(RequestVersion.v14_4);
 
         [TestMethod]
         [TestCategory("UnitTest")]
-        public void AddSensor_AddsExcessiveItems()
+        public void AddSensor_CanExecute_v18() => AddSensor(RequestVersion.v18_1);
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public async Task AddSensor_CanExecuteAsync_v18() => await AddSensorAsync(RequestVersion.v18_1);
+
+        private void AddSensor(RequestVersion version)
+        {
+            var builder = new StringBuilder();
+
+            builder.Append("https://prtg.example.com/addsensor5.htm?name_=XML+Custom+EXE%2FScript+Sensor&priority_=3&inherittriggers_=1&intervalgroup=1&interval_=60%7C60+seconds");
+            builder.Append("&errorintervalsdown_=1&tags_=xmlexesensor&exefile_=test.ps1%7Ctest.ps1%7C%7C&exeparams_=&environment_=0");
+            builder.Append("&usewindowsauthentication_=0&mutexname_=&timeout_=60&writeresult_=0&sensortype=exexml&id=1001&");
+
+            var auth = version == RequestVersion.v18_1 ? "tmpid=2" : "username=username&passhash=12345678";
+
+            builder.Append(auth);
+
+            var urls = new List<string>
+            {
+                ////We don't request status since we already injected our version
+                UnitRequest.BeginAddSensorQuery(1001, "exexml"),
+                builder.ToString()
+            };
+
+            if (version == RequestVersion.v18_1)
+                urls.Add(UnitRequest.AddSensorProgress(1001, 2, true));
+
+            var parameters = new ExeXmlSensorParameters("test.ps1");
+
+            Execute(
+                c => c.AddSensor(1001, parameters, false),
+                urls.ToArray(),
+                version: version
+            );
+        }
+
+        private async Task AddSensorAsync(RequestVersion version)
+        {
+            var builder = new StringBuilder();
+
+            builder.Append("https://prtg.example.com/addsensor5.htm?name_=XML+Custom+EXE%2FScript+Sensor&priority_=3&inherittriggers_=1&intervalgroup=1&interval_=60%7C60+seconds");
+            builder.Append("&errorintervalsdown_=1&tags_=xmlexesensor&exefile_=test.ps1%7Ctest.ps1%7C%7C&exeparams_=&environment_=0");
+            builder.Append("&usewindowsauthentication_=0&mutexname_=&timeout_=60&writeresult_=0&sensortype=exexml&id=1001&");
+
+            var auth = version == RequestVersion.v18_1 ? "tmpid=2" : "username=username&passhash=12345678";
+
+            builder.Append(auth);
+
+            var urls = new List<string>
+            {
+                ////We don't request status since we already injected our version
+                UnitRequest.BeginAddSensorQuery(1001, "exexml"),
+                builder.ToString()
+            };
+
+            if (version == RequestVersion.v18_1)
+                urls.Add(UnitRequest.AddSensorProgress(1001, 2, true));
+
+            var parameters = new ExeXmlSensorParameters("test.ps1");
+
+            await ExecuteAsync(
+                async c => await c.AddSensorAsync(1001, parameters, false),
+                urls.ToArray(),
+                version: version
+            );
+        }
+
+        #region Excessive
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void AddSensor_AddsExcessiveItems_v14() => AddSensorWithExcessiveItems(RequestVersion.v14_4);
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public async Task AddSensor_AddsExcessiveItemsAsync_v14() => await AddSensorWithExcessiveItemsAsync(RequestVersion.v14_4);
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void AddSensor_AddsExcessiveItems_v18() => AddSensorWithExcessiveItems(RequestVersion.v18_1);
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public async Task AddSensor_AddsExcessiveItemsAsync_v18() => await AddSensorWithExcessiveItemsAsync(RequestVersion.v18_1);
+
+        private void AddSensorWithExcessiveItems(RequestVersion version)
         {
             var servicesClient = Initialize_Client(new WmiServiceTargetResponse());
             var services = servicesClient.Targets.GetWmiServices(1001);
 
             Assert.IsTrue(services.Count > 30);
 
-            var client = GetAddExcessiveSensorClient(services);
+            var client = GetAddExcessiveSensorClient(services, version);
 
             var parameters = new WmiServiceSensorParameters(services);
 
-            client.AddSensor(1001, parameters, false);
+            client.Item1.AddSensor(1001, parameters, false);
+
+            client.Item2.AssertFinished();
         }
 
-        [TestMethod]
-        [TestCategory("UnitTest")]
-        public async Task AddSensor_AddsExcessiveItemsAsync()
+        private async Task AddSensorWithExcessiveItemsAsync(RequestVersion version)
         {
             var servicesClient = Initialize_Client(new WmiServiceTargetResponse());
             var services = await servicesClient.Targets.GetWmiServicesAsync(1001);
 
             Assert.IsTrue(services.Count > 30);
 
-            var client = GetAddExcessiveSensorClient(services);
+            var client = GetAddExcessiveSensorClient(services, version);
 
             var parameters = new WmiServiceSensorParameters(services);
 
-            await client.AddSensorAsync(1001, parameters, false);
+            await client.Item1.AddSensorAsync(1001, parameters, false);
+
+            client.Item2.AssertFinished();
         }
 
-        private PrtgClient GetAddExcessiveSensorClient(List<WmiServiceTarget> services)
+        private Tuple<PrtgClient, AddressValidatorResponse> GetAddExcessiveSensorClient(List<WmiServiceTarget> services, RequestVersion version)
         {
             var formats = services.Select(s => "service__check=" + WebUtility.UrlEncode(((ISerializable)s).GetSerializedFormat())).ToList();
 
             var urls = new List<string>();
+
+            //We don't request status since we already injected our version
+            urls.Add(UnitRequest.BeginAddSensorQuery(1001, "wmiservice"));
 
             for (int i = 0; i < formats.Count; i += 30)
             {
@@ -95,15 +161,28 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
 
                 var str = string.Join("&", thisRequest);
 
-                var url = $"https://prtg.example.com/addsensor5.htm?name_=Service&tags_=wmiservicesensor+servicesensor&restart_=0&monitorchange_=1&monitorextended_=0&service_=1&sensortype=wmiservice&{str}&id=1001&username=username&passhash=12345678";
+                var auth = version == RequestVersion.v18_1 ? "tmpid=2" : "username=username&passhash=12345678";
+
+                var url = $"https://prtg.example.com/addsensor5.htm?name_=Service&priority_=3&inherittriggers_=1&intervalgroup=1&interval_=60%7C60+seconds&errorintervalsdown_=1&tags_=wmiservicesensor+servicesensor&restart_=0&monitorchange_=1&monitorextended_=0&service_=1&sensortype=wmiservice&{str}&id=1001&{auth}";
 
                 urls.Add(url);
+
+                if (i == 0 && version == RequestVersion.v18_1)
+                {
+                    urls.Add(UnitRequest.AddSensorProgress(1001, 2, true));
+                }
             }
 
-            var client = Initialize_Client(new AddressValidatorResponse(urls.ToArray(), true));
+#pragma warning disable 618
+            var response = new AddressValidatorResponse(urls.ToArray(), true);
 
-            return client;
+            var client = Initialize_Client(response, version);
+#pragma warning restore 618
+
+            return Tuple.Create(client, response);
         }
+
+        #endregion
 
         [TestMethod]
         [TestCategory("UnitTest")]
@@ -136,7 +215,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
         {
             var client = Initialize_Client(new BasicResponse(string.Empty));
 
-            AssertEx.Throws<ArgumentException>(() => client.AddSensor(1001, new ExeXmlSensorParameters("test.ps1", null)), "objectName cannot be null or empty");
+            AssertEx.Throws<ArgumentException>(() => client.AddSensor(1001, new ExeXmlSensorParameters("test.ps1", null)), "An object name cannot be null.");
         }
 
         [TestMethod]
@@ -145,7 +224,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
         {
             var client = Initialize_Client(new BasicResponse(string.Empty));
 
-            AssertEx.Throws<ArgumentException>(() => client.AddSensor(1001, new RawSensorParameters("sensorName", null)), "sensorType cannot be null or empty");
+            AssertEx.Throws<ArgumentException>(() => client.AddSensor(1001, new RawSensorParameters("sensorName", null)), "SensorType cannot be null or empty.");
         }
 
         [TestMethod]
@@ -206,6 +285,66 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
             Assert.AreEqual("Volume IO _Total1", sensors[1].Name);
         }
 
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void AddSensor_SensorQueryTarget_IgnoresTarget()
+        {
+            var client = Initialize_Client(new SensorQueryTargetValidatorResponse(new[]
+            {
+                UnitRequest.Status(),
+                UnitRequest.BeginAddSensorQuery(1001, "snmplibrary"),
+                UnitRequest.AddSensor("name_=test&priority_=3&inherittriggers_=1&intervalgroup=1&interval_=60%7C60+seconds&errorintervalsdown_=1&sensortype=snmplibrary&id=1001")
+            }));
+
+            var parameters = new RawSensorParameters("test", "snmplibrary");
+
+            client.AddSensor(1001, parameters, false);
+        }
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void AddSensor_SensorQueryParameters_SynthesizesParameters()
+        {
+            var client = Initialize_Client(new SensorQueryTargetParametersValidatorResponse(new[]
+            {
+                UnitRequest.Status(),
+                UnitRequest.BeginAddSensorQuery(1001, "oracletablespace"),
+                UnitRequest.ContinueAddSensorQuery(2055, 7, "database_=XE&sid_type_=0&prefix_=0"), //Response hardcodes 2055, however normally this will in fact match
+                UnitRequest.AddSensor("name_=test&priority_=3&inherittriggers_=1&intervalgroup=1&interval_=60%7C60+seconds&errorintervalsdown_=1&database=XE&sid_type=0&prefix=0&sensortype=oracletablespace&id=1001")
+            }));
+
+            var parameters = new RawSensorParameters("test", "oracletablespace")
+            {
+                ["database"] = "XE",
+                ["sid_type"] = 0,
+                ["prefix"] = 0
+            };
+
+            client.AddSensor(1001, parameters, false);
+        }
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void AddSensor_SensorQueryParameters_Throws_WhenSynthesizedParametersAreMissing()
+        {
+            var client = Initialize_Client(new SensorQueryTargetParametersValidatorResponse(new[]
+            {
+                UnitRequest.Status(),
+                UnitRequest.BeginAddSensorQuery(1001, "oracletablespace"),
+            }));
+
+            var parameters = new RawSensorParameters("test", "oracletablespace")
+            {
+                ["sid_type"] = 0,
+                ["prefix"] = 0
+            };
+
+            AssertEx.Throws<InvalidOperationException>(
+                () => client.AddSensor(1001, parameters, false),
+                "Failed to process request for sensor type 'oracletablespace': sensor query target parameters did not include mandatory parameter 'database_'."
+            );
+        }
+
         #endregion
         #region AddDevice
 
@@ -215,11 +354,12 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
         {
             var url = "adddevice2.htm?name_=device&host_=host&ipversion_=0&discoverytype_=0&discoveryschedule_=0&id=1001";
 
-            var client = Initialize_Client(new AddressValidatorResponse(url));
-
             var parameters = new NewDeviceParameters("device", "host");
 
-            client.AddDevice(1001, parameters, false);
+            Execute(
+                c => c.AddDevice(1001, parameters, false),
+                url
+            );
         }
 
         [TestMethod]
@@ -228,9 +368,10 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
         {
             var url = "adddevice2.htm?name_=device&host_=host&ipversion_=0&discoverytype_=1&discoveryschedule_=0&id=1001";
 
-            var client = Initialize_Client(new AddressValidatorResponse(url));
-
-            client.AddDevice(1001, "device", "host", AutoDiscoveryMode.Automatic, false);
+            Execute(
+                c => c.AddDevice(1001, "device", "host", AutoDiscoveryMode.Automatic, false),
+                url
+            );
         }
 
         [TestMethod]
@@ -239,11 +380,12 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
         {
             var url = "adddevice2.htm?name_=device&host_=host&ipversion_=0&discoverytype_=0&discoveryschedule_=0&id=1001";
 
-            var client = Initialize_Client(new AddressValidatorResponse(url));
-
             var parameters = new NewDeviceParameters("device", "host");
 
-            await client.AddDeviceAsync(1001, parameters, false);
+            await ExecuteAsync(
+                async c => await c.AddDeviceAsync(1001, parameters, false),
+                url
+            );
         }
 
         [TestMethod]
@@ -252,9 +394,10 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
         {
             var url = "adddevice2.htm?name_=device&host_=host&ipversion_=0&discoverytype_=1&discoveryschedule_=0&id=1001";
 
-            var client = Initialize_Client(new AddressValidatorResponse(url));
-
-            await client.AddDeviceAsync(1001, "device", "host", AutoDiscoveryMode.Automatic, false);
+            await ExecuteAsync(
+                async c => await c.AddDeviceAsync(1001, "device", "host", AutoDiscoveryMode.Automatic, false),
+                url
+            );
         }
 
         [TestMethod]
@@ -270,15 +413,16 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
             builder.Append("devicetemplate__check=Cloudwatch.odt%7CAmazon+Cloudwatch%7C%7C&");
             builder.Append("id=1001");
 
-            var client = Initialize_Client(new AddressValidatorResponse(builder.ToString()));
-
             var parameters = new NewDeviceParameters("device", "host")
             {
                 AutoDiscoveryMode = AutoDiscoveryMode.AutomaticTemplate,
                 DeviceTemplates = templates
             };
 
-            client.AddDevice(1001, parameters, false);
+            Execute(
+                c => c.AddDevice(1001, parameters, false),
+                builder.ToString()
+            );
         }
 
         [TestMethod]
@@ -294,7 +438,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
 
             AssertEx.Throws<InvalidOperationException>(
                 () => client.AddDevice(1001, parameters, false),
-                "Property 'DeviceTemplates' requires a value when property 'AutoDiscoveryMode' is value 'AutomaticTemplate', however the value was null or empty."
+                "Property 'DeviceTemplates' requires a value when property 'AutoDiscoveryMode' is value 'AutomaticTemplate', however the value was null, empty or whitespace."
             );
         }
 
@@ -311,15 +455,16 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
             builder.Append("devicetemplate__check=Cloudwatch.odt%7CAmazon+Cloudwatch%7C%7C&");
             builder.Append("id=1001");
 
-            var client = Initialize_Client(new AddressValidatorResponse(builder.ToString()));
-
             var parameters = new NewDeviceParameters("device", "host")
             {
                 AutoDiscoveryMode = AutoDiscoveryMode.AutomaticTemplate,
                 DeviceTemplates = templates
             };
 
-            await client.AddDeviceAsync(1001, parameters, false);
+            await ExecuteAsync(
+                async c => await c.AddDeviceAsync(1001, parameters, false),
+                builder.ToString()
+            );
         }
 
         [TestMethod]
@@ -335,7 +480,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
 
             await AssertEx.ThrowsAsync<InvalidOperationException>(
                 async () => await client.AddDeviceAsync(1001, parameters, false),
-                "Property 'DeviceTemplates' requires a value when property 'AutoDiscoveryMode' is value 'AutomaticTemplate', however the value was null or empty."
+                "Property 'DeviceTemplates' requires a value when property 'AutoDiscoveryMode' is value 'AutomaticTemplate', however the value was null, empty or whitespace."
             );
         }
 
@@ -420,40 +565,44 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
         [TestCategory("UnitTest")]
         public void AddGroup_CanExecute()
         {
-            var client = Initialize_Client(new AddressValidatorResponse("addgroup2.htm?name_=group&id=1001"));
-
             var parameters = new NewGroupParameters("group");
 
-            client.AddGroup(1001, parameters, false);
+            Execute(
+                c => c.AddGroup(1001, parameters, false),
+                "addgroup2.htm?name_=group&id=1001"
+            );
         }
 
         [TestMethod]
         [TestCategory("UnitTest")]
         public void AddGroup_Light_CanExecute()
         {
-            var client = Initialize_Client(new AddressValidatorResponse("addgroup2.htm?name_=group&id=1001"));
-
-            client.AddGroup(1001, "group", false);
+            Execute(
+                c => c.AddGroup(1001, "group", false),
+                "addgroup2.htm?name_=group&id=1001"
+            );
         }
 
         [TestMethod]
         [TestCategory("UnitTest")]
         public async Task AddGroup_CanExecuteAsync()
         {
-            var client = Initialize_Client(new AddressValidatorResponse("addgroup2.htm?name_=group&id=1001"));
-
             var parameters = new NewGroupParameters("group");
 
-            await client.AddGroupAsync(1001, parameters, false);
+            await ExecuteAsync(
+                async c => await c.AddGroupAsync(1001, parameters, false),
+                "addgroup2.htm?name_=group&id=1001"
+            );
         }
 
         [TestMethod]
         [TestCategory("UnitTest")]
         public async Task AddGroup_Light_CanExecuteAsync()
         {
-            var client = Initialize_Client(new AddressValidatorResponse("addgroup2.htm?name_=group&id=1001"));
-
-            await client.AddGroupAsync(1001, "group", false);
+            await ExecuteAsync(
+                async c => await c.AddGroupAsync(1001, "group", false),
+                "addgroup2.htm?name_=group&id=1001"
+            );
         }
 
         [TestMethod]

@@ -39,8 +39,13 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Get-Device fw-1 | Pause-Object -Forever -Message "Decomissioning"</code>
     ///     <para>Pause all devices named "fw-1" forever with a message explaining the reason the object was paused.</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/State-Manipulation#pause-1">Online version:</para>
     /// <para type="link">Resume-Object</para>
+    /// <para type="link">Get-Sensor</para>
+    /// <para type="link">Get-Device</para>
+    /// <para type="link">Get-Group</para>
+    /// <para type="link">Get-Probe</para>
     /// </summary>
     [Cmdlet(VerbsLifecycle.Suspend, "Object", SupportsShouldProcess = true)]
     public class PauseObject : PrtgMultiOperationCmdlet
@@ -87,12 +92,10 @@ namespace PrtgAPI.PowerShell.Cmdlets
         internal override string ProgressActivity => "Pausing PRTG Objects";
 
         /// <summary>
-        /// Provides a one-time, preprocessing functionality for the cmdlet.
+        /// Provides an enhanced one-time, preprocessing functionality for the cmdlet.
         /// </summary>
-        protected override void BeginProcessing()
+        protected override void BeginProcessingEx()
         {
-            base.BeginProcessing();
-
             switch (ParameterSetName)
             {
                 case ParameterSet.Default:
@@ -105,6 +108,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
                 case ParameterSet.Forever:
                     break;
+                default:
+                    throw new UnknownParameterSetException(ParameterSetName);
             }
 
             if (duration < 1)

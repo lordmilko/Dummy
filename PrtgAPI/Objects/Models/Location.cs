@@ -1,12 +1,38 @@
 ﻿using System.Runtime.Serialization;
 using PrtgAPI.Request;
+using PrtgAPI.Utilities;
 
 namespace PrtgAPI
 {
+    internal class GpsLocation : Location
+    {
+        public override double Latitude { get; }
+
+        public override double Longitude { get; }
+
+        internal GpsLocation(double latitude, double longitude)
+        {
+            Address = $"{latitude}, {longitude}";
+            Latitude = latitude;
+            Longitude = longitude;
+        }
+    }
+
     [DataContract]
     internal class Location : IMultipleSerializable
     {
+        internal static string GetAddress(object value)
+        {
+            string str = value != null && value.IsIEnumerable()
+                ? string.Join(", ", value.ToIEnumerable())
+                : value?.ToString();
+
+            return str;
+        }
+
         public virtual string Address { get; set; }
+
+        public virtual string Label { get; set; }
 
         public virtual double Latitude { get; }
 
@@ -14,12 +40,15 @@ namespace PrtgAPI
 
         public override string ToString()
         {
+            if (Label != null)
+                return $"{Label} ({Address})";
+
             return Address;
         }
 
         string Request.ISerializable.GetSerializedFormat()
         {
-            return Address;
+            return string.IsNullOrEmpty(Label) ? Address : $"{Label}\n{Address}";
         }
 
         string[] IMultipleSerializable.GetSerializedFormats()
@@ -29,7 +58,7 @@ namespace PrtgAPI
 
             return new[]
             {
-                Address,
+                ((Request.ISerializable)this).GetSerializedFormat(),
                 $"{Longitude},{Latitude}"
             };
         }

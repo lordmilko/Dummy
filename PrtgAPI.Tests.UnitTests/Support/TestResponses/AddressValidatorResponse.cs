@@ -15,6 +15,9 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
 
         private int arrayPos;
 
+        public bool AllowReorder { get; set; }
+
+        [Obsolete("Do not create AddressValidatorResponse objects directly; use BaseTest.Execute instead")]
         public AddressValidatorResponse(string str)
         {
             if (string.IsNullOrEmpty(str))
@@ -24,6 +27,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
             exactMatch = false;
         }
 
+        [Obsolete("Do not create AddressValidatorResponse objects directly; use BaseTest.Execute instead")]
         public AddressValidatorResponse(object str, bool exactMatch)
         {
             if (string.IsNullOrEmpty(str?.ToString()))
@@ -35,8 +39,13 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                 this.str = (string)str;
 
             this.exactMatch = exactMatch;
+
+#if NETCORE
+            AllowReorder = true;
+#endif
         }
 
+        [Obsolete("Do not create AddressValidatorResponse objects directly; use BaseTest.Execute instead")]
         public AddressValidatorResponse(object[] str) : this(str, true)
         {
         }
@@ -74,7 +83,10 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                         }
                         catch (AssertFailedException ex)
                         {
-                            throw GetDifference(strArray[arrayPos], address, ex);
+                            if (AllowReorder)
+                                AssertEx.UrlsEquivalent(strArray[arrayPos], address);
+                            else
+                                throw GetDifference(strArray[arrayPos], address, ex);
                         }
                     }
 
@@ -106,7 +118,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                 var actualVal = actualParts[part];
 
                 if (expectedVal != actualVal)
-                    Assert.Fail($"{part} was different. Expected: {expectedVal}. Actual: {actualVal}.\r\n\r\n{originalException.Message}");
+                    Assert.Fail($"{part} was different. Expected: {expectedVal}. Actual: {actualVal}.{Environment.NewLine}{Environment.NewLine}{originalException.Message}");
             }
 
             return originalException;
@@ -114,7 +126,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
 
         public void AssertFinished()
         {
-            if(strArray != null)
+            if (strArray != null)
             {
                 if (arrayPos < strArray.Length )
                     Assert.Fail($"Failed to call request '{strArray[arrayPos]}'");

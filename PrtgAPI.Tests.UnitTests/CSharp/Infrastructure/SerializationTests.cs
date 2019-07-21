@@ -21,6 +21,9 @@ using PrtgAPI.Tests.UnitTests.Support.TestResponses;
 namespace PrtgAPI.Tests.UnitTests.Infrastructure
 {
     [TestClass]
+#if MSTEST2
+    [DoNotParallelize]
+#endif
     public class SerializationTests
     {
         private string ExceptionException(string value, string type, string message)
@@ -1107,7 +1110,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             }
             catch (Exception ex)
             {
-                if (ex.Message != "Could not deserialize value '8765' as it is not a valid member of type 'PrtgAPI.Status'. Could not process XML '<status>banana</status><status_raw>8765</status_raw><message><div class=\"status\">OK<div class=\"moreicon\"></div></div></message>'")
+                if (ex.Message != "Could not deserialize value '8765' as it is not a valid member of type 'PrtgAPI.Status'. Could not process XML '<status>banana</status><status_raw>8765</status_raw><message><div class=\"status\">OK<div class=\"moreicon\"></div></div></message>'.")
                     throw;
             }
         }

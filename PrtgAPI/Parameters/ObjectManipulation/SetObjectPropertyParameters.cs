@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using PrtgAPI.Parameters.Helpers;
 using PrtgAPI.Reflection.Cache;
 
@@ -26,7 +27,7 @@ namespace PrtgAPI.Parameters
                 throw new ArgumentNullException(nameof(parameters));
 
             if (parameters.Length == 0)
-                throw new ArgumentException("At least one parameter must be specified", nameof(parameters));
+                throw new ArgumentException("At least one parameter must be specified.", nameof(parameters));
 
             foreach (var param in parameters)
             {
@@ -42,7 +43,10 @@ namespace PrtgAPI.Parameters
                 throw new ArgumentNullException(nameof(parameters));
 
             if (parameters.Length == 0)
-                throw new ArgumentException("At least one parameter must be specified", nameof(parameters));
+                throw new ArgumentException("At least one parameter must be specified.", nameof(parameters));
+
+            if (parameters.Any(p => p == null))
+                throw new ArgumentException("Cannot process a null parameter.", nameof(parameters));
 
             ObjectIds = objectIds;
             this[Parameter.Custom] = parameters;
@@ -54,7 +58,7 @@ namespace PrtgAPI.Parameters
                 throw new ArgumentNullException(nameof(objectIds));
 
             if (objectIds.Length == 0)
-                throw new ArgumentException("At least one Object ID must be specified", nameof(objectIds));
+                throw new ArgumentException("At least one Object ID must be specified.", nameof(objectIds));
 
             return objectIds;
         }

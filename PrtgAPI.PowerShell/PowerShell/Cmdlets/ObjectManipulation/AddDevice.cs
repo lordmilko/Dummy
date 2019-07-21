@@ -4,6 +4,7 @@ using System.Linq;
 using System.Management.Automation;
 using PrtgAPI.Parameters;
 using PrtgAPI.PowerShell.Base;
+using PrtgAPI.Utilities;
 
 namespace PrtgAPI.PowerShell.Cmdlets
 {
@@ -40,15 +41,23 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <para/>
     /// </example>
     /// <example>
-    ///     <code>C:\> $params = New-DeviceParameters sql-1 "2001:db8::ff00:42:8329"</code>
-    ///     <para>C:\> $params.IPVersion = "IPv6"</para>
-    ///     <para>C:\> Get-Probe contoso | Add-Device $params</para>
+    ///     <code>
+    ///         C:\> $params = New-DeviceParameters sql-1 "2001:db8::ff00:42:8329"
+    ///         C:\> $params.IPVersion = "IPv6"
+    ///
+    ///         C:\> Get-Probe contoso | Add-Device $params
+    ///     </code>
     ///     <para>Add a device named sql-1 using an IPv6 Address to the probe Contoso probe.</para>
     /// </example>
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Object-Creation#devices-1">Online version:</para>
+    /// <para type="link">New-DeviceParameters</para>
+    /// <para type="link">Get-Group</para>
+    /// <para type="link">Get-Probe</para>
     /// 
     /// </summary>
     [Cmdlet(VerbsCommon.Add, "Device", SupportsShouldProcess = true)]
-    public class AddDevice : AddObject<NewDeviceParameters, Device, GroupOrProbe>
+    public class AddDevice : AddParametersObject<NewDeviceParameters, Device, GroupOrProbe>
     {
         /// <summary>
         /// <para type="description">The parent object to create an object under.</para>
@@ -116,7 +125,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                         ).ToList();
 
                         if (templates.Count == 0)
-                            throw new ArgumentException($"No device templates could be found that match the specified template names {string.Join(", ", Template.Select(t => $"'{t}'"))}");
+                            throw new ArgumentException($"No device templates could be found that match the specified template names {Template.ToQuotedList()}.");
 
                         Parameters.DeviceTemplates = templates;
                     }

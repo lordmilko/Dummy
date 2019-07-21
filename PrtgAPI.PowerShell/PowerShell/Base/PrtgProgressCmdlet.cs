@@ -37,7 +37,10 @@ namespace PrtgAPI.PowerShell.Base
         {
             DisplayProgress();
 
-            WriteObject(obj(), true);
+            var result = obj();
+
+            if (result != null)
+                WriteObject(result, true);
 
             PostUpdateProgress();
         }
@@ -169,6 +172,7 @@ namespace PrtgAPI.PowerShell.Base
                         ProgressManager.InitialDescription = $"Processing {prtgObj.GetTypeDescription().ToLower()}";
                     else
                         ProgressManager.InitialDescription = $"Processing all {IObjectExtensions.GetTypeDescription(obj.GetType()).ToLower()}s";
+
                     ProgressManager.CurrentRecord.CurrentOperation = currentOperation ?? $"Retrieving all {GetTypePlural()}";
 
                     ProgressManager.RemovePreviousOperation();
@@ -202,7 +206,7 @@ namespace PrtgAPI.PowerShell.Base
                     UpdateScenarioProgress_VariableToMultipleCmdlet(ProgressStage.PreLoop, null);
                     break;
                 default:
-                    throw new NotImplementedException($"Handler for ProgressScenario '{ProgressManager.Scenario}' is not implemented");
+                    throw new NotImplementedException($"Handler for ProgressScenario '{ProgressManager.Scenario}' is not implemented.");
             }
         }
 
@@ -240,7 +244,7 @@ namespace PrtgAPI.PowerShell.Base
                         UpdateScenarioProgress_VariableToMultipleCmdlet(ProgressStage.BeforeEach, prtgObj);
                     break;
                 default:
-                    throw new NotImplementedException($"Handler for ProgressScenario '{ProgressManager.Scenario}' is not implemented");
+                    throw new NotImplementedException($"Handler for ProgressScenario '{ProgressManager.Scenario}' is not implemented.");
             }
         }
 
@@ -268,7 +272,7 @@ namespace PrtgAPI.PowerShell.Base
                     UpdateScenarioProgress_VariableToMultipleCmdlet(ProgressStage.PostLoop, null);
                     break;
                 default:
-                    throw new NotImplementedException($"Handler for ProgressScenario '{ProgressManager.Scenario}' is not implemented");
+                    throw new NotImplementedException($"Handler for ProgressScenario '{ProgressManager.Scenario}' is not implemented.");
             }
         }
 
@@ -308,7 +312,7 @@ namespace PrtgAPI.PowerShell.Base
                 }
                 else if (stage == ProgressStage.BeforeEach)
                 {
-                    if(!ProgressManager.PipeFromPrtgCmdletPostProcessMode)
+                    if (!ProgressManager.PipeFromPrtgCmdletPostProcessMode)
                         ProgressManager.UpdateRecordsProcessed(ProgressManager.CurrentRecord, obj);
                 }
                 else //PostLoop

@@ -26,6 +26,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Clear-PrtgCache GraphData -Force</code>
     ///     <para>Clear PRTG's graph data cache without displaying a confirmation prompt that this will restart the PRTG Core Service.</para>
     /// </example>
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Administrative-Tools#clear-system-caches-1">Online version:</para>
     /// </summary>
     [Cmdlet(VerbsCommon.Clear, "PrtgCache", SupportsShouldProcess = true)]
     public class ClearPrtgCache : PrtgCmdlet
@@ -76,7 +78,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
             if (cacheType == SystemCacheType.GraphData)
                 return "Graph Data";
 
-            throw new NotImplementedException($"Don't know how to handle cache type '{cacheType}'");
+            throw new NotImplementedException($"Don't know how to handle cache type '{cacheType}'.");
         }
     }
 }

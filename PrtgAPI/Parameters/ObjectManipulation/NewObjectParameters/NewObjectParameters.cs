@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using PrtgAPI.Attributes;
 using PrtgAPI.Parameters.Helpers;
 using PrtgAPI.Reflection.Cache;
@@ -15,7 +17,24 @@ namespace PrtgAPI.Parameters
     {
         internal abstract CommandFunction Function { get; }
 
+        internal Dictionary<ObjectProperty, string> nameOverrideMap = new Dictionary<ObjectProperty, string>();
+
         CommandFunction ICommandParameters.Function => Function;
+
+        private ConstructorScope constructorScope;
+
+        /// <summary>
+        /// Protects the constructor from setting dependent properties when initializing the object.
+        /// </summary>
+        protected IDisposable ConstructorScope
+        {
+            get
+            {
+                constructorScope = new ConstructorScope();
+
+                return constructorScope;
+            }
+        }
 
         ObjectPropertyParser parser;
 
@@ -31,7 +50,8 @@ namespace PrtgAPI.Parameters
         }
 
         /// <summary>
-        /// Gets or sets the tags that should be applied to this object. Certain object types and subtypes (such as sensors) may have default tag values.
+        /// Gets or sets the tags that should be applied to this object. Certain object types and subtypes (such as sensors) may have default tag values.<para/>
+        /// If this value is null, the default tags based on sensor type will be used.
         /// </summary>
         [PropertyParameter(ObjectProperty.Tags)]
         public string[] Tags
@@ -40,14 +60,17 @@ namespace PrtgAPI.Parameters
             set { SetCustomParameterArray(ObjectProperty.Tags, value, ' '); }
         }
 
-        internal NewObjectParameters(string objectName)
+        internal NewObjectParameters(string name)
         {
-            if (string.IsNullOrEmpty(objectName))
-                throw new ArgumentException($"{nameof(objectName)} cannot be null or empty", nameof(objectName));
+            if (name == null)
+                throw new ArgumentNullException(nameof(name), "An object name cannot be null.");
+
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Name cannot be empty or whitespace.", nameof(name));
 
             parser = new ObjectPropertyParser(this, this, ObjectPropertyParser.GetObjectPropertyNameViaCache);
 
-            Name = objectName;
+            Name = name;
         }
 
         #region GetCustomParameter
@@ -164,7 +187,7 @@ namespace PrtgAPI.Parameters
         /// </summary>
         /// <param name="name">The raw name of the parameter</param>
         /// <returns>The parameter's corresponding value. If the parameter was not found in the set, this value is null</returns>
-        protected object GetCustomParameterInternal(string name)
+        protected internal object GetCustomParameterInternal(string name)
         {
             var index = GetCustomParameterIndex(name);
 
@@ -269,7 +292,7 @@ namespace PrtgAPI.Parameters
         /// <param name="delim">The character that should delimit each array entry.</param>
         protected void SetCustomParameterArray(string name, string[] value, char delim)
         {
-            var str = string.Join(delim.ToString(), value);
+            var str = value != null ? string.Join(delim.ToString(), value) : null;
 
             SetCustomParameterInternal(name, str);
         }
@@ -332,17 +355,33 @@ namespace PrtgAPI.Parameters
         {
             var name = GetObjectPropertyName(property);
 
-            //Don't set inherited properties when we first initialize the property
-            //(which should be being done in the constructur)
-            if (GetCustomParameterIndex(name) != -1)
-                parser.AddDependents<ObjectProperty>(property);
+            if (constructorScope != null)
+            {
+                if (constructorScope.Disposed)
+                    parser.AddDependents<ObjectProperty>(property);
+            }
+            else
+            {
+                //Don't set inherited properties when we first initialize the property
+                //(which should be being done in the constructur)
+                if (GetCustomParameterIndex(name) != -1)
+                    parser.AddDependents<ObjectProperty>(property);
+            }
 
             return name;
         }
 
-        private string GetObjectPropertyName(Enum property)
+        private string GetObjectPropertyName(Enum property, bool forceOriginalName = false)
         {
             var name = ObjectPropertyParser.GetObjectPropertyName(property);
+
+            if (forceOriginalName)
+                return name;
+
+            string realName;
+
+            if (property is ObjectProperty && nameOverrideMap.TryGetValue((ObjectProperty) property, out realName))
+                name = realName;
 
             return name;
         }
@@ -366,6 +405,10 @@ namespace PrtgAPI.Parameters
                 InternalParameters[index] = parameter;
         }
 
+        ICollection<CustomParameter> ICustomParameterContainer.GetParameters() => InternalParameters;
+
+        bool ICustomParameterContainer.AllowDuplicateParameters => true;
+
         PropertyCache IPropertyCacheResolver.GetPropertyCache(Enum property)
         {
             return ObjectPropertyParser.GetPropertyInfoViaTypeLookup(property);
@@ -378,8 +421,73 @@ namespace PrtgAPI.Parameters
                 if (this[Parameter.Custom] == null)
                     this[Parameter.Custom] = new List<CustomParameter>();
 
-                return (List<CustomParameter>)this[Parameter.Custom];
+                var list = (List<CustomParameter>) this[Parameter.Custom];
+
+                if (list.Any(v => v == null))
+                {
+                    list = list.Where(v => v != null).ToList();
+                    this[Parameter.Custom] = list;
+                }
+
+                return list;
             }
+        }
+
+        /// <summary>
+        /// Overrides the the name a typed property is stored as. If a parameter for the specified property already exists, it will be automatically updated to use the new name.
+        /// </summary>
+        /// <param name="property">The property to override the name of.</param>
+        /// <param name="newName">The name to assign the property.</param>
+        public void AddNameOverride(ObjectProperty property, string newName)
+        {
+            if (newName == null)
+                throw new ArgumentNullException(nameof(newName));
+
+            string currentName;
+
+            if(!nameOverrideMap.TryGetValue(property, out currentName))
+                currentName = GetObjectPropertyName(property, true);
+
+            nameOverrideMap[property] = newName;
+
+            var existingParameter = InternalParameters.FirstOrDefault(p => p.Name == currentName);
+
+            if (existingParameter != null)
+                existingParameter.Name = newName;
+        }
+
+        /// <summary>
+        /// Retrieves all name overrides that are defined on this object.
+        /// </summary>
+        /// <returns>A read-only dictionary of overrides that are defined on this object.</returns>
+        public IReadOnlyDictionary<ObjectProperty, string> GetNameOverrides() => new ReadOnlyDictionary<ObjectProperty, string>(nameOverrideMap);
+
+        /// <summary>
+        /// Determines whether this object contains an override for a specified property.
+        /// </summary>
+        /// <param name="property">The property to check for the existence of.</param>
+        /// <returns></returns>
+        public bool ContainsNameOverride(ObjectProperty property) => nameOverrideMap.ContainsKey(property);
+
+        /// <summary>
+        /// Removes a name override for a specified property. If a parameter for the property was successfully removed, the parameter will be reverted to use its original name.
+        /// </summary>
+        /// <param name="property">The property to remove the name override for.</param>
+        /// <returns>If a name override for the specified property existed and was removed, true. Otherwise, false.</returns>
+        public bool RemoveNameOverride(ObjectProperty property)
+        {
+            string currentName;
+
+            if (nameOverrideMap.TryGetValue(property, out currentName) && nameOverrideMap.Remove(property))
+            {
+                var existingParameter = InternalParameters.FirstOrDefault(p => p.Name == currentName);
+
+                existingParameter.Name = GetObjectPropertyName(property, true);
+
+                return true;
+            }
+
+            return false;
         }
     }
 }

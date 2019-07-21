@@ -23,7 +23,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NET461</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NETFRAMEWORK;WINDOWS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -31,7 +31,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;NET461</DefineConstants>
+    <DefineConstants>TRACE;NETFRAMEWORK;WINDOWS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -80,6 +80,7 @@
     <Compile Include="CSharp\ObjectData\SystemInfoTests.cs" />
     <Compile Include="Support\AssertEx.cs" />
     <Compile Include="Support\EventValidator.cs" />
+    <Compile Include="Support\Request.cs" />
     <Compile Include="Support\Serialization\DummyAttributeSerializerManual.cs" />
     <Compile Include="Support\Serialization\DummyRootSerializerManual.cs" />
     <Compile Include="Support\Serialization\DummyElementSerializerManual.cs" />
@@ -115,6 +116,9 @@
     <Compile Include="Support\TestResponses\InfiniteLogValidatorResponse.cs" />
     <Compile Include="Support\TestResponses\ProgressOwnershipResponse.cs" />
     <Compile Include="Support\TestResponses\ReadOnlyResponse.cs" />
+    <Compile Include="Support\TestResponses\SensorQueryTargetParametersResponse.cs" />
+    <Compile Include="Support\TestResponses\SensorQueryTargetParametersValidatorResponse.cs" />
+    <Compile Include="Support\TestResponses\SensorQueryTargetValidatorResponse.cs" />
     <Compile Include="Support\TestResponses\SystemInfoResponse.cs" />
     <Compile Include="Support\TestResponses\TakeIterator\LogScenarios\ForceStream\TakeFilteredLogsForceStreamScenario.cs" />
     <Compile Include="Support\TestResponses\TakeIterator\LogScenarios\ForceStream\TakeFilteredLogsInsufficientForceStreamScenario.cs" />
@@ -317,10 +321,11 @@
     <Compile Include="Support\Infrastructure\IWebResponse.cs" />
     <Compile Include="Support\Infrastructure\MockWebClient.cs" />
     <Compile Include="CSharp\Infrastructure\PrtgClientTests.cs" />
-    <Compile Include="CSharp\Infrastructure\PrtgUrlTests.cs" />
+    <Compile Include="CSharp\Infrastructure\PrtgRequestMessageTests.cs" />
     <Compile Include="CSharp\Infrastructure\SearchFilterTests.cs" />
     <Compile Include="Support\TestResponses\PassHashResponse.cs" />
     <Compile Include="Support\TestItems\SensorItem.cs" />
+    <Compile Include="Support\WellKnownObjectId.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PrtgAPI.PowerShell\PrtgAPI.PowerShell.csproj">
@@ -337,6 +342,15 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="PowerShell\Infrastructure\Build\Clear-PrtgBuild.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Get-PrtgCommand.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Get-PrtgCoverage.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Get-PrtgHelp.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Get-PrtgTestResult.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Invoke-PrtgBuild.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Invoke-PrtgTest.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Simulate-PrtgCI.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Start-PrtgAPI.Tests.ps1" />
     <None Include="PowerShell\Infrastructure\Set-PrtgClient.Tests.ps1" />
     <None Include="PowerShell\ObjectData\Get-Object.Tests.ps1" />
     <None Include="PowerShell\ObjectData\Get-PrtgSchedule.Tests.ps1" />
@@ -349,7 +363,7 @@
     <None Include="PowerShell\ObjectManipulation\Backup-PrtgConfig.Tests.ps1" />
     <None Include="PowerShell\ObjectManipulation\Clear-PrtgCache.Tests.ps1" />
     <None Include="PowerShell\ObjectManipulation\Clone-Object.Tests.ps1" />
-    <None Include="PowerShell\ObjectManipulation\Edit-NotificationTriggerProperty.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Set-NotificationTriggerProperty.Tests.ps1" />
     <None Include="PowerShell\ObjectData\Get-Channel.Tests.ps1" />
     <None Include="PowerShell\Infrastructure\Connect-PrtgServer.Tests.ps1" />
     <None Include="PowerShell\ObjectData\Get-Device.Tests.ps1" />
@@ -369,6 +383,7 @@
     <None Include="PowerShell\ObjectManipulation\Move-Object.Tests.ps1" />
     <None Include="PowerShell\ObjectData\New-SearchFilter.Tests.ps1" />
     <None Include="PowerShell\ObjectData\New-SensorFactoryDefinition.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\New-Sensor.Tests.ps1" />
     <None Include="PowerShell\ObjectManipulation\New-SensorParameters.Tests.ps1" />
     <None Include="PowerShell\ObjectManipulation\Pause-Object.Tests.ps1" />
     <None Include="PowerShell\ObjectManipulation\Refresh-Object.Tests.ps1" />
@@ -386,7 +401,8 @@
     <None Include="PowerShell\ObjectManipulation\Simulate-ErrorStatus.Tests.ps1" />
     <None Include="PowerShell\ObjectManipulation\Sort-PrtgObject.Tests.ps1" />
     <None Include="PowerShell\ObjectManipulation\Start-AutoDiscovery.Tests.ps1" />
-    <None Include="Support\PowerShell\GoPrtg.Shared.ps1" />
+    <None Include="Support\PowerShell\Build.ps1" />
+    <None Include="Support\PowerShell\GoPrtg.ps1" />
     <None Include="PowerShell\Infrastructure\GoPrtg\Install-GoPrtgServer.Tests.ps1" />
     <None Include="PowerShell\Infrastructure\GoPrtg\Set-GoPrtgAlias.Tests.ps1" />
     <None Include="PowerShell\Infrastructure\GoPrtg\Uninstall-GoPrtgServer.Tests.ps1" />

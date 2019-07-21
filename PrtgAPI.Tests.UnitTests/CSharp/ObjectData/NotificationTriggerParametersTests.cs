@@ -51,6 +51,18 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             TriggerParameters_MandatoryFields_CannotBeNull(new ThresholdTriggerParameters(1));
         }
 
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void VolumeTriggerParameters_Add_ValidatesUnitSize()
+        {
+            var parameters = new VolumeTriggerParameters(1);
+
+            AssertEx.Throws<InvalidOperationException>(
+                () => parameters.UnitSize = DataUnit.Mbit,
+                "UnitSize 'Mbit' cannot be used with VolumeTriggerParameters. Please specify one of Byte, KByte, MByte, GByte, TByte."
+            );
+        }
+
         #endregion
         #region Edit
 
@@ -103,7 +115,19 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
                 else
                     Assert.IsTrue(prop.GetValue(parameters) == null, $"Property '{prop.Name}' was not null.");
 
-                var defaultValue = prop.PropertyType.Name == "TriggerChannel" ? new TriggerChannel(1234) : TestReflectionUtilities.GetDefaultUnderlying(prop.PropertyType);
+                object defaultValue = null;
+
+                if (prop.PropertyType.Name == nameof(TriggerChannel))
+                    defaultValue = new TriggerChannel(1234);
+                else if (prop.Name == nameof(VolumeTriggerParameters.UnitSize))
+                {
+                    if (parameters is VolumeTriggerParameters)
+                        defaultValue = TestReflectionUtilities.GetDefaultUnderlying(typeof(DataVolumeUnit)).ToString().ToEnum<DataUnit>();
+                    else
+                        defaultValue = TestReflectionUtilities.GetDefaultUnderlying(prop.PropertyType);
+                }
+                else
+                    defaultValue = TestReflectionUtilities.GetDefaultUnderlying(prop.PropertyType);
 
                 prop.SetValue(parameters, defaultValue);
                 Assert.IsTrue(prop.GetValue(parameters) != null, $"Property '{prop.Name}' was null.");
@@ -232,7 +256,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
                 Latency = 60,
                 EscalationLatency = 300,
                 RepeatInterval = 3,
-                State = TriggerSensorState.PartialDown
+                State = TriggerSensorState.DownPartial
             };
 
             Func<PropertyInfo, bool> additionalChecks = prop =>
@@ -272,7 +296,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
                 Channel = TriggerChannel.Primary,
                 OnNotificationAction = base.GetNotificationAction(),
                 Period = TriggerPeriod.Day,
-                UnitSize = DataVolumeUnit.GByte
+                UnitSize = DataUnit.GByte
             };
 
             TriggerParameters_AllProperties_HaveValues(parameters);
@@ -393,7 +417,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         [TestCategory("UnitTest")]
         public void TriggerParameters_Create_FromNullTrigger()
         {
-            AssertEx.Throws<ArgumentNullException>(() => new StateTriggerParameters(1234, null), "Value cannot be null.\r\nParameter name: sourceTrigger");
+            AssertEx.Throws<ArgumentNullException>(() => new StateTriggerParameters(1234, null), $"Value cannot be null.{Environment.NewLine}Parameter name: sourceTrigger");
         }
 
         [TestMethod]

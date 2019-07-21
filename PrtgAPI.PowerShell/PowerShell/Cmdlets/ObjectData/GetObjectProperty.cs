@@ -66,7 +66,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Get-ObjectProperty -Id 1001 -SubId 1 -RawSubType channel -RawProperty limitmaxerror</code>
     ///     <para>Retrieve the upper error limit property of the channel with ID 1 on the object with ID 1001</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Property-Manipulation#get-1">Online version:</para>
     /// <para type="link">Set-ObjectProperty</para>
     /// <para type="link">Get-Sensor</para>
     /// <para type="link">Get-Device</para>
@@ -151,7 +152,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
         /// </summary>
         protected override void ProcessRecordEx()
         {
-            switch(ParameterSetName)
+            switch (ParameterSetName)
             {
                 case ParameterSet.Default:              //Object
                     ProcessDefault();
@@ -172,7 +173,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                     ProcessRawProperty(p => client.GetObjectPropertyRaw(GetId(), SubId, RawSubType, p, Text));
                     break;
                 default:
-                    throw new NotImplementedException($"Don't know how to handle parameter set '{ParameterSetName}'");
+                    throw new UnknownParameterSetException(ParameterSetName);
             }
         }
 
@@ -229,12 +230,12 @@ namespace PrtgAPI.PowerShell.Cmdlets
                         WriteObjectWithProgress(() => WarnReadOnly(client.GetProbeProperties(Object.Id)));
                         break;
                     default:
-                        throw new NotImplementedException($"Property handler not implemented for base type {knownObj.BaseType}");
+                        throw new NotImplementedException($"Property handler not implemented for base type {knownObj.BaseType}.");
                 }
             }
             else
             {
-                throw new NotSupportedException($"Typed property handler not implemented for object type {Object.DisplayType}");
+                throw new NotSupportedException($"Typed property handler not implemented for object type {Object.DisplayType}.");
             }
         }
 
@@ -250,14 +251,36 @@ namespace PrtgAPI.PowerShell.Cmdlets
             return value;
         }
 
+        void WriteObjectWithProgressSafe(Func<object> obj)
+        {
+            WriteObjectWithProgress(() =>
+            {
+                try
+                {
+                    return obj();
+                }
+                catch(Exception ex) when (ex is PrtgRequestException)
+                {
+                    WriteError(new ErrorRecord(
+                        ex,
+                        nameof(PrtgRequestException),
+                        ErrorCategory.InvalidOperation,
+                        null
+                    ));
+
+                    return null;
+                }
+            });
+        }
+
         #endregion
 
         private void WriteProperties<TProperty>(TProperty[] properties, Func<TProperty, object> getValue, Func<TProperty, TProperty> getPropertyName = null)
         {
             if (properties.Length == 1)
-                WriteObjectWithProgress(() => getValue(properties[0]));
+                WriteObjectWithProgressSafe(() => getValue(properties[0]));
             else
-                WriteObjectWithProgress(() => GetMultipleProperties(properties, getValue, getPropertyName));
+                WriteObjectWithProgressSafe(() => GetMultipleProperties(properties, getValue, getPropertyName));
         }
 
         private PSObject GetMultipleProperties<TProperty>(TProperty[] properties, Func<TProperty, object> getValue, Func<TProperty, TProperty> getPropertyName)
@@ -298,7 +321,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                     case BaseType.Probe:
                         return ObjectType.Probe;
                     default:
-                        throw new NotImplementedException($"Unable to resolve {nameof(ObjectType)} from base type {obj.BaseType}");
+                        throw new NotImplementedException($"Unable to resolve {nameof(ObjectType)} from base type {obj.BaseType}.");
                 }
             }
 

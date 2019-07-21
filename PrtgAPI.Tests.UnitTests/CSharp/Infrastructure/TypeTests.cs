@@ -7,7 +7,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrtgAPI.Attributes;
 using PrtgAPI.Linq;
 using PrtgAPI.Parameters;
-using PrtgAPI.PowerShell;
 using PrtgAPI.Request;
 using PrtgAPI.Request.Serialization.FilterHandlers;
 using PrtgAPI.Request.Serialization.ValueConverters;
@@ -154,7 +153,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 new Parsee(new TimeSpan(0, 0, 10),             "00:00:10",      "10|10 seconds"),
                 new Parsee(StandardScanningInterval.FourHours, "FourHours",     "14400|4 hours"),
                 new Parsee(20,                                 "20",            "20|20 seconds"),
-                new Throws<InvalidCastException>(21.1, "21.1", v => $"Cannot convert value '21.1' of type '{v.GetType().FullName}'")
+                new Throws<ArgumentException>(21.1, "21.1", v => $"Cannot convert value '21.1' of type '{v.GetType().FullName}'")
             );
         }
 
@@ -204,7 +203,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 new Parsee(StandardTriggerChannel.Primary, "Primary", "-999"),
                 new Parsee(new Channel { Id = 3 },         "3",       "3"),
                 new Parsee(1,                              "1",       "1"),
-                new Throws<InvalidCastException>(21.1, "21.1", v => $"Cannot convert value '21.1' of type '{v.GetType().FullName}'")
+                new Throws<ArgumentException>(21.1, "21.1", v => $"Cannot convert value '21.1' of type '{v.GetType().FullName}'")
             );
         }
 
@@ -728,6 +727,25 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             });
         }
 
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void IShallowCloneable_SetChannelPropertyParameters_CloneFully()
+        {
+            var ids = new[] {1001, 1002, 1003};
+            var @params = new[]
+            {
+                new ChannelParameter(ChannelProperty.UpperErrorLimit, 100),
+                new ChannelParameter(ChannelProperty.SpikeFilterEnabled, true)
+            };
+
+            var parameters = new SetChannelPropertyParameters(ids, 1, @params)
+            {
+                Cookie = true
+            };
+
+            Clone(parameters);
+        }
+
         private void CloneTable<TObject, TParam>(TParam parameters, Func<MemberInfo, bool> customHandler = null)
             where TObject : ITableObject, IObject
             where TParam : TableParameters<TObject>, IShallowCloneable<TParam>
@@ -900,6 +918,48 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         }
 
         #endregion
+        #region SensorType
+
+        [TestMethod]
+        [TestCategory("UnitTest")]
+        public void SensorType_AllValues_HaveTypeAttributes()
+        {
+            //All SensorType values should have type attributes
+            //If a value has a null type attribute, further assert that there are no types derived from
+            //SensorParametersInternal that ISN'T defined on any SensorType
+
+            var missingParameter = false;
+
+            var knownTypes = new List<Type>();
+
+            foreach (SensorType value in Enum.GetValues(typeof(SensorType)))
+            {
+                var attribute = value.GetEnumAttribute<TypeAttribute>();
+
+                if (attribute == null)
+                    Assert.Fail($"SensorType '{value}' is missing a {nameof(TypeAttribute)}");
+
+                if (attribute.Class == null)
+                    missingParameter = true;
+                else
+                    knownTypes.Add(attribute.Class);
+
+            }
+
+            if (missingParameter)
+            {
+                var types = typeof(SensorParametersInternal).Assembly.GetTypes();
+
+                var filteredTypes = types.Where(t => typeof(SensorParametersInternal).IsAssignableFrom(t) && typeof(SensorParametersInternal) != t).ToList();
+
+                var missing = filteredTypes.Except(knownTypes).ToList();
+
+                if (missing.Count > 0)
+                    Assert.Fail($"Sensor parameter type '{missing[0].Name}' has not been assigned to a SensorType. Do these parameters belong to a SensorType whose parameter type is null?");
+            }
+        }
+
+        #endregion
         #region ToString
 
         [TestMethod]
@@ -1016,10 +1076,10 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             }
 
             AssertEx.Throws<ArgumentNullException>(() => parse(null), "Value cannot be null");
-            AssertEx.Throws<InvalidCastException>(() => parse(string.Empty), "Cannot convert value '' of type 'System.String'");
+            AssertEx.Throws<ArgumentException>(() => parse(string.Empty), "Cannot convert value '' of type 'System.String'");
 
-            if(typeof(IEnumEx).IsAssignableFrom(typeof(T)))
-                AssertEx.Throws<InvalidCastException>(() => parse("abc123"), "Cannot convert value 'abc123' of type 'System.String'");
+            if (typeof(IEnumEx).IsAssignableFrom(typeof(T)))
+                AssertEx.Throws<ArgumentException>(() => parse("abc123"), "Cannot convert value 'abc123' of type 'System.String'");
         }
 
         [TestMethod]
@@ -1124,7 +1184,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 .Cast<PropertyParameterAttribute>()
                 .Select(a =>
                 {
-                    if(a.Property.GetType() == typeof(Property))
+                    if (a.Property.GetType() == typeof(Property))
                         return (Property?)a.Property;
 
                     return null;

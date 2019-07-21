@@ -20,7 +20,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
         {
             Func<string, string> getDelim = f => f != string.Empty ? "&" : "";
 
-            var urls = filters.Select(f => $"content=sensors&columns={TestHelpers.DefaultSensorProperties()}&count=500{getDelim(f)}{f}").ToArray();
+            var urls = filters.Select(f => UnitRequest.Sensors($"count=500{getDelim(f)}{f}", UrlFlag.Columns)).ToArray();
 
             Execute(func, urls, validator);
         }
@@ -42,32 +42,59 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
 
         protected void Execute<TResult>(Func<IQueryable<Sensor>, IQueryable<TResult>> func, string[] url, Action<List<TResult>> validator, int count = 3, Dictionary<Content, Action<BaseItem>> propertyManipulator = null)
         {
-            var urls = url.SelectMany(u => new[]
+            var urls = url.SelectMany(u =>
             {
-                $"https://prtg.example.com/api/table.xml?{u}&username=username&passhash=12345678"
+                if (u.StartsWith("https"))
+                    return new[] {u};
+
+                return new[]
+                {
+                    $"https://prtg.example.com/api/table.xml?{u}&username=username&passhash=12345678"
+                };
             });
 
             var client = GetClient(urls.ToArray(), propertyManipulator: propertyManipulator);
 
-            var result = func(client.QuerySensors()).ToList();
+            var result = func(client.Item1.QuerySensors()).ToList();
 
             validator(result);
+
+            client.Item2.AssertFinished();
         }
 
         protected void ExecuteNow<TResult>(Func<IQueryable<Sensor>, TResult> func, string url, Action<TResult> validator, UrlFlag flags = UrlFlag.Columns | UrlFlag.Count, int count = 3)
         {
+            if ((flags & UrlFlag.Count) == UrlFlag.Count)
+            {
+                url = $"count=500" + (string.IsNullOrEmpty(url) ? url : $"&{url}");
+                flags = flags & ~UrlFlag.Count;
+            }
+
             ExecuteNow(func, new[] { url }, validator, flags, count);
         }
 
         protected void ExecuteNow<TResult>(Func<IQueryable<Sensor>, TResult> func, string[] url, Action<TResult> validator, UrlFlag flags = UrlFlag.Columns | UrlFlag.Count, int count = 3)
         {
-            url = url.Select(f => TestHelpers.RequestSensor(f, flags)).ToArray();
+            url = url.Select(f =>
+            {
+                var innerFlags = flags;
+
+                if ((flags & UrlFlag.Count) == UrlFlag.Count)
+                {
+                    f = $"count=500" + (string.IsNullOrEmpty(f) ? f : $"&{f}");
+                    innerFlags = flags & ~UrlFlag.Count;
+                }
+
+                return UnitRequest.Sensors(f, innerFlags);
+            }).ToArray();
 
             var client = GetClient(url, count);
 
-            var result = func(client.QuerySensors());
+            var result = func(client.Item1.QuerySensors());
 
             validator(result);
+
+            client.Item2.AssertFinished();
         }
 
         protected void ExecuteSkip<TResult>(Func<IQueryable<Sensor>, TResult> func, string url, Action<TResult> validator, UrlFlag flags = UrlFlag.Columns | UrlFlag.Count, int count = 3)
@@ -78,23 +105,27 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
         protected void ExecuteSkip<TResult>(Func<IQueryable<Sensor>, TResult> func, string[] url, Action<TResult> validator, UrlFlag flags = UrlFlag.Columns | UrlFlag.Count, int count = 3)
         {
             var list = new List<string>();
-            list.Add(TestHelpers.RequestSensorCount);
-            list.AddRange(url.Select(f => TestHelpers.RequestSensor(f, flags)));
+            list.Add(UnitRequest.SensorCount);
+            list.AddRange(url.Select(f => UnitRequest.Sensors(f, flags)));
 
             var client = GetClient(list.ToArray(), count);
 
-            var result = func(client.QuerySensors());
+            var result = func(client.Item1.QuerySensors());
 
             validator(result);
+
+            client.Item2.AssertFinished();
         }
 
         protected void ExecuteClient<TResult>(Func<PrtgClient, TResult> action, string[] urls, Action<TResult> validator)
         {
             var client = GetClient(urls);
 
-            var result = action(client);
+            var result = action(client.Item1);
 
             validator(result);
+
+            client.Item2.AssertFinished();
         }
 
         protected void ExecuteNullable<TResult>(Func<IQueryable<Sensor>, IQueryable<TResult>> func, string url, Action<SensorItem> manipulator)
@@ -102,7 +133,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
             var u = "content=sensors&";
 
             if (!url.Contains("columns"))
-                u += $"columns={TestHelpers.DefaultSensorProperties()}";
+                u += $"columns={UnitRequest.DefaultSensorProperties()}";
             else
                 u += url;
 
@@ -128,9 +159,10 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
             });
         }
 
-        protected PrtgClient GetClient(string[] urls, int sensorCount = 3, int deviceCount = 4, int logCount = 5, Dictionary<Content, Action<BaseItem>> propertyManipulator = null)
+        protected Tuple<PrtgClient, AddressValidatorResponse> GetClient(string[] urls, int sensorCount = 3, int deviceCount = 4, int logCount = 5, Dictionary<Content, Action<BaseItem>> propertyManipulator = null)
         {
-            var client = Initialize_Client(new AddressValidatorResponse(urls.Cast<object>().ToArray())
+#pragma warning disable 618
+            var response = new AddressValidatorResponse(urls.Cast<object>().ToArray())
             {
                 CountOverride = new Dictionary<Content, int>
                 {
@@ -139,14 +171,17 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData.Query
                     [Content.Logs] = logCount,
                 },
                 PropertyManipulator = propertyManipulator
-            });
+            };
 
-            return client;
+            var client = Initialize_Client(response);
+#pragma warning restore 618
+
+            return Tuple.Create(client, response);
         }
 
         public static string Cast(string value, string type)
         {
-#if NET461
+#if NETFRAMEWORK
             return $"Convert({value})";
 #else
             return $"Convert({value}, {type})";

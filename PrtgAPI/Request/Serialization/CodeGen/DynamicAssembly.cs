@@ -27,7 +27,7 @@ namespace PrtgAPI.Request.Serialization.CodeGen
             {
                 lock(lockObj)
                 {
-                    if(assemblyBuilder == null)
+                    if (assemblyBuilder == null)
                     {
                         GenerateAssembly();
                         GenerateModule();
@@ -46,7 +46,7 @@ namespace PrtgAPI.Request.Serialization.CodeGen
             {
                 lock(lockObj)
                 {
-                    if(moduleBuilder == null)
+                    if (moduleBuilder == null)
                     {
                         GenerateAssembly();
                         GenerateModule();
@@ -74,7 +74,7 @@ namespace PrtgAPI.Request.Serialization.CodeGen
 
         public static Delegate Generate(string typeName, LambdaExpression lambda, out TypeBuilder typeBuilder)
         {
-            var temp = Environment.GetEnvironmentVariable("temp");
+            var temp = Path.GetTempPath();
 
             var file = $"{temp}\\{typeName}.cs";
 

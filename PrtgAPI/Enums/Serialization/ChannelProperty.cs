@@ -1,8 +1,39 @@
 ﻿using System.ComponentModel;
 using PrtgAPI.Attributes;
+using PrtgAPI.Request.Serialization.ValueConverters;
 
 namespace PrtgAPI
 {
+    internal enum ChannelPropertyInternal
+    {
+        [LiteralValue]
+        PercentValueFactor,
+
+        [LiteralValue]
+        SpikeFilterMaxFactor,
+
+        [LiteralValue]
+        SpikeFilterMinFactor,
+
+        [LiteralValue]
+        VerticalAxisMaxFactor,
+
+        [LiteralValue]
+        VerticalAxisMinFactor,
+
+        [LiteralValue]
+        UpperErrorLimitFactor,
+
+        [LiteralValue]
+        UpperWarningLimitFactor,
+
+        [LiteralValue]
+        LowerErrorLimitFactor,
+
+        [LiteralValue]
+        LowerWarningLimitFactor
+    }
+
     /// <summary>
     /// <para type="description">Specifies the properties of sensor channels that can be interfaced with using the PRTG API.</para>
     /// </summary>
@@ -17,6 +48,7 @@ namespace PrtgAPI
         /// A standard or custom value lookup that allows this sensor's value to be displayed as text in a gauge or a switch.
         /// </summary>
         [Description("valuelookup")]
+        [ValueConverter(typeof(ValueLookupConverter))]
         ValueLookup,
 
         /// <summary>
@@ -93,14 +125,17 @@ namespace PrtgAPI
         /// <summary>
         /// The maximum to use for calculating the percentage to display this channel's value as. Applies when <see cref="PercentDisplay"/> is <see cref="PrtgAPI.PercentDisplay.PercentOfMax"/>.
         /// </summary>
+        [Factor(ChannelPropertyInternal.PercentValueFactor)]
         [DependentProperty(PercentMode, PercentDisplay.PercentOfMax, true)]
         PercentValue,
 
         /*VerticalAxisScaling,
 
+        [Factor(ChannelPropertyInternal.VerticalAxisMaxFactor)]
         [DependentProperty(VerticalAxisScaling, AutoMode.Manual, true)]
         VerticalAxisMax,
 
+        [Factor(ChannelPropertyInternal.VerticalAxisMinFactor)]
         [DependentProperty(VerticalAxisScaling, AutoMode.Manual, true)]
         VerticalAxisMin,*/
 
@@ -114,35 +149,39 @@ namespace PrtgAPI
         /// The maximum value allowed before the sensor goes into an error state.
         /// </summary>
         [DependentProperty(LimitsEnabled, true)]
+        [Factor(ChannelPropertyInternal.UpperErrorLimitFactor)]
         UpperErrorLimit,
-        
+
         /// <summary>
         /// The maximum value allowed before the sensor goes into a warning state.
         /// </summary>
         [DependentProperty(LimitsEnabled, true)]
+        [Factor(ChannelPropertyInternal.UpperWarningLimitFactor)]
         UpperWarningLimit,
 
         /// <summary>
         /// The minimum value allowed before the sensor goes into an error state.
         /// </summary>
         [DependentProperty(LimitsEnabled, true)]
+        [Factor(ChannelPropertyInternal.LowerErrorLimitFactor)]
         LowerErrorLimit,
 
         /// <summary>
         /// The minimum value allowed before the sensor goes into a warning state.
         /// </summary>
         [DependentProperty(LimitsEnabled, true)]
+        [Factor(ChannelPropertyInternal.LowerWarningLimitFactor)]
         LowerWarningLimit,
 
         /// <summary>
-        /// The message to display when this channel causes the sensor to go into an error state.
+        /// The message to display when this channel's <see cref="UpperErrorLimit"/> or <see cref="LowerErrorLimit"/> is exceeded.
         /// </summary>
         [Version(RequestVersion.v18_1)]
         [DependentProperty(LimitsEnabled, true)]
         ErrorLimitMessage,
 
         /// <summary>
-        /// The message to display when this channel causes the sensor to go into a warning state.
+        /// The message to display when this channel's <see cref="UpperWarningLimit"/> or <see cref="LowerWarningLimit"/> is exceeded.
         /// </summary>
         [Version(RequestVersion.v18_1)]
         [DependentProperty(LimitsEnabled, true)]

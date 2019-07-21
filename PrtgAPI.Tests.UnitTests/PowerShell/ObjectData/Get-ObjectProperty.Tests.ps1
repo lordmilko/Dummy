@@ -16,11 +16,19 @@ Describe "Get-ObjectProperty" -Tag @("PowerShell", "UnitTest") {
         }
 
         It "can deserialize device settings" {
-            $sensor = Get-Device -Count 1
+            $device = Get-Device -Count 1
 
-            $properties = $sensor | Get-ObjectProperty
+            $properties = $device | Get-ObjectProperty
 
             $properties.GetType().Name | Should Be DeviceSettings
+        }
+
+        It "warns when an object is read-only" {
+            WithReadOnly {
+                $sensor = Get-Sensor -Count 1
+
+                { $sensor | Get-ObjectProperty } | Should Throw "Cannot retrieve properties for read-only sensor with ID 4000."
+            }
         }
     }
 
@@ -43,6 +51,13 @@ Describe "Get-ObjectProperty" -Tag @("PowerShell", "UnitTest") {
             $properties.Tags.Count | Should Be 2
             $properties.Tags[0] | Should Be "tag1"
             $properties.Tags[1] | Should Be "tag2"
+        }
+
+        It "throws trying to retrieve a mergeable property" {
+
+            $device = Get-Device -Count 1
+
+            { $Device | Get-ObjectProperty LocationName } | Should Throw "'LocationName' is a virtual property and cannot be retrieved directly. To access this value, property 'Location' should be retrieved instead."
         }
     }
 
@@ -137,8 +152,8 @@ Describe "Get-ObjectProperty" -Tag @("PowerShell", "UnitTest") {
         It "retrieves a sub object property" {
 
             SetAddressValidatorResponse @(
-                "api/getobjectproperty.htm?id=1001&name=limitmaxerror&subid=5&subtype=channel&show=nohtmlencode&"
-                "api/getobjectproperty.htm?id=1001&name=limitminerror&subid=5&subtype=channel&show=nohtmlencode&"
+                [Request]::GetObjectProperty(1001, "limitmaxerror&subid=5&subtype=channel&show=nohtmlencode")
+                [Request]::GetObjectProperty(1001, "limitminerror&subid=5&subtype=channel&show=nohtmlencode")
             )
 
             $response = Get-ObjectProperty -Id 1001 -SubId 5 -RawSubType channel -RawProperty limitmaxerror,limitminerror
@@ -171,6 +186,16 @@ Describe "Get-ObjectProperty" -Tag @("PowerShell", "UnitTest") {
 
             { Get-ObjectProperty -Id 1001 } | Should Throw "Parameter set cannot be resolved"
         }
+    }
+
+    It "throws an ErrorRecord when a property doesn't exist" {
+        Get-Device -Count 1 | Get-ObjectProperty -RawProperty banana -ErrorAction SilentlyContinue
+
+        $? | Should Be $false
+    }
+
+    It "throws when a property doesn't exist and ErrorActionPreference is stop" {
+        { Get-Device -Count 1 | Get-ObjectProperty -RawProperty banana -ErrorAction Stop } | Should Throw "PRTG was unable to complete the request. A value for property 'banana' could not be found."
     }
 
     #endregion

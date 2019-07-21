@@ -17,6 +17,10 @@ appveyor.local.json
 # NuGet Packages Directory
 packages/
 
+# NuGet Packages
+*.nupkg
+*.snupkg
+
 # MSBuild logs
 *.binlog
 

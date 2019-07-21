@@ -18,7 +18,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
             channels = new[] {new ChannelItem()};
         }
 
-        internal NotificationTriggerResponse(NotificationTriggerItem[] triggers, ChannelItem[] channels) : this(triggers)
+        public NotificationTriggerResponse(NotificationTriggerItem[] triggers, ChannelItem[] channels) : this(triggers)
         {
             this.channels = channels;
         }
@@ -53,7 +53,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                     return base.GetResponseText(ref address);
                 case Content.Channels:
 
-                    if(Convert.ToInt32(components["id"]) >= 4000)
+                    if (Convert.ToInt32(components["id"]) >= 4000)
                         return new ChannelResponse(channels).GetResponseText(ref address);
                     return new ChannelResponse().GetResponseText(ref address);
                 case Content.Notifications:

@@ -1,0 +1,24 @@
+language: csharp
+mono: none
+dotnet: 2.1.600
+
+#cache:
+#  directories:
+#    - $TRAVIS_BUILD_DIR/snaps-cache
+
+os:
+  - linux
+  - osx
+
+install:
+  - ./Tools/Travis/install.sh
+
+script:
+  - ./Tools/Travis/travis.sh
+
+addons:
+  snaps:
+  - powershell
+  homebrew:
+    casks:
+    - powershell

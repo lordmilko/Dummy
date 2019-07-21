@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -110,7 +111,7 @@ namespace PrtgAPI
 
         internal void Log(string message, LogLevel logLevel)
         {
-            if((LogLevel & logLevel) == logLevel)
+            if ((LogLevel & logLevel) == logLevel)
                 HandleEvent(logVerbose, new LogVerboseEventArgs(message, logLevel));
         }
 
@@ -169,7 +170,7 @@ namespace PrtgAPI
             var enums = obj.Where(o => o is Enum).ToList();
 
             if (enums.Count == 0)
-                throw new NotImplementedException($"Don't know how to get {nameof(VersionAttribute)} for '{string.Join(",", obj)}'");
+                throw new NotImplementedException($"Don't know how to get {nameof(VersionAttribute)} for '{string.Join(",", obj)}'.");
 
             var result = obj.OfType<Enum>().Select(o => o.GetEnumAttribute<VersionAttribute>()).Where(a => a != null).OrderBy(a => a.Version).ToList();
 
@@ -216,6 +217,12 @@ namespace PrtgAPI
             if (parameters == null)
                 throw new ArgumentNullException(nameof(parameters));
 
+            if (parameters.Any(p => p == null))
+                throw new ArgumentException("Cannot process a null parameter.", nameof(parameters));
+
+            if (parameters.Count == 0)
+                throw new ArgumentException("At least one parameter must be specified.", nameof(parameters));
+
             return GetVersionClient(parameters.Select(p => p.Property).Cast<object>().ToArray());
         }
 
@@ -225,10 +232,40 @@ namespace PrtgAPI
         {
             var response = RequestEngine.ExecuteRequest(new PassHashParameters(password), m => m.Content.ReadAsStringAsync().Result).StringValue;
 
-            if(!Regex.Match(response, "^[0-9]+$").Success)
-                throw new PrtgRequestException($"Could not retrieve PassHash from PRTG Server. PRTG responded '{response}'");
+            if (!Regex.Match(response, "^[0-9]+$").Success)
+                throw new PrtgRequestException($"Could not retrieve PassHash from PRTG Server. PRTG responded '{response}'.");
 
             return response;
+        }
+
+        private T AssertHasValue<T>(T value, string paramName)
+        {
+            if (value == null)
+                throw new ArgumentNullException(paramName, $"{paramName.ToSentenceCase()} cannot be null.");
+
+            if (typeof(T) == typeof(string))
+            {
+                if (string.IsNullOrWhiteSpace((string)(object)value))
+                    throw new ArgumentException($"{paramName.ToSentenceCase()} cannot be empty or whitespace.", paramName);
+            }
+            else
+            {
+                var collection = value as ICollection;
+
+                if (collection != null)
+                {
+                    if (collection.Count == 0)
+                        throw new ArgumentException($"At least one {paramName.FromPlural()} must be specified.", paramName);
+
+                    foreach (var v in collection)
+                    {
+                        if (v == null)
+                            throw new ArgumentException($"Cannot process a null {paramName.FromPlural()}.", nameof(paramName));
+                    }
+                }
+            }
+
+            return value;
         }
 
         internal List<Sensor> GetSensors(Property property, object value, CancellationToken token) =>
@@ -245,8 +282,10 @@ namespace PrtgAPI
 
         #region System Information
 
-        private SystemInfo GetSystemInfoInternal(int deviceId)
+        private SystemInfo GetSystemInfoInternal(Either<Device, int> deviceOrId)
         {
+            var deviceId = deviceOrId.GetId();
+
             var system = GetSystemInfo<DeviceSystemInfo>(deviceId);
             var hardware = GetSystemInfo<DeviceHardwareInfo>(deviceId);
             var software = GetSystemInfo<DeviceSoftwareInfo>(deviceId);
@@ -257,8 +296,10 @@ namespace PrtgAPI
             return new SystemInfo(deviceId, system, hardware, software, processes, services, users);
         }
 
-        private async Task<SystemInfo> GetSystemInfoInternalAsync(int deviceId, CancellationToken token)
+        private async Task<SystemInfo> GetSystemInfoInternalAsync(Either<Device, int> deviceOrId, CancellationToken token)
         {
+            var deviceId = deviceOrId.GetId();
+
             var system = GetSystemInfoAsync<DeviceSystemInfo>(deviceId, token);
             var hardware = GetSystemInfoAsync<DeviceHardwareInfo>(deviceId, token);
             var software = GetSystemInfoAsync<DeviceSoftwareInfo>(deviceId, token);
@@ -274,21 +315,21 @@ namespace PrtgAPI
             );
         }
 
-        private void RefreshSystemInfoInternal(int deviceId, SystemInfoType[] types, CancellationToken token)
-        {
-            if(types == null || types.Length == 0)
-                types = typeof(SystemInfoType).GetEnumValues().Cast<SystemInfoType>().ToArray();
-
-            foreach (var type in types)
-                RequestEngine.ExecuteRequest(new RefreshSystemInfoParameters(deviceId, type), token: token);
-        }
-
-        private async Task RefreshSystemInfoInternalAsync(int deviceId, SystemInfoType[] types, CancellationToken token)
+        private void RefreshSystemInfoInternal(Either<Device, int> deviceOrId, SystemInfoType[] types, CancellationToken token)
         {
             if (types == null || types.Length == 0)
                 types = typeof(SystemInfoType).GetEnumValues().Cast<SystemInfoType>().ToArray();
 
-            var tasks = types.Select(t => RequestEngine.ExecuteRequestAsync(new RefreshSystemInfoParameters(deviceId, t), token: token)).ToArray();
+            foreach (var type in types)
+                RequestEngine.ExecuteRequest(new RefreshSystemInfoParameters(deviceOrId, type), token: token);
+        }
+
+        private async Task RefreshSystemInfoInternalAsync(Either<Device, int> deviceOrId, SystemInfoType[] types, CancellationToken token)
+        {
+            if (types == null || types.Length == 0)
+                types = typeof(SystemInfoType).GetEnumValues().Cast<SystemInfoType>().ToArray();
+
+            var tasks = types.Select(t => RequestEngine.ExecuteRequestAsync(new RefreshSystemInfoParameters(deviceOrId, t), token: token)).ToArray();
 
             await Task.WhenAll(tasks).ConfigureAwait(false);
         }
@@ -296,16 +337,16 @@ namespace PrtgAPI
         #endregion
         #region Channel
 
-        private XElement GetChannelProperties(int sensorId, int channelId, CancellationToken token)
+        private XElement GetChannelProperties(Either<Sensor, int> sensorOrId, int channelId, CancellationToken token)
         {
-            var parameters = new ChannelPropertiesParameters(sensorId, channelId);
+            var parameters = new ChannelPropertiesParameters(sensorOrId, channelId);
 
             return RequestEngine.ExecuteRequest(parameters, r => ChannelSettings.GetChannelXml(r, channelId), token);
         }
 
-        private async Task<XElement> GetChannelPropertiesAsync(int sensorId, int channelId, CancellationToken token)
+        private async Task<XElement> GetChannelPropertiesAsync(Either<Sensor, int> sensorOrId, int channelId, CancellationToken token)
         {
-            var parameters = new ChannelPropertiesParameters(sensorId, channelId);
+            var parameters = new ChannelPropertiesParameters(sensorOrId, channelId);
 
             return await RequestEngine.ExecuteRequestAsync(parameters, r => ChannelSettings.GetChannelXml(r, channelId), token).ConfigureAwait(false);
         }
@@ -313,18 +354,18 @@ namespace PrtgAPI
         #endregion
         #region Notification Actions
         
-        private XElement GetNotificationActionProperties(int id, CancellationToken token)
+        private XElement GetNotificationActionProperties(Either<IPrtgObject, int> objectOrId, CancellationToken token)
         {
-            var xml = RequestEngine.ExecuteRequest(new GetObjectPropertyParameters(id, ObjectType.Notification), ObjectSettings.GetXml, token);
+            var xml = RequestEngine.ExecuteRequest(new GetObjectPropertyParameters(objectOrId, ObjectType.Notification), HtmlParser.Default.GetXml, token);
 
             xml = ResponseParser.GroupNotificationActionProperties(xml);
 
             return xml;
         }
 
-        private async Task<XElement> GetNotificationActionPropertiesAsync(int id, CancellationToken token)
+        private async Task<XElement> GetNotificationActionPropertiesAsync(Either<IPrtgObject, int> objectOrId, CancellationToken token)
         {
-            var xml = await RequestEngine.ExecuteRequestAsync(new GetObjectPropertyParameters(id, ObjectType.Notification), ObjectSettings.GetXml, token).ConfigureAwait(false);
+            var xml = await RequestEngine.ExecuteRequestAsync(new GetObjectPropertyParameters(objectOrId, ObjectType.Notification), HtmlParser.Default.GetXml, token).ConfigureAwait(false);
 
             xml = ResponseParser.GroupNotificationActionProperties(xml);
 
@@ -340,7 +381,7 @@ namespace PrtgAPI
                 foreach (var group in actions)
                 {
                     //Key is null when we're a read only user
-                    if(group.Key != null)
+                    if (group.Key != null)
                     {
                         foreach (var action in group)
                             action.schedule = new Lazy<Schedule>(() => schedules.Value.First(s => s.Id == group.Key), LazyThreadSafetyMode.PublicationOnly);
@@ -366,11 +407,11 @@ namespace PrtgAPI
         #endregion
         #region Notification Triggers
 
-        private List<NotificationTrigger> GetNotificationTriggersInternal(int objectId, CancellationToken token)
+        private List<NotificationTrigger> GetNotificationTriggersInternal(Either<IPrtgObject, int> objectOrId, CancellationToken token)
         {
-            var xmlResponse = ObjectEngine.GetObjectsXml(new NotificationTriggerParameters(objectId), token: token);
+            var xmlResponse = ObjectEngine.GetObjectsXml(new NotificationTriggerParameters(objectOrId), token: token);
 
-            var parsed = ResponseParser.ParseNotificationTriggerResponse(objectId, xmlResponse);
+            var parsed = ResponseParser.ParseNotificationTriggerResponse(objectOrId, xmlResponse);
 
             UpdateTriggerChannels(parsed, token);
             UpdateTriggerActions(parsed, token);
@@ -378,11 +419,11 @@ namespace PrtgAPI
             return parsed;
         }
 
-        private async Task<List<NotificationTrigger>> GetNotificationTriggersInternalAsync(int objectId, CancellationToken token)
+        private async Task<List<NotificationTrigger>> GetNotificationTriggersInternalAsync(Either<IPrtgObject, int> objectOrId, CancellationToken token)
         {
-            var xmlResponse = await ObjectEngine.GetObjectsXmlAsync(new NotificationTriggerParameters(objectId), token: token).ConfigureAwait(false);
+            var xmlResponse = await ObjectEngine.GetObjectsXmlAsync(new NotificationTriggerParameters(objectOrId), token: token).ConfigureAwait(false);
 
-            var parsed = ResponseParser.ParseNotificationTriggerResponse(objectId, xmlResponse);
+            var parsed = ResponseParser.ParseNotificationTriggerResponse(objectOrId, xmlResponse);
 
             var updateTriggerChannels = UpdateTriggerChannelsAsync(parsed, token);
             var updateTriggerActions = UpdateTriggerActionsAsync(parsed, token);
@@ -465,7 +506,7 @@ namespace PrtgAPI
 
             List<Schedule> schedules = new List<Schedule>();
 
-            if(list.Count > 0)
+            if (list.Count > 0)
                 schedules = await GetSchedulesAsync(Property.Id, list.Select(l => l.Key).ToArray(), token).ConfigureAwait(false);
 
             foreach (var group in actions)
@@ -485,16 +526,16 @@ namespace PrtgAPI
             }
         }
         
-        private NotificationTriggerData GetNotificationTriggerData(int objectId, CancellationToken token) =>
+        private NotificationTriggerData GetNotificationTriggerData(Either<IPrtgObject, int> objectOrId, CancellationToken token) =>
             ObjectEngine.GetObject<NotificationTriggerData>(
-                new NotificationTriggerDataParameters(objectId),
+                new NotificationTriggerDataParameters(objectOrId),
                 ParseNotificationTriggerTypes,
                 token
             );
 
-        private async Task<NotificationTriggerData> GetNotificationTriggerDataAsync(int objectId, CancellationToken token) =>
+        private async Task<NotificationTriggerData> GetNotificationTriggerDataAsync(Either<IPrtgObject, int> objectOrId, CancellationToken token) =>
             await ObjectEngine.GetObjectAsync<NotificationTriggerData>(
-                new NotificationTriggerDataParameters(objectId),
+                new NotificationTriggerDataParameters(objectOrId),
                 ParseNotificationTriggerTypesAsync,
                 token
             ).ConfigureAwait(false);
@@ -502,23 +543,23 @@ namespace PrtgAPI
         #endregion
         #region Sensor History
 
-        internal Tuple<List<SensorHistoryData>, int> GetSensorHistoryInternal(SensorHistoryParameters parameters)
+        internal Tuple<List<SensorHistoryRecord>, int> GetSensorHistoryInternal(SensorHistoryParameters parameters)
         {
-            var raw = ObjectEngine.GetObjectsRaw<SensorHistoryData>(parameters, responseParser: m => ResponseParser.GetSensorHistoryResponse(m, LogLevel, RequestEngine.IsDirty));
+            var raw = ObjectEngine.GetObjectsRaw<SensorHistoryRecord>(parameters, responseParser: m => ResponseParser.GetSensorHistoryResponse(m, LogLevel, RequestEngine.IsDirty));
 
             var data = ResponseParser.ParseSensorHistoryResponse(raw.Items, parameters.SensorId);
 
             return Tuple.Create(data, raw.TotalCount);
         }
 
-        internal async Task<List<SensorHistoryData>> GetSensorHistoryInternalAsync(SensorHistoryParameters parameters, CancellationToken token)
+        internal async Task<List<SensorHistoryRecord>> GetSensorHistoryInternalAsync(SensorHistoryParameters parameters, CancellationToken token)
         {
-            var items = await ObjectEngine.GetObjectsAsync<SensorHistoryData>(parameters, responseParser: m => ResponseParser.GetSensorHistoryResponseAsync(m, LogLevel, RequestEngine.IsDirty), token: token).ConfigureAwait(false);
+            var items = await ObjectEngine.GetObjectsAsync<SensorHistoryRecord>(parameters, responseParser: m => ResponseParser.GetSensorHistoryResponseAsync(m, LogLevel, RequestEngine.IsDirty), token: token).ConfigureAwait(false);
 
             return ResponseParser.ParseSensorHistoryResponse(items, parameters.SensorId);
         }
 
-        private IEnumerable<SensorHistoryData> StreamSensorHistoryInternal(SensorHistoryParameters parameters, bool serial)
+        private IEnumerable<SensorHistoryRecord> StreamSensorHistoryInternal(SensorHistoryParameters parameters, bool serial)
         {
             return ObjectEngine.StreamObjects(
                 parameters,
@@ -533,7 +574,7 @@ namespace PrtgAPI
         {
             parameters.Count = 0;
 
-            var data = ObjectEngine.GetObjectsRaw<SensorHistoryData>(parameters, responseParser: m => ResponseParser.GetSensorHistoryResponse(m, LogLevel, RequestEngine.IsDirty));
+            var data = ObjectEngine.GetObjectsRaw<SensorHistoryRecord>(parameters, responseParser: m => ResponseParser.GetSensorHistoryResponse(m, LogLevel, RequestEngine.IsDirty));
 
             parameters.GetParameters().Remove(Parameter.Count);
 
@@ -560,6 +601,27 @@ namespace PrtgAPI
         }
 
         #endregion
+        #region Add Object
+
+        internal BeginAddSensorQueryParameters ValidateAddSensorQueryParameters(BeginAddSensorQueryParameters parameters)
+        {
+            var types = GetSensorTypes(parameters.ObjectId);
+            
+            RequestParser.ValidateAddSensorQueryTarget(types, parameters);
+
+            return parameters;
+        }
+
+        internal async Task<BeginAddSensorQueryParameters> ValidateAddSensorQueryParametersAsync(BeginAddSensorQueryParameters parameters)
+        {
+            var types = await GetSensorTypesAsync(parameters.ObjectId).ConfigureAwait(false);
+
+            RequestParser.ValidateAddSensorQueryTarget(types, parameters);
+
+            return parameters;
+        }
+
+        #endregion
         #region Clone Object
 
         private int CloneObject(CloneParameters parameters, CancellationToken token) =>
@@ -578,9 +640,9 @@ namespace PrtgAPI
         #region Get Object Properties
             #region Get Typed Properties
 
-        private T GetObjectProperties<T>(int objectId, ObjectType objectType, ObjectProperty mandatoryProperty)
+        private T GetObjectProperties<T>(Either<IPrtgObject, int> objectOrId, ObjectType objectType, ObjectProperty mandatoryProperty)
         {
-            var response = GetObjectPropertiesRawInternal(objectId, objectType);
+            var response = GetObjectPropertiesRawInternal(new Either<IPrtgObject, int>(objectOrId.GetId()), objectType);
 
             var data = ResponseParser.GetObjectProperties<T>(response, ObjectEngine.XmlEngine, mandatoryProperty);
 
@@ -600,14 +662,14 @@ namespace PrtgAPI
                 }
             }
 
-            ValidateTypedProperties(objectId, objectType, data);
+            ValidateTypedProperties(objectOrId, objectType, data);
 
             return data;
         }
 
-        private async Task<T> GetObjectPropertiesAsync<T>(int objectId, ObjectType objectType, ObjectProperty mandatoryProperty, CancellationToken token)
+        private async Task<T> GetObjectPropertiesAsync<T>(Either<IPrtgObject, int> objectOrId, ObjectType objectType, ObjectProperty mandatoryProperty, CancellationToken token)
         {
-            var response = await GetObjectPropertiesRawInternalAsync(objectId, objectType, token).ConfigureAwait(false);
+            var response = await GetObjectPropertiesRawInternalAsync(new Either<IPrtgObject, int>(objectOrId.GetId()), objectType, token).ConfigureAwait(false);
 
             var data = ResponseParser.GetObjectProperties<T>(response, ObjectEngine.XmlEngine, mandatoryProperty);
 
@@ -625,38 +687,40 @@ namespace PrtgAPI
                 }
             }
 
-            ValidateTypedProperties(objectId, objectType, data);
+            ValidateTypedProperties(objectOrId, objectType, data);
 
             return data;
         }
 
-        private void ValidateTypedProperties(int objectId, ObjectType type, object data)
+        private void ValidateTypedProperties(Either<IPrtgObject, int> objectOrId, ObjectType type, object data)
         {
             if (data == null)
-                throw new InvalidOperationException($"Cannot retrieve properties for read-only {type.ToString().ToLower()} with ID {objectId}.");
+                throw new InvalidOperationException($"Cannot retrieve properties for read-only {type.ToString().ToLower()} with ID {objectOrId.GetId()}.");
         }
 
             #endregion
             #region Get Multiple Raw Properties
 
-        private Dictionary<string, string> GetObjectPropertiesRawDictionary(int objectId, object objectType) =>
-            ObjectSettings.GetDictionary(GetObjectPropertiesRawInternal(objectId, objectType));
+        private Dictionary<string, string> GetObjectPropertiesRawDictionary(Either<IPrtgObject, int> objectOrId, object objectType) =>
+            HtmlParser.Default.GetDictionary(GetObjectPropertiesRawInternal(objectOrId, objectType));
 
-        private async Task<Dictionary<string, string>> GetObjectPropertiesRawDictionaryAsync(int objectId, object objectType, CancellationToken token) =>
-            ObjectSettings.GetDictionary(await GetObjectPropertiesRawInternalAsync(objectId, objectType, token).ConfigureAwait(false));
+        private async Task<Dictionary<string, string>> GetObjectPropertiesRawDictionaryAsync(Either<IPrtgObject, int> objectOrId, object objectType, CancellationToken token) =>
+            HtmlParser.Default.GetDictionary(await GetObjectPropertiesRawInternalAsync(objectOrId, objectType, token).ConfigureAwait(false));
 
-        private PrtgResponse GetObjectPropertiesRawInternal(int objectId, object objectType, CancellationToken token = default(CancellationToken)) =>
-            RequestEngine.ExecuteRequest(new GetObjectPropertyParameters(objectId, objectType), token: token);
+        private PrtgResponse GetObjectPropertiesRawInternal(Either<IPrtgObject, int> objectOrId, object objectType, CancellationToken token = default(CancellationToken)) =>
+            RequestEngine.ExecuteRequest(new GetObjectPropertyParameters(objectOrId, objectType), token: token);
 
-        private async Task<PrtgResponse> GetObjectPropertiesRawInternalAsync(int objectId, object objectType, CancellationToken token) =>
-            (await RequestEngine.ExecuteRequestAsync(new GetObjectPropertyParameters(objectId, objectType), token: token).ConfigureAwait(false));
+        private async Task<PrtgResponse> GetObjectPropertiesRawInternalAsync(Either<IPrtgObject, int> objectOrId, object objectType, CancellationToken token) =>
+            (await RequestEngine.ExecuteRequestAsync(new GetObjectPropertyParameters(objectOrId, objectType), token: token).ConfigureAwait(false));
 
             #endregion
             #region Get Single Raw Property
 
+        [ExcludeFromCodeCoverage]
         private object GetObjectProperty(int objectId, ObjectPropertyInternal property) =>
             GetObjectPropertyInternal(objectId, property);
 
+        [ExcludeFromCodeCoverage]
         private async Task<object> GetObjectPropertyAsync(int objectId, ObjectPropertyInternal property, CancellationToken token) =>
             await GetObjectPropertyInternalAsync(objectId, property, token).ConfigureAwait(false);
 
@@ -691,51 +755,15 @@ namespace PrtgAPI
         #endregion
         #region Set Object Properties
 
-        internal void SetObjectProperty<T>(BaseSetObjectPropertyParameters<T> parameters, int numObjectIds) =>
-            RequestEngine.ExecuteRequest(parameters, m => ResponseParser.ParseSetObjectPropertyUrl(numObjectIds, m));
+        internal void SetObjectProperty<T>(BaseSetObjectPropertyParameters<T> parameters, int numObjectIds, CancellationToken token) =>
+            RequestEngine.ExecuteRequest(parameters, m => ResponseParser.ParseSetObjectPropertyUrl(numObjectIds, m), token);
 
         internal async Task SetObjectPropertyAsync<T>(BaseSetObjectPropertyParameters<T> parameters, int numObjectIds, CancellationToken token) =>
             await RequestEngine.ExecuteRequestAsync(parameters, m => Task.FromResult<PrtgResponse>(ResponseParser.ParseSetObjectPropertyUrl(numObjectIds, m)), token).ConfigureAwait(false);
 
-        private SetObjectPropertyParameters CreateSetObjectPropertyParameters(int[] objectIds, params PropertyParameter[] @params)
-        {
-            foreach (var prop in @params)
-            {
-                var attrib = prop.Property.GetEnumAttribute<TypeAttribute>();
-
-                if (attrib != null)
-                {
-                    if (attrib.Class == typeof(Location))
-                        prop.Value = ResolveAddress(prop.Value?.ToString(), CancellationToken.None);
-                }
-            }
-            
-            var parameters = new SetObjectPropertyParameters(objectIds, @params);
-
-            return parameters;
-        }
-
-        private async Task<SetObjectPropertyParameters> CreateSetObjectPropertyParametersAsync(int[] objectIds, PropertyParameter[] @params, CancellationToken token)
-        {
-            foreach (var prop in @params)
-            {
-                var attrib = prop.Property.GetEnumAttribute<TypeAttribute>();
-
-                if (attrib != null)
-                {
-                    if (attrib.Class == typeof(Location))
-                        prop.Value = await ResolveAddressAsync(prop.Value?.ToString(), token).ConfigureAwait(false);
-                }
-            }
-
-            var parameters = new SetObjectPropertyParameters(objectIds, @params);
-
-            return parameters;
-        }
-
         #endregion
         #region System Administration
-        
+
         private void RestartProbeInternal(int[] probeIds, bool waitForRestart, Func<ProbeRestartProgress[], bool> progressCallback, CancellationToken token)
         {
             var restartTime = waitForRestart ? (DateTime?) GetStatus().DateTime : null;
@@ -795,11 +823,11 @@ namespace PrtgAPI
                 await WaitForCoreRestartAsync(restartTime.Value, progressCallback, token).ConfigureAwait(false);
         }
 
-        internal void ApproveProbeInternal(int probeId, ProbeApproval action) =>
-            RequestEngine.ExecuteRequest(new ApproveProbeParameters(probeId, action));
+        internal void ApproveProbeInternal(Either<Probe, int> probeOrId, ProbeApproval action) =>
+            RequestEngine.ExecuteRequest(new ApproveProbeParameters(probeOrId, action));
 
-        internal async Task ApproveProbeInternalAsync(int probeId, ProbeApproval action, CancellationToken token) =>
-            await RequestEngine.ExecuteRequestAsync(new ApproveProbeParameters(probeId, action)).ConfigureAwait(false);
+        internal async Task ApproveProbeInternalAsync(Either<Probe, int> probeOrId, ProbeApproval action, CancellationToken token) =>
+            await RequestEngine.ExecuteRequestAsync(new ApproveProbeParameters(probeOrId, action)).ConfigureAwait(false);
 
         #endregion
     #endregion
@@ -818,8 +846,15 @@ namespace PrtgAPI
         /// <returns></returns>
         internal Location ResolveAddress(string address, CancellationToken token)
         {
-            if (address == null)
+            if (string.IsNullOrWhiteSpace(address))
                 return new Location();
+
+            Location longLat;
+
+            if (RequestParser.IsLongLat(address, out longLat))
+                return longLat;
+
+            var label = RequestParser.GetLocationLabel(ref address);
 
             List<Location> result = new List<Location>();
             var client = GetVersionClient();
@@ -836,10 +871,15 @@ namespace PrtgAPI
 #endif
             }
 
-            if (!result.Any())
-                throw new PrtgRequestException($"Could not resolve '{address}' to an actual address");
+            if (result.Count == 0)
+                throw new PrtgRequestException($"Could not resolve '{address}' to an actual address.");
 
-            return result.First();
+            var location = result.First();
+
+            if (!string.IsNullOrWhiteSpace(label))
+                location.Label = label;
+
+            return location;
         }
 
         /// <summary>
@@ -852,6 +892,13 @@ namespace PrtgAPI
         {
             if (address == null)
                 return new Location();
+
+            Location longLat;
+
+            if (RequestParser.IsLongLat(address, out longLat))
+                return longLat;
+
+            var label = RequestParser.GetLocationLabel(ref address);
 
             List<Location> result = new List<Location>();
             var client = GetVersionClient();
@@ -868,14 +915,20 @@ namespace PrtgAPI
 #endif
             }
 
-            if (!result.Any())
-                throw new PrtgRequestException($"Could not resolve '{address}' to an actual address");
+            if (result.Count == 0)
+                throw new PrtgRequestException($"Could not resolve '{address}' to an actual address.");
 
-            return result.First();
+            var location = result.First();
+
+            if (!string.IsNullOrWhiteSpace(label))
+                location.Label = label;
+
+            return location;
         }
 
         #endregion
 
+        [ExcludeFromCodeCoverage]
         internal void FoldObject(int objectId, bool fold) =>
             RequestEngine.ExecuteRequest(new FoldParameters(objectId, fold));
 

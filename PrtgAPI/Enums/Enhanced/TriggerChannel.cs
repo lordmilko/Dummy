@@ -47,7 +47,7 @@ namespace PrtgAPI
             TriggerChannel channel;
 
             if (!TryParse(value, out channel))
-                throw new InvalidCastException($"Cannot convert value '{value}' of type '{value.GetType()}' to type '{nameof(TriggerChannel)}'. Value type must be convertable to one of {typeof(StandardTriggerChannel).FullName}, {typeof(Channel).FullName} or {typeof(int).FullName}.");
+                throw new ArgumentException($"Cannot convert value '{value}' of type '{value.GetType()}' to type '{nameof(TriggerChannel)}'. Value type must be convertable to one of {typeof(StandardTriggerChannel).FullName}, {typeof(Channel).FullName} or {typeof(int).FullName}.", nameof(value));
 
             return channel;
         }
@@ -119,7 +119,7 @@ namespace PrtgAPI
                 case StandardTriggerChannel.TrafficOut:
                     return TrafficOut;
                 default:
-                    throw new NotImplementedException($"Handler missing for channel '{channel}'");
+                    throw new NotImplementedException($"Handler missing for channel '{channel}'.");
             }
         }
 
@@ -160,7 +160,7 @@ namespace PrtgAPI
 
             var triggerChannel = channel as TriggerChannel;
 
-            if(triggerChannel != null)
+            if (triggerChannel != null)
             {
                 if (triggerChannel.channel is int || triggerChannel.channel is Channel)
                     return false;

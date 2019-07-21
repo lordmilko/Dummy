@@ -25,7 +25,7 @@ namespace PrtgAPI.Tests.IntegrationTests.Infrastructure
 
             AssertEx.Throws<ArgumentNullException>(
                 () => new PrtgClient(server, username, password),
-                "Value cannot be null.\r\nParameter name: username"
+                $"Value cannot be null.{Environment.NewLine}Parameter name: username"
             );
         }
 
@@ -63,7 +63,7 @@ namespace PrtgAPI.Tests.IntegrationTests.Infrastructure
 
             AssertEx.Throws<ArgumentNullException>(
                 () => new PrtgClient(server, Settings.UserName, Settings.Password),
-                "Value cannot be null.\r\nParameter name: server"
+                $"Value cannot be null.{Environment.NewLine}Parameter name: server"
             );
         }
 
@@ -121,7 +121,7 @@ namespace PrtgAPI.Tests.IntegrationTests.Infrastructure
             }
             catch (WebException ex)
             {
-                if (ex.Message != "Server rejected HTTPS connection on port 443. Please confirm expected server protocol and port, PRTG Core Service is running and that any SSL certificate is trusted")
+                if (ex.Message != "Server rejected HTTPS connection on port 443. Please confirm expected server protocol and port, PRTG Core Service is running and that any SSL certificate is trusted.")
                 {
                     throw;
                 }
@@ -151,7 +151,7 @@ namespace PrtgAPI.Tests.IntegrationTests.Infrastructure
             }
             catch (WebException ex)
             {
-                if (ex.Message != "Server rejected HTTPS connection on port 443. Please confirm expected server protocol and port, PRTG Core Service is running and that any SSL certificate is trusted")
+                if (ex.Message != "Server rejected HTTPS connection on port 443. Please confirm expected server protocol and port, PRTG Core Service is running and that any SSL certificate is trusted.")
                 {
                     throw;
                 }

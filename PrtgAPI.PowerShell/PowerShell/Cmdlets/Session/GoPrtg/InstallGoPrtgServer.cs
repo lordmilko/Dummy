@@ -41,7 +41,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
     ///     <code>C:\> Install-GoPrtg dev</code>
     ///     <para>Installs the currently active server with the alias "dev"</para>
     /// </example>
-    /// 
+    ///
+    /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Store-Credentials#installation">Online version:</para>
     /// <para type="link">Connect-GoPrtgServer</para> 
     /// <para type="link">Get-GoPrtgServer</para> 
     /// <para type="link">Set-GoPrtgAlias</para> 
@@ -98,7 +99,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 File.WriteAllText(profile, profileContent);
             }
 
-            LoadFunction(string.Join("\r\n", newContents.Func));
+            LoadFunction(string.Join(Environment.NewLine, newContents.Func));
         }
 
         private GoPrtgProfileContents GetNewContents()
@@ -132,15 +133,21 @@ namespace PrtgAPI.PowerShell.Cmdlets
             var builder = new StringBuilder();
 
             if (profileContents.Pre != null && profileContents.Pre.Count > 0)
-                builder.Append(string.Join("\r\n", profileContents.Pre)).Append("\r\n");
+                builder.Append(string.Join(Environment.NewLine, profileContents.Pre)).Append(Environment.NewLine);
 
-            builder.Append(GoPrtgProfile.GoPrtgHeader).Append("\r\n\r\n").Append(string.Join("\r\n", profileContents.Func)).Append("\r\n\r\n").Append(GoPrtgProfile.GoPrtgFooter);
+            builder.Append(GoPrtgProfile.GoPrtgHeader)
+                   .Append(Environment.NewLine)
+                   .Append(Environment.NewLine)
+                   .Append(string.Join(Environment.NewLine, profileContents.Func))
+                   .Append(Environment.NewLine)
+                   .Append(Environment.NewLine)
+                   .Append(GoPrtgProfile.GoPrtgFooter);
 
             if (profileContents.Post != null && profileContents.Post.Count > 0)
-                builder.Append("\r\n").Append(string.Join("\r\n", profileContents.Post));
+                builder.Append(Environment.NewLine).Append(string.Join(Environment.NewLine, profileContents.Post));
 
             //Final trailing newline. Would be automatically entered by Add-Content / Set-Content
-            builder.Append("\r\n");
+            builder.Append(Environment.NewLine);
 
             return builder.ToString();
         }
@@ -199,8 +206,8 @@ namespace PrtgAPI.PowerShell.Cmdlets
             }
             else
             {
-                if(servers.Any(s => s.Alias == Alias) && !string.IsNullOrEmpty(Alias))
-                    throw new InvalidOperationException($"Cannot add server '{client.Server}' with alias '{Alias}': a record for the alias already exists. For more information see 'Get-GoPrtgServer {Alias}'");                 
+                if (servers.Any(s => s.Alias == Alias) && !string.IsNullOrEmpty(Alias))
+                    throw new InvalidOperationException($"Cannot add server '{client.Server}' with alias '{Alias}': a record for the alias already exists. For more information see 'Get-GoPrtgServer {Alias}'.");                 
             }
         }
 

@@ -47,7 +47,8 @@ namespace PrtgAPI.PowerShell.Progress
             {
                 if (upstreamSelectObjectManager?.HasSkipLast == true && PreviousRecord == null)
                 {
-                    TotalRecords = EntirePipeline.List.Count - (upstreamSelectObjectManager.TotalAnySkip);
+                    //e.g. Get-Sensor | Select -First | New-Sensor -Factory. At the very least, we say there's 1 record so we have something to show
+                    TotalRecords = (EntirePipeline?.List.Count ?? upstreamSelectObjectManager.TotalAnySkip + 1) - (upstreamSelectObjectManager.TotalAnySkip);
                 }
             }
 
@@ -105,7 +106,7 @@ namespace PrtgAPI.PowerShell.Progress
                         {
                             if (PostProcessMode() || NextCmdletIsPostProcessMode)
                             {
-                                if(ReadyToComplete())
+                                if (ReadyToComplete())
                                     CompleteProgress(PreviousRecord, true);
                             }
                             else
