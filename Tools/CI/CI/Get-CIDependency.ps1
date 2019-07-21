@@ -11,7 +11,7 @@ function Get-CIDependency
         @{ Name = "vswhere";                  Chocolatey = $true }
         @{ Name = "NuGet";                    PackageProvider = $true; MinimumVersion = "2.8.5.201" }
         @{ Name = "PowerShellGet";            PowerShell = $true;      MinimumVersion = "2.0.0" }
-        @{ Name = "Pester";                   PowerShell = $true;      Version = "3.4.6" }
+        @{ Name = "Pester";                   PowerShell = $true;      Version = "3.4.6"; SkipPublisherCheck = $true }
         @{ Name = "PSScriptAnalyzer";         PowerShell = $true }
     )
 

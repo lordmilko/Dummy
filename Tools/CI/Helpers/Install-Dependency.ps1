@@ -33,6 +33,9 @@ function Install-Dependency
         [Parameter(Mandatory = $false, ParameterSetName="PowerShell")]
         [string]$MinimumVersion,
 
+        [Parameter(Mandatory = $false, ParameterSetName="PowerShell")]
+        [switch]$SkipPublisherCheck,
+
         [Parameter(Mandatory = $false)]
         [switch]$Log
     )
@@ -266,6 +269,7 @@ function Install-PSPackage
         Force = $true
         ForceBootstrap = $true
         ProviderName = "PowerShellGet"
+        SkipPublisherCheck = $SkipPublisherCheck
     }
 
     if($Version)
