@@ -5,8 +5,6 @@ environment:
   # Don't bother setting up a package cache
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
-cache:
-  - '%userprofile%\.nuget\packages -> appveyor.yml'
 install:
   # Install NuGet Provider, Chocolatey dependencies
   - ps: |
@@ -24,7 +22,7 @@ after_build:
   - ps: Invoke-AppveyorAfterBuild 
 before_test:
   # Build NuGet packages
-  - ps: Write-Hsot "Made packages"
+  - ps: Write-Host "Made packages"
 test_script:
   # Test all target frameworks
   - ps: Write-Host "Skipped tests"
