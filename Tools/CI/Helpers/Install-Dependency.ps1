@@ -372,6 +372,9 @@ function Get-ChocolateyCommand
         [switch]$AllowPath = $true
     )
 
+    # Just because our command exists on the PATH, doesn't mean it's the latest version.
+    # Check for our command under the chocolatey folder; if it exists, we'll prefer to use it over anything else
+
     $root = "C:\ProgramData\chocolatey"
 
     if($env:ChocolateyInstall)
@@ -382,22 +385,24 @@ function Get-ChocolateyCommand
     if(Test-Path $root)
     {
         $bin = Join-Path $root "bin"
+        $exe = Join-Path $bin $CommandName
 
-        return Join-Path $bin $CommandName
+        if(Test-Path $exe) 
+        {
+            return $exe
+        }
     }
-    else
+
+    if($AllowPath)
     {
-        if($AllowPath)
+        # Well, it's not installed under chocolatey. If it exists on the path, we'll try and use it
+        if(gcm $CommandName -ErrorAction SilentlyContinue)
         {
             $result = where.exe $CommandName | select -First 1
 
             Write-Warning "Cannot find $CommandName under chocolatey; using '$result' from PATH"
 
             return $result
-        }
-        else
-        {
-            return
         }
     }
 }
