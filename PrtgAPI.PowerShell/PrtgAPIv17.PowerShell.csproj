@@ -48,7 +48,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(FrameworkType)' == 'Core' OR '$(FrameworkType)' == 'Standard'">
-    <PackageReference Include="System.Management.Automation" Version="6.1.5" />
+    <!--<PackageReference Include="System.Management.Automation" Version="6.1.5" />-->
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
   </ItemGroup>
 
