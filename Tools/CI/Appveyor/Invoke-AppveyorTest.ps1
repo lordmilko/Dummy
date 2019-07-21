@@ -96,7 +96,7 @@ function Invoke-AppveyorCSharpTest($IsCore)
             $additionalArgs = "--logger:Appveyor"
         }
 
-        Invoke-CICSharpTest $env:APPVEYOR_BUILD_FOLDER $additionalArgs
+        Invoke-CICSharpTest $env:APPVEYOR_BUILD_FOLDER $additionalArgs -IsCore:$IsCore
     }
     else
     {

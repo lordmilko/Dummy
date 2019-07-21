@@ -29,7 +29,7 @@ function Install-Dependency
         [Parameter(Mandatory = $true, ParameterSetName="PackageProvider")]
         [switch]$PackageProvider,
 
-        [Parameter(Mandatory = $false, ParameterSetName="MinimumVersion")]
+        [Parameter(Mandatory = $false, ParameterSetName="Chocolatey")]
         [Parameter(Mandatory = $false, ParameterSetName="PackageProvider")]
         [Parameter(Mandatory = $false, ParameterSetName="PowerShell")]
         [string]$MinimumVersion,
@@ -170,22 +170,6 @@ function Install-Chocolatey
         $action = "upgrade"
     }
 
-    $splat = @(
-        $action
-        $PackageName
-        "--limitoutput"
-        "--no-progress"
-        "-y"
-    )
-
-    if(![string]::IsNullOrWhiteSpace($Version))
-    {
-        $splat += @(
-            "--version"
-            $Version
-        )
-    }
-
     if(!$Upgrade)
     {
         $installed = $false
@@ -215,19 +199,23 @@ function Install-Chocolatey
 
             if($existingCommand)
             {
+                $fileVersion = [Version]((gi $existingCommand).VersionInfo.FileVersion)
+
                 if($MinimumVersion)
                 {
-                    $fileVersion = [Version](gi ($existingCommand).VersionInfo.FileVersion)
-
                     if($fileVersion -ge ([Version]$MinimumVersion))
                     {
-                        $existingVersion = $existingCommand.Version
+                        $existingVersion = $fileVersion
                         $installed = $true
+                    }
+                    else
+                    {
+                        $action = "upgrade"
                     }
                 }
                 else
                 {
-                    $existingVersion = $existingCommand.Version
+                    $existingVersion = $fileVersion
                     $installed = $true
                 }
             }
@@ -253,6 +241,22 @@ function Install-Chocolatey
             
             return
         }
+    }
+
+    $splat = @(
+        $action
+        $PackageName
+        "--limitoutput"
+        "--no-progress"
+        "-y"
+    )
+
+    if(![string]::IsNullOrWhiteSpace($Version))
+    {
+        $splat += @(
+            "--version"
+            $Version
+        )
     }
 
     if($Log)
@@ -386,6 +390,11 @@ function Get-ChocolateyCommand
         [switch]$AllowPath = $true
     )
 
+    if($CommandName -notlike "*.exe")
+    {
+        $CommandName = "$CommandName.exe"
+    }
+
     # Just because our command exists on the PATH, doesn't mean it's the latest version.
     # Check for our command under the chocolatey folder; if it exists, we'll prefer to use it over anything else
 
@@ -401,7 +410,7 @@ function Get-ChocolateyCommand
         $bin = Join-Path $root "bin"
         $exe = Join-Path $bin $CommandName
 
-        if(Test-Path "$exe*") 
+        if(Test-Path $exe) 
         {
             return $exe
         }

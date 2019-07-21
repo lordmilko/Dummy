@@ -6,8 +6,8 @@ function Get-CIDependency
         #@{ Name = "chocolatey";               Chocolatey = $true;      Upgrade = $true }
         @{ Name = "dotnet";                   Dotnet     = $true } #todo; add to all the other places too
         @{ Name = "codecov";                  Chocolatey = $true }
-        @{ Name = "opencover.portable";       Chocolatey = $true;      CommandName = "opencover.console" }
-        @{ Name = "reportgenerator.portable"; Chocolatey = $true;      CommandName = "reportgenerator" }
+        @{ Name = "opencover.portable";       Chocolatey = $true;      MinimumVersion = "4.7.922.0"; CommandName = "opencover.console" }
+        @{ Name = "reportgenerator.portable"; Chocolatey = $true;      MinimumVersion = "3.0.0.0"; CommandName = "reportgenerator" }
         @{ Name = "vswhere";                  Chocolatey = $true;      MinimumVersion = "2.6.7" }
         @{ Name = "NuGet";                    PackageProvider = $true; MinimumVersion = "2.8.5.201" }
         @{ Name = "PowerShellGet";            PowerShell = $true;      MinimumVersion = "2.0.0" }
