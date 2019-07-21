@@ -225,6 +225,10 @@ function Install-CSharpPackageInternal($installPath)
     {
         throw "Package did not install successfully"
     }
+    else
+    {
+        Write-LogInfo "Path $installPath exists"
+    }
 
     Write-LogInfo "Package successfully installed"
 }
@@ -235,11 +239,21 @@ function Test-CSharpPackageInstallInternal($config)
 
     $version = GetVersion $config.IsCore
 
-    $folders = gci "$([PackageManager]::PackageLocation)\PrtgAPI.$version\lib\net4*"
+    $path = "$([PackageManager]::PackageLocation)\PrtgAPI.$version\lib\net4*"
+
+    Write-LogInfo "path is $path"
+
+    $folders = gci $path
+
+    Write-LogInfo "Found $($folders.Count) folders"
 
     foreach($folder in $folders)
     {
+        Write-LogInfo "Processing $($folder.FullName)"
+
         $dll = Join-Path $folder.FullName "PrtgAPI.dll"
+
+        Write-LogInfo "dll is $dll"
 
         $result = (powershell -command "Add-Type -Path '$dll'; [PrtgAPI.AuthMode]::Password")
 
