@@ -11,7 +11,7 @@ function Get-MSBuild
 
     $msbuild = vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | select-object -first 1
 
-    if(!(Test-Path $msbuild))
+    if([string]::IsNullOrEmpty($msbuild) -or !(Test-Path $msbuild))
     {
         $msbuild = "C:\Program Files (x86)\MSBuild\14.0\bin\amd64\msbuild.exe"
 
@@ -30,7 +30,7 @@ function Get-VSTest
 
     $path = vswhere -latest -products * -requires Microsoft.VisualStudio.Workload.ManagedDesktop Microsoft.VisualStudio.Workload.Web -requiresAny -property installationPath
 
-    if(!(Test-Path $path))
+    if([string]::IsNullOrEmpty($path) -or !(Test-Path $path))
     {
         $path = "C:\Program Files (x86)\Microsoft Visual Studio 14.0"
 

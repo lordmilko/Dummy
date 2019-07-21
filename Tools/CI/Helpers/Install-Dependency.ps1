@@ -29,6 +29,7 @@ function Install-Dependency
         [Parameter(Mandatory = $true, ParameterSetName="PackageProvider")]
         [switch]$PackageProvider,
 
+        [Parameter(Mandatory = $false, ParameterSetName="MinimumVersion")]
         [Parameter(Mandatory = $false, ParameterSetName="PackageProvider")]
         [Parameter(Mandatory = $false, ParameterSetName="PowerShell")]
         [string]$MinimumVersion,
@@ -214,8 +215,21 @@ function Install-Chocolatey
 
             if($existingCommand)
             {
-                $existingVersion = $existingCommand.Version
-                $installed = $true
+                if($MinimumVersion)
+                {
+                    $fileVersion = [Version](gi ($existingCommand).VersionInfo.FileVersion)
+
+                    if($fileVersion -ge ([Version]$MinimumVersion))
+                    {
+                        $existingVersion = $existingCommand.Version
+                        $installed = $true
+                    }
+                }
+                else
+                {
+                    $existingVersion = $existingCommand.Version
+                    $installed = $true
+                }
             }
         }
 
