@@ -46,7 +46,11 @@ function Process-CSharpPackage($config)
     New-CSharpPackage @csharpArgs
     Test-CSharpPackage $config
 
+    Write-LogInfo "going to move package now"
+
     Move-AppveyorPackages $config
+
+    Write-LogInfo "going to remove package source now"
 
     $config.Manager.UninstallCSharpPackageSource()
 }
@@ -262,16 +266,22 @@ function Test-CSharpPackageInstallInternal($config)
             throw "Module $($folders.Name) was not loaded successfully; attempt to use module returned '$result'"
         }
     }
+
+    Write-LogInfo "Finished testing package"
 }
 
 function Uninstall-CSharpPackageInternal
 {
+    Write-LogInfo "Uninstalling test package"
+
     Get-Package PrtgAPI -Provider NuGet -Destination ([PackageManager]::PackageLocation) | Uninstall-Package | Out-Null
 
     if(Test-Path $installPath)
     {
         throw "Module did not uninstall properly"
     }
+
+    Write-LogInfo "Finished uninstalling test package"
 }
 
 #endregion
