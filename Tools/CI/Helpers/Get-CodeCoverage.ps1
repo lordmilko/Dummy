@@ -199,7 +199,12 @@ class CodeCoverage
 
         $this.AssertHasPowerShellDll()
 
+        Write-LogInfo "going to check for test runner"
+
         $testRunner = $this.GetPowerShellTestRunner()
+
+        Write-LogInfo "going to do stuff with test params"
+
         $testParams = $this.GetPowerShellTestParams($tests)
 
         if($this.TestOnly)
@@ -218,6 +223,8 @@ class CodeCoverage
 
     [void]AssertHasPowerShellDll()
     {
+        Write-LogInfo "checking has powershell dll"
+
         $candidates = @((AnalyzeTestProject "PrtgAPI.Tests.UnitTests" (Resolve-Path "$PSScriptRoot\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell").Path).Candidates)
 
         if(!($candidates|where Edition -EQ "Desktop"))
@@ -246,6 +253,8 @@ class CodeCoverage
         {
             throw "PrtgAPI for PowerShell Desktop is required to run PowerShell tests however '$dll' is missing. Has PrtgAPI been compiled?"
         }
+
+        Write-LogInfo "finished checking has powershell dll"
     }
 
     [string]GetPowerShellTestRunner()
