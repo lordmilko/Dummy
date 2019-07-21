@@ -610,7 +610,7 @@ function Get-ModuleFolder($module)
 
 #endregion
 
-function Move-AppveyorPackages($suffix, $config)
+function Move-AppveyorPackages($config, $suffix)
 {
    if($env:APPVEYOR)
    {
