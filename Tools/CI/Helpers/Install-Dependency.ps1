@@ -210,7 +210,7 @@ function Install-Chocolatey
         }
         else
         {
-            $existingCommand = gcm $CommandName -ErrorAction SilentlyContinue
+            $existingCommand = Get-ChocolateyCommand $CommandName -AllowPath:$false
 
             if($existingCommand)
             {
@@ -358,6 +358,46 @@ function Install-PSPackageProvider
         else
         {
             WriteDependencyResult $PackageName "PackageProvider" $provider.Version "Skipped"
+        }
+    }
+}
+
+function Get-ChocolateyCommand
+{
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$CommandName,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$AllowPath = $true
+    )
+
+    $root = "C:\ProgramData\chocolatey"
+
+    if($env:ChocolateyInstall)
+    {
+        $root = $env:ChocolateyInstall
+    }
+
+    if(Test-Path $root)
+    {
+        $bin = Join-Path $root "bin"
+
+        return Join-Path $bin $CommandName
+    }
+    else
+    {
+        if($AllowPath)
+        {
+            $result = where.exe $CommandName | select -First 1
+
+            Write-Warning "Cannot find $CommandName under chocolatey; using '$result' from PATH"
+
+            return $result
+        }
+        else
+        {
+            return
         }
     }
 }

@@ -46,11 +46,7 @@ function Process-CSharpPackage($config)
     New-CSharpPackage @csharpArgs
     Test-CSharpPackage $config
 
-    Write-LogInfo "going to move package now"
-
     Move-AppveyorPackages $config
-
-    Write-LogInfo "going to remove package source now"
 
     $config.Manager.UninstallCSharpPackageSource()
 }
@@ -229,35 +225,19 @@ function Install-CSharpPackageInternal($installPath)
     {
         throw "Package did not install successfully"
     }
-    else
-    {
-        Write-LogInfo "Path $installPath exists"
-    }
-
-    Write-LogInfo "Package successfully installed"
 }
 
 function Test-CSharpPackageInstallInternal($config)
 {
-    Write-LogInfo "`t`t`t`tTesting package"
+    Write-LogInfo "`t`t`t`tTesting package contents"
 
     $version = GetVersion $config.IsCore
 
-    $path = "$([PackageManager]::PackageLocation)\PrtgAPI.$version\lib\net4*"
-
-    Write-LogInfo "path is $path"
-
-    $folders = gci $path
-
-    Write-LogInfo "Found $($folders.Count) folders"
+    $folders = gci "$([PackageManager]::PackageLocation)\PrtgAPI.$version\lib\net4*"
 
     foreach($folder in $folders)
     {
-        Write-LogInfo "Processing $($folder.FullName)"
-
         $dll = Join-Path $folder.FullName "PrtgAPI.dll"
-
-        Write-LogInfo "dll is $dll"
 
         $result = (powershell -command "Add-Type -Path '$dll'; [PrtgAPI.AuthMode]::Password")
 
@@ -266,13 +246,11 @@ function Test-CSharpPackageInstallInternal($config)
             throw "Module $($folders.Name) was not loaded successfully; attempt to use module returned '$result'"
         }
     }
-
-    Write-LogInfo "Finished testing package"
 }
 
 function Uninstall-CSharpPackageInternal
 {
-    Write-LogInfo "Uninstalling test package"
+    Write-LogInfo "`t`t`t`tUninstalling package"
 
     Get-Package PrtgAPI -Provider NuGet -Destination ([PackageManager]::PackageLocation) | Uninstall-Package | Out-Null
 
@@ -280,8 +258,6 @@ function Uninstall-CSharpPackageInternal
     {
         throw "Module did not uninstall properly"
     }
-
-    Write-LogInfo "Finished uninstalling test package"
 }
 
 #endregion
@@ -615,7 +591,7 @@ function Move-AppveyorPackages($config, $suffix)
    if($env:APPVEYOR)
    {
         Write-LogInfo "`t`t`tMoving Appveyor artifacts"
-
+        
         if(!$suffix)
         {
             $suffix = ""

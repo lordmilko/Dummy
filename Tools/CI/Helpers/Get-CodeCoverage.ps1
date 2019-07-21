@@ -45,7 +45,7 @@ class CodeCoverage
 
     static CodeCoverage()
     {
-        [CodeCoverage]::OpenCover = "OpenCover.Console.exe"
+        [CodeCoverage]::OpenCover = Get-ChocolateyCommand "OpenCover.Console.exe"
         [CodeCoverage]::Temp = [IO.Path]::GetTempPath()
         [CodeCoverage]::OpenCoverOutput = Join-Path ([CodeCoverage]::Temp) "opencover.xml"
     }
@@ -93,7 +93,7 @@ class CodeCoverage
         {
             $opencoverParams = $this.GetCSharpOpenCoverParams($testRunner, $testParams)
 
-            Write-LogInfo "`t`tExecuting $($this.opencover) $opencoverParams"
+            Write-LogInfo "`t`tExecuting '$([CodeCoverage]::OpenCover) $opencoverParams'"
             Invoke-Process { & ([CodeCoverage]::OpenCover) @opencoverParams } -WriteHost
         }
     }
@@ -393,8 +393,10 @@ function New-CoverageReport
         "-verbosity:off"
     )
 
-    Write-LogInfo "`t`tExecuting reportgenerator $reportParams"
-    Invoke-Process { & "reportgenerator" @reportParams }
+    $reportgenerator = Get-ChocolateyCommand "reportgenerator"
+
+    Write-LogInfo "`t`tExecuting '$reportgenerator $reportParams'"
+    Invoke-Process { & $reportgenerator @reportParams }
 }
 
 function Get-LineCoverage

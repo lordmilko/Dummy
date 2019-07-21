@@ -261,6 +261,7 @@ function Get-CallerPreference
 
 $exports = @(
     "Get-CallerPreference"
+    "Get-ChocolateyCommand"
     "Test-IsWindows"
     "Get-TestProject"
     "Import-ModuleFunctions"
