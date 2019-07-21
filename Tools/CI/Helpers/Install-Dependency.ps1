@@ -387,7 +387,7 @@ function Get-ChocolateyCommand
         $bin = Join-Path $root "bin"
         $exe = Join-Path $bin $CommandName
 
-        if(Test-Path $exe) 
+        if(Test-Path "$exe*") 
         {
             return $exe
         }
