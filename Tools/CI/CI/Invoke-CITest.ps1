@@ -9,11 +9,14 @@ function Invoke-CITest
         $AdditionalArgs,
 
         [Parameter(Mandatory = $false)]
-        $Configuration = $env:CONFIGURATION
+        $Configuration = $env:CONFIGURATION,
+
+        [Parameter(Mandatory = $true)]
+        [switch]$IsCore
     )
 
-    Invoke-CIPowerShellTest $BuildFolder $AdditionalArgs
-    Invoke-CICSharpTest $BuildFolder $AdditionalArgs $Configuration
+    Invoke-CIPowerShellTest $BuildFolder $AdditionalArgs -IsCore:$IsCore
+    Invoke-CICSharpTest $BuildFolder $AdditionalArgs $Configuration -IsCore:$IsCore
 }
 
 function Invoke-CICSharpTest
@@ -29,8 +32,8 @@ function Invoke-CICSharpTest
         [Parameter(Mandatory = $false, Position = 2)]
         $Configuration = $env:CONFIGURATION,
 
-        [Parameter(Mandatory = $false)]
-        [switch]$IsCore = $true,
+        [Parameter(Mandatory = $true)]
+        [switch]$IsCore,
 
         [Parameter(Mandatory = $false)]
         [switch]$Integration
@@ -109,8 +112,8 @@ function Invoke-CIPowerShellTest
         [Parameter(Position = 1)]
         $AdditionalArgs,
 
-        [Parameter(Mandatory = $false)]
-        [switch]$IsCore = $true,
+        [Parameter(Mandatory = $true)]
+        [switch]$IsCore,
 
         [Parameter(Mandatory = $false)]
         [switch]$Integration
