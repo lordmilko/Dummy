@@ -231,6 +231,8 @@ function Install-CSharpPackageInternal($installPath)
 
 function Test-CSharpPackageInstallInternal($config)
 {
+    Write-LogInfo "`t`t`t`tTesting package"
+
     $version = GetVersion $config.IsCore
 
     $folders = gci "$([PackageManager]::PackageLocation)\PrtgAPI.$version\lib\net4*"
