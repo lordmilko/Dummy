@@ -129,11 +129,13 @@ class CodeCoverage
 
         if($this.IsCore)
         {
+            $csproj = Join-Path $this.BuildFolder "PrtgAPI.Tests.UnitTests\PrtgAPIv17.Tests.UnitTests.csproj"
+
             $testParams = @(
                 "test"
                 "--filter"
                 $filter
-                "`"$($this.BuildFolder)PrtgAPI.Tests.UnitTests\PrtgAPIv17.Tests.UnitTests.csproj`""
+                "`"$csproj`""
                 "--verbosity:n"
                 "--no-build"
                 "-c"
@@ -142,9 +144,11 @@ class CodeCoverage
         }
         else
         {
+            $dll = Join-Path $this.BuildFolder "PrtgAPI.Tests.UnitTests\bin\$($this.Configuration)\PrtgAPI.Tests.UnitTests.dll"
+
             $testParams = @(
                 "/TestCaseFilter:$filter"
-                "\`"$($this.BuildFolder)PrtgAPI.Tests.UnitTests\bin\$($this.Configuration)\PrtgAPI.Tests.UnitTests.dll\`""
+                "\`"$dll\`""
             )
         }
 
