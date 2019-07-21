@@ -27,7 +27,7 @@ before_test:
   - ps: Invoke-AppveyorBeforeTest
 test_script:
   # Test all target frameworks
-  - ps: Invoke-AppveyorTest    
+#  - ps: Invoke-AppveyorTest    
 after_test:
   # Calculate .NET coverage
   - ps: Invoke-AppveyorAfterTest
