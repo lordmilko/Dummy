@@ -604,7 +604,13 @@ function Hide-Module($name, $script)
                 }
             }
         }
+
+        Write-LogInfo "hidden completed"
     }
+
+    Write-LogInfo "finally completed"
+
+    Get-PSCallStack
 }
 
 function Get-ModuleFolder($module)
