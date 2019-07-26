@@ -10,7 +10,8 @@ function Invoke-AppveyorBuild
 
     $additionalArgs = $null
 
-    if($env:APPVEYOR)
+    # .NET Core is not currently supported https://github.com/appveyor/ci/issues/2212
+    if($env:APPVEYOR -and !$IsCore)
     {
         $additionalArgs = "/logger:`"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll`""
     }
