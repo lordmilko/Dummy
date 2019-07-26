@@ -282,6 +282,8 @@ function Process-PowerShellPackage($config)
 
     Test-PowerShellPackage $config
 
+    Write-LogInfo "going to test redist package"
+
     Test-RedistributablePackage $config
 
     Move-AppveyorPackages $config "_PowerShell"
@@ -454,11 +456,13 @@ function Test-PowerShellPackageInstalls
         finally
         {
             Write-LogInfo "`t`t`t`tUninstalling Package"
-            $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+            #$blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
             if(!(Uninstall-Package PrtgAPI))
             {
                 throw "PrtgAPI did not uninstall properly"
             }
+
+            Write-LogInfo "PrtgAPI was successfully uninstalled"
         }
     }
 }
