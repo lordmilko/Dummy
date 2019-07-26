@@ -486,7 +486,7 @@ function Test-PowerShellPackageInstallsInternal($exe, $module = "PrtgAPI")
 
     if($resultCmdlet -ne "You are not connected to a PRTG Server. Please connect first using Connect-PrtgServer.")
     {
-        throw $resultCmdlet
+        throw "Cmdlet did not throw expected exception message. Actual message: $resultCmdlet"
     }
 
     $str = [string]::Join("", $resultFunction)
