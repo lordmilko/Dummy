@@ -513,12 +513,17 @@ function Hide-Module($name, $script)
 {
     $hidden = $false
 
+    Write-LogInfo "get-module"
+
     $module = Get-Module $name -ListAvailable
 
     try
     {
+
+        Write-LogInfo "if module"
         if($module)
         {
+            Write-LogInfo "had module"
             $hidden = $true
 
             Write-LogInfo "`t`t`t`tRenaming module info files"
@@ -565,11 +570,15 @@ function Hide-Module($name, $script)
         Write-LogInfo "`t`t`t`tInvoking script"
 
         & $script
+
+        Write-LogInfo "script invocation completed"
     }
     finally
     {
+        Write-LogInfo "if hidden"
         if($hidden)
         {
+            Write-LogInfo "true...was hidden"
             Write-LogInfo "`t`t`t`tRestoring module directories"
 
             foreach($m in $module)
