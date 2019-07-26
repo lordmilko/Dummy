@@ -304,8 +304,16 @@ function Test-PowerShellPackage
         Test-PowerShellPackageDefinition $config $extractFolder
         Test-PowerShellPackageContents $config $extractFolder
     }
-
+    try
+    {
     Test-PowerShellPackageInstalls
+        }
+    catch
+    {
+        Write-LogInfo $_.Exception.Message
+
+        throw
+    }
 }
 
 function Test-PowerShellPackageDefinition($config, $extractFolder)
@@ -465,6 +473,8 @@ function Test-PowerShellPackageInstalls
             Write-LogInfo "PrtgAPI was successfully uninstalled"
         }
     }
+
+    Write-LogInfo "module unhidden"
 }
 
 function Test-PowerShellPackageInstallsInternal($exe, $module = "PrtgAPI")
