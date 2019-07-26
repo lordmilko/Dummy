@@ -486,6 +486,7 @@ function Test-PowerShellPackageInstallsInternal($exe, $module = "PrtgAPI")
 
     if($resultCmdlet -ne "You are not connected to a PRTG Server. Please connect first using Connect-PrtgServer.")
     {
+        Write-LogInfo "bad cmdlet result. gonna throw"
         throw "Cmdlet did not throw expected exception message. Actual message: $resultCmdlet"
     }
 
@@ -493,6 +494,8 @@ function Test-PowerShellPackageInstallsInternal($exe, $module = "PrtgAPI")
 
     if($resultFunction -ne "System.Management.Automation.PSCredential")
     {
+        Write-LogInfo "bad function result. gonna throw"
+
         throw $resultFunction
     }
 }
@@ -572,6 +575,13 @@ function Hide-Module($name, $script)
         & $script
 
         Write-LogInfo "script invocation completed"
+    }
+    catch
+    {
+        Write-LogInfo "an error occurred, so thats why we didnt reach the finally, duh!"
+        Write-LogInfo $_.Exception.Message
+
+        Write-LogInfo $_.Exception.StackTrace
     }
     finally
     {
