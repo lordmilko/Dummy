@@ -310,7 +310,7 @@ function Test-PowerShellPackage
         }
     catch
     {
-        Write-LogInfo $_.Exception.Message
+        Write-LogInfo $_.Exception.StackTrace
 
         throw
     }
