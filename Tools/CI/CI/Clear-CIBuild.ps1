@@ -50,9 +50,11 @@ function Clear-CIBuild
         }
     }
 
-    $nupkgs = gci $BuildFolder -Recurse -Filter *.*nupkg | where {
+    $nupkgs = @(gci $BuildFolder -Recurse -Filter *.*nupkg | where {
         !$_.FullName.StartsWith((Join-Path $BuildFolder "packages"))
-    }
+    })
+    
+    $nupkgs += (gci $BuildFolder -Filter *.zip)
     
     $nupkgs | foreach {
         Write-LogError "`tRemoving $($_.FullName)"

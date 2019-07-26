@@ -51,7 +51,7 @@ function Get-AppveyorVersion($IsCore)
         throw "Failed to determine the type of build"
     }
 
-    Write-Log "Setting Appveyor build to '$result'"
+    Write-LogInfo "Setting Appveyor build to '$result'"
 
     return $result
 }

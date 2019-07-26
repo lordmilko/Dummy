@@ -73,6 +73,7 @@ function AnalyzeTestProject($testProjectName, $scriptRoot)
         $obj = [PSCustomObject]@{
             Folder             = $candidate.Directory                                          # e.g. Debug (2015) or net461 (2017)
             FolderSuffix       = $candidate.DirectoryName.Substring($testProjectFolder.Length) # e.g. bin\Debug (2015) or bin\Debug\net461 (2017)
+            TargetFramework    = $null                                                         # e.g. $null (2015) or net461 (2017)
             TestProjectDll     = Join-Path $candidate.DirectoryName "$testProjectName.dll"
             FolderPath         = $candidate.DirectoryName                                      # e.g. C:\PrtgAPI\PrtgAPI.Tests.UnitTests\bin\Debug\net461
             Configuration      = $null                                                         # e.g. Debug
@@ -110,13 +111,15 @@ function AnalyzeTestProject($testProjectName, $scriptRoot)
         }
 
         $suffix = $obj.FolderSuffix
+        $targetFramework = Split-Path $suffix -Leaf
 
-        if($obj.Edition -eq "Core")
+        if($targetFramework -notlike "net*")
         {
-            $suffix -replace "netcoreapp2.1","netstandard2.0"
+            $targetFramework = $null
         }
 
         $obj.PrtgAPIPath = Join-PathEx $solutionFolder,"PrtgAPI.PowerShell",$suffix,"PrtgAPI"
+        $obj.TargetFramework = $targetFramework
 
         foreach($property in $obj.PSObject.Properties)
         {
@@ -149,37 +152,18 @@ function ReduceCandidates($candidates)
     $newCandidates = $candidates| where {
         if(!(Test-Path $_.PrtgAPIPath))
         {
-            $alternatePrtgAPIPath = $null
+            $alternatePrtgAPIPath = GetAlternatePrtgAPIPath $_
 
-            if($_.PrtgAPIPath -like "*net461*")
-            {
-                $alternatePrtgAPIPath = $_.PrtgAPIPath -replace "net461","net452"
-            }
-            elseif($_.PrtgAPIPath -like "*netcoreapp*")
-            {
-                $alternatePrtgAPIPath = $_.PrtgAPIPath -replace "netcoreapp.\..","netstandard2.0"
-            }
-
-            if($alternatePrtgAPIPath -ne $null -and (Test-Path $alternatePrtgAPIPath))
-            {
-                $_.PrtgAPIPath = $alternatePrtgAPIPath
-            }
-            else
+            if($alternatePrtgAPIPath -eq $null)
             {
                 Write-Verbose "Eliminating candidate '$($_.TestProjectDll)' as folder '$($_.PrtgAPIPath)' does not exist"
                 return $false
             }
-            
+
+            $_.PrtgAPIPath = $alternatePrtgAPIPath
         }
 
-        $subFolder = "fullclr"
-
-        if($_.Edition -eq "Core")
-        {
-            $subFolder = "coreclr"
-        }
-
-        $dll = Join-PathEx $_.PrtgAPIPath,$subFolder,"PrtgAPI.PowerShell.dll"
+        $dll = Join-Path $_.PrtgAPIPath "PrtgAPI.PowerShell.dll"
 
         if(!(Test-Path $dll))
         {
@@ -202,6 +186,81 @@ function ReduceCandidates($candidates)
     }
 
     return $newCandidates
+}
+
+function GetAlternatePrtgAPIPath($candidate)
+{
+    if($candidate.TargetFramework -eq $null)
+    {
+        return $null
+    }
+
+    # e.g. C:\PrtgAPI\PrtgAPI.PowerShell\bin\Debug
+    $outputDir = $candidate.PrtgAPIPath.Substring(0, $candidate.PrtgAPIPath.LastIndexOf($candidate.Configuration) + $candidate.Configuration.Length)
+
+    $alternateCandidates = gci $outputDir -Filter "net*" | where PSIsContainer -eq $true | select -ExpandProperty Name
+
+    $existsScriptBlock = {
+        $path = Join-PathEx $outputDir,$_,"PrtgAPI","PrtgAPI.PowerShell.dll"
+
+        return Test-Path $path
+    }
+
+    $selectedCandidate = $null
+
+    if($candidate.TargetFramework -like "net4*")
+    {
+        # The unit test was built for .NET Framework. We'll accept another
+        # .NET Framework version (preferred) or a .NET Standard version
+
+        $fullCandidates = $alternateCandidates | where { $_ -like "net4*" } | where $existsScriptBlock
+
+        if($fullCandidates)
+        {
+            $selectedCandidate = $fullCandidates | select -first 1
+        }
+        else
+        {
+            $standardCandidates = $alternateCandidates | where { $_ -like "netstandard*" } | where $existsScriptBlock
+
+            if($standardCandidates)
+            {
+                $selectedCandidate = $standardCandidates | select -first 1
+            }
+        }
+    }
+    elseif($candidate.TargetFramework -like "netcoreapp*")
+    {
+        # The unit test was built for .NET Core. We'll accept another
+        # .NET Core version (preferred) or a .NET Standard version
+
+        $fullCandidates = $alternateCandidates | where { $_ -like "netcoreapp*" } | where $existsScriptBlock
+
+        if($fullCandidates)
+        {
+            $selectedCandidate = $fullCandidates | select -first 1
+        }
+        else
+        {
+            $standardCandidates = $alternateCandidates | where { $_ -like "netstandard*" } | where $existsScriptBlock
+
+            if($standardCandidates)
+            {
+                $selectedCandidate = $standardCandidates | select -first 1
+            }
+        }
+    }
+    elseif($candidate.TargetFramework -like "netstandard*")
+    {
+        throw "Unit test projects can't target .NET Standard?"
+    }
+
+    if($selectedCandidate)
+    {
+        return $candidate.PrtgAPIPath -replace $candidate.TargetFramework,$selectedCandidate
+    }
+
+    return $null
 }
 
 function Join-PathEx

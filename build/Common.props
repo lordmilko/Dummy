@@ -5,23 +5,23 @@
   <PropertyGroup Condition="$(TargetFramework.StartsWith('netcoreapp'))">
     <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
     <FrameworkType>Core</FrameworkType>
-    <FrameworkCodeName>coreclr</FrameworkCodeName>
   </PropertyGroup>
   <PropertyGroup Condition="$(TargetFramework.StartsWith('netstandard'))">
     <DefineConstants>$(DefineConstants);NETSTANDARD</DefineConstants>
     <FrameworkType>Standard</FrameworkType>
-    <FrameworkCodeName>coreclr</FrameworkCodeName>
   </PropertyGroup>
   <PropertyGroup Condition="$(TargetFramework.StartsWith('net4'))">
     <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
     <!-- TODO: why dont things grey out when i rename this constant? -->
     <FrameworkType>Full</FrameworkType>
-    <FrameworkCodeName>fullclr</FrameworkCodeName>
-    <EnableScripty>true</EnableScripty>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
     <DefineConstants>$(DefineConstants);MSTEST2</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$(TargetFrameworks) == 'netstandard2.0' AND '$(IsTestProject)' == 'true'">
+    <TargetFrameworks>net461</TargetFrameworks>
   </PropertyGroup>
 
   <!-- Pester -->

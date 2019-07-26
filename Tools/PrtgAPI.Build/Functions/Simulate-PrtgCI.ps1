@@ -42,8 +42,8 @@ function Test-PrtgCI
         [switch]$Travis,
 
         [Parameter(Mandatory = $false, Position = 0, ParameterSetName="Appveyor")]
-        [ValidateSet("Install", "Restore", "Build", "NuGet", "Test", "Coverage", "All")]
-        [string[]]$Task = "All",
+        [ValidateSet("Install", "Restore", "Build", "Package", "Test", "Coverage")]
+        [string[]]$Task,
 
         [Parameter(Mandatory=$false)]
         [ValidateSet("Debug", "Release")]
@@ -64,7 +64,7 @@ function Test-PrtgCI
 
             Set-AppveyorBuildMode -IsCore:$IsCore
 
-            if($Task -eq "All")
+            if($null -eq $Task)
             {
                 Simulate-Appveyor -Configuration $Configuration
             }
@@ -80,7 +80,7 @@ function Test-PrtgCI
                     if("Build" -in $Task) {
                         Invoke-AppveyorBuild
                     }
-                    if("NuGet" -in $Task) {
+                    if("Package" -in $Task) {
                         Invoke-AppveyorBeforeTest
                     }
                     if("Test" -in $Task) {

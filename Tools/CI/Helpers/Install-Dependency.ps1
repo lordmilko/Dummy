@@ -34,11 +34,14 @@ function Install-Dependency
         [Parameter(Mandatory = $false, ParameterSetName="PowerShell")]
         [string]$MinimumVersion,
 
-        [Parameter(Mandatory = $false, ParameterSetName="PowerShell")]
-        [switch]$SkipPublisherCheck,
+        [Parameter(Mandatory = $false, ParameterSetName="Chocolatey")]
+        [switch]$Manager,
 
         [Parameter(Mandatory = $false)]
-        [switch]$Log
+        [switch]$Log,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$SilentSkip = $true
     )
 
     Get-CallerPreference $PSCmdlet $ExecutionContext.SessionState
@@ -50,7 +53,7 @@ function Install-Dependency
         }
 
         "Chocolatey" {
-            Install-Chocolatey @PSBoundParameters            
+            Install-Chocolatey @PSBoundParameters
         }
 
         "PowerShell" {
@@ -232,7 +235,10 @@ function Install-Chocolatey
 
             if($Log)
             {
-                Write-LogInfo "`tSkipping installing package '$PackageName'$versionStr as it is already installed"
+                if(!$SilentSkip)
+                {
+                    Write-LogInfo "`tSkipping installing package '$PackageName'$versionStr as it is already installed"
+                }
             }
             else
             {
@@ -264,8 +270,20 @@ function Install-Chocolatey
         Write-LogInfo "`tExecuting 'choco $splat'"
     }
 
-    Invoke-Process {
-        choco @splat
+    if((!$Manager) -or ($Manager -and $action -eq "upgrade"))
+    {
+        if(!$Manager)
+        {
+            Install-CIDependency chocolatey
+        }
+
+        Invoke-Process {
+            choco @splat
+        }
+    }
+    else
+    {
+        Invoke-WebRequest https://chocolatey.org/install.ps1 | Invoke-Expression
     }
 
     if($PowerShell)
@@ -290,7 +308,6 @@ function Install-PSPackage
         Force = $true
         ForceBootstrap = $true
         ProviderName = "PowerShellGet"
-        SkipPublisherCheck = $SkipPublisherCheck
     }
 
     if($Version)
@@ -298,7 +315,7 @@ function Install-PSPackage
         $packageArgs.RequiredVersion = $Version
     }
 
-    if($MinimumVersion)
+    if($MinimumVersion -and !$Version)
     {
         $packageArgs.MinimumVersion = $MinimumVersion
     }
@@ -330,7 +347,10 @@ function Install-PSPackage
     {
         if($Log)
         {
-            Write-LogInfo "`tSkipping installing package '$PackageName' as it is already installed"
+            if(!$SilentSkip)
+            {
+                Write-LogInfo "`tSkipping installing package '$PackageName' as it is already installed"
+            }
         }
         else
         {
@@ -371,9 +391,12 @@ function Install-PSPackageProvider
     {
         if($Log)
         {
-            Write-LogInfo "`tSkipping installing '$PackageName' package provider as it is already installed"
+            if(!$SilentSkip)
+            {
+                Write-LogInfo "`tSkipping installing '$PackageName' package provider as it is already installed"
+            }
         }
-        else
+        else #todo: silentskip doesnt seem to be working in appveyor?
         {
             WriteDependencyResult $PackageName "PackageProvider" $provider.Version "Skipped"
         }

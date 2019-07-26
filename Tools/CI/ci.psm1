@@ -149,7 +149,7 @@ function Get-PowerShellOutputDir
         $IsCore
     )
 
-    $base = "$BuildFolder\PrtgAPI.PowerShell\bin\$Configuration\"
+    $base = Join-Path $BuildFolder "PrtgAPI.PowerShell\bin\$Configuration\"
 
     if($IsCore)
     {
@@ -163,7 +163,17 @@ function Get-PowerShellOutputDir
             $candidates = gci (Join-Path $base "netcore*")
         }
 
+        if(!$candidates)
+        {
+            $candidates = gci (Join-Path $base "netstandard*")
+        }
+
         $fullName = $candidates | select -First 1 -Expand FullName
+
+        if(!$fullName)
+        {
+            throw "Couldn't find any Core $Configuration build candidates for PrtgAPI.PowerShell"
+        }
 
         return "$fullName\PrtgAPI"
     }
@@ -184,7 +194,7 @@ function Move-Packages
         $DestinationFolder
     )
 
-    $pkgs = Get-ChildItem ([PackageManager]::RepoLocation) -Filter *.*nupkg
+    $pkgs = (Get-ChildItem (PackageManager -RepoLocation) -Filter *.*nupkg)
         
     foreach($pkg in $pkgs)
     {
@@ -195,6 +205,42 @@ function Move-Packages
         Move-Item $pkg.Fullname $newPath -Force
 
         gi $newPath
+    }
+
+    $zips = Get-ChildItem (PackageManager -RepoLocation) -Filter *.zip
+
+    foreach($zip in $zips)
+    {
+        $newPath = Join-Path $DestinationFolder $zip.Name
+
+        Write-LogInfo "`t`t`t`tMoving package '$($zip.Name)' to '$newPath'"
+        Move-Item $zip.FullName $newPath -Force
+
+        gi $newPath
+    }
+}
+
+function HasType
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true)]
+        [string[]]$Actual,
+
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string[]]$Desired
+    )
+
+    begin {
+        $actuals = @()
+    }
+
+    process {
+        $actuals += $Actual
+    }
+
+    end {
+        return [string]::IsNullOrEmpty($actuals) -or $actuals.Count -eq 0 -or [bool]($Desired | where { $_ -in $actuals })
     }
 }
 
@@ -243,7 +289,7 @@ function Get-CallerPreference
             }
 
             # And apply it to our inner scope
-            if($null -ne $variable)
+            if($null -ne $variable -and $null -ne $variable.Value)
             {
                 if ($SessionState -eq $ExecutionContext.SessionState)
                 {
@@ -260,6 +306,9 @@ function Get-CallerPreference
 }
 
 $exports = @(
+    "HasType"
+    "New-PackageManager"
+    "PackageManager"
     "Get-CallerPreference"
     "Get-ChocolateyCommand"
     "Test-IsWindows"
@@ -273,6 +322,24 @@ $exports = @(
     "New-PackageManager"
     "Get-PowerShellOutputDir"
     "Move-Packages"
+    "Write-LogHeader"
+    "Write-LogSubHeader"
+    "Write-LogInfo"
+    "Write-LogError"
+    "Write-LogVerbose"
+
+    # Exports to prevent Pester 3 from blowing up due to mocks disappearing after being used
+
+    "Write-Log"
+    "Test-CIIsWindows"
+    "Get-MSBuild"
+    "Get-VSTest"
+    "Get-CIVersionInternal"
+    "Get-PSRepositoryEx"
+    "Register-PSRepositoryEx"
+    "Unregister-PSRepositoryEx"
+    "Publish-ModuleEx"
+    "Update-RootModule"
 )
 
 Export-ModuleMember $exports

@@ -155,7 +155,7 @@ function TestPackageContents
         $Configuration = "Debug",
 
         [Parameter(Mandatory = $false)]
-        [ValidateSet("CSharp", "PowerShell")]
+        [ValidateSet("CSharp", "PowerShell", "Redist")]
         [string]$Type = "CSharp"
     )
 
@@ -169,12 +169,13 @@ function TestPackageContents
 
             $config = [PSCustomObject]@{
                 IsCore = $IsCore
+                Configuration = $env:CONFIGURATION
             }
 
             Test-CSharpPackageContents $config "C:\FakeExtractFolder"
         } -Verifiable -ModuleName "Appveyor"
     }
-    else
+    elseif($Type -eq "PowerShell")
     {
         Mock "New-AppveyorPackage" {
 
@@ -182,10 +183,29 @@ function TestPackageContents
 
             $config = [PSCustomObject]@{
                 IsCore = $IsCore
+                Configuration = $env:CONFIGURATION
             }
 
             Test-PowerShellPackageContents $config "C:\FakeExtractFolder"
         } -Verifiable -ModuleName "Appveyor"
+    }
+    elseif($Type -eq "Redist")
+    {
+        Mock "New-AppveyorPackage" {
+
+            param($IsCore)
+
+            $config = [PSCustomObject]@{
+                IsCore = $IsCore
+                Configuration = $env:CONFIGURATION
+            }
+
+            Test-RedistributablePackageContents $config "C:\FakeExtractFolder"
+        } -Verifiable -ModuleName "Appveyor"
+    }
+    else
+    {
+        throw "Don't know how to handle type '$Type'"
     }
 
     InModuleScope "Appveyor" {
@@ -396,10 +416,6 @@ Describe "Appveyor" {
                 @{Type = "File"; Path = "_rels\blah.txt"}
                 @{Type = "File"; Path = "lib\net452\PrtgAPI.dll"}
                 @{Type = "File"; Path = "lib\net452\PrtgAPI.xml"}
-                @{Type = "File"; Path = "lib\net461\PrtgAPI.dll"}
-                @{Type = "File"; Path = "lib\net461\PrtgAPI.xml"}
-                @{Type = "File"; Path = "lib\netcoreapp2.1\PrtgAPI.dll"}
-                @{Type = "File"; Path = "lib\netcoreapp2.1\PrtgAPI.xml"}
                 @{Type = "File"; Path = "lib\netstandard2.0\PrtgAPI.dll"}
                 @{Type = "File"; Path = "lib\netstandard2.0\PrtgAPI.xml"}
                 @{Type = "File"; Path = "package\foo\bar.txt"}
@@ -408,8 +424,6 @@ Describe "Appveyor" {
                 @{Type = "Folder"; Path = "_rels"}
                 @{Type = "Folder"; Path = "lib"}
                 @{Type = "Folder"; Path = "lib\net452"}
-                @{Type = "Folder"; Path = "lib\net461"}
-                @{Type = "Folder"; Path = "lib\netcoreapp2.1"}
                 @{Type = "Folder"; Path = "lib\netstandard2.0"}
                 @{Type = "Folder"; Path = "package"}
                 @{Type = "Folder"; Path = "package\foo"}
@@ -471,17 +485,17 @@ Describe "Appveyor" {
                 @{Type = "File"; Path = "about_PrtgAPI.help.txt"}
                 @{Type = "File"; Path = "about_SensorParameters.help.txt"}
                 @{Type = "File"; Path = "about_SensorSettings.help.txt"}
-                @{Type = "File"; Path = "fullclr\PrtgAPI.dll"}
-                @{Type = "File"; Path = "fullclr\PrtgAPI.PowerShell.dll"}
+                @{Type = "File"; Path = "PrtgAPI.dll"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.dll"}
                 @{Type = "File"; Path = "Functions\New-Credential.ps1"}
                 @{Type = "File"; Path = "package\foo\bar.txt"}
                 @{Type = "File"; Path = "PrtgAPI.Format.ps1xml"}
                 @{Type = "File"; Path = "PrtgAPI.nuspec"}
                 @{Type = "File"; Path = "PrtgAPI.PowerShell.dll-Help.xml"}
                 @{Type = "File"; Path = "PrtgAPI.psd1"}
-                @{Type = "File"; Path = "PrtgAPI.psm1"}                
+                @{Type = "File"; Path = "PrtgAPI.psm1"}
                 @{Type = "Folder"; Path = "_rels"}
-                @{Type = "Folder"; Path = "fullclr"}
+                @{Type = "Folder"; Path = "Functions"}
                 @{Type = "Folder"; Path = "package"}
                 @{Type = "Folder"; Path = "package\foo"}
             ) -Type PowerShell
@@ -508,7 +522,9 @@ Describe "Appveyor" {
                 @{Type = "File"; Path = "PrtgAPI.psd1"}
                 @{Type = "File"; Path = "PrtgAPI.psm1"}
                 @{Type = "Folder"; Path = "_rels"}
+                @{Type = "Folder"; Path = "Functions"}
                 @{Type = "Folder"; Path = "fullclr"}
+                @{Type = "Folder"; Path = "coreclr"}
                 @{Type = "Folder"; Path = "package"}
                 @{Type = "Folder"; Path = "package\foo"}
             ) "Release" -Type PowerShell
@@ -524,12 +540,12 @@ Describe "Appveyor" {
                 "'about_PrtgAPI.help.txt'"
                 "'about_SensorParameters.help.txt'"
                 "'about_SensorSettings.help.txt'"
-                "'fullclr\PrtgAPI.dll'"
-                "'fullclr\PrtgAPI.PowerShell.dll'"
                 "'Functions\New-Credential.ps1'"
                 "'package\*'"
+                "'PrtgAPI.dll'"
                 "'PrtgAPI.Format.ps1xml'"
                 "'PrtgAPI.nuspec'"
+                "'PrtgAPI.PowerShell.dll'"
                 "'PrtgAPI.PowerShell.dll-Help.xml'"
                 "'PrtgAPI.psd1'"
                 "'PrtgAPI.psm1'"
@@ -547,17 +563,17 @@ Describe "Appveyor" {
                 @{Type = "File"; Path = "about_PrtgAPI.help.txt"}
                 @{Type = "File"; Path = "about_SensorParameters.help.txt"}
                 @{Type = "File"; Path = "about_SensorSettings.help.txt"}
-                @{Type = "File"; Path = "fullclr\PrtgAPI.dll"}
-                @{Type = "File"; Path = "fullclr\PrtgAPI.PowerShell.dll"}
+                @{Type = "File"; Path = "PrtgAPI.dll"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.dll"}
                 @{Type = "File"; Path = "Functions\New-Credential.ps1"}
                 @{Type = "File"; Path = "package\foo\bar.txt"}
                 @{Type = "File"; Path = "PrtgAPI.Format.ps1xml"}
                 @{Type = "File"; Path = "PrtgAPI.nuspec"}
                 @{Type = "File"; Path = "PrtgAPI.PowerShell.dll-Help.xml"}
                 @{Type = "File"; Path = "PrtgAPI.psd1"}
-                @{Type = "File"; Path = "PrtgAPI.psm1"}                
+                @{Type = "File"; Path = "PrtgAPI.psm1"}
                 @{Type = "Folder"; Path = "_rels"}
-                @{Type = "Folder"; Path = "fullclr"}
+                @{Type = "Folder"; Path = "Functions"}
                 @{Type = "Folder"; Path = "package"}
                 @{Type = "Folder"; Path = "package\foo"}
             ) -Type PowerShell } | Should Throw "Package is missing required items:`n'[Content_Types].xml'"
@@ -573,17 +589,129 @@ Describe "Appveyor" {
                 @{Type = "File"; Path = "about_PrtgAPI.help.txt"}
                 @{Type = "File"; Path = "about_SensorParameters.help.txt"}
                 @{Type = "File"; Path = "about_SensorSettings.help.txt"}
-                @{Type = "File"; Path = "fullclr\PrtgAPI.dll"}
-                @{Type = "File"; Path = "fullclr\PrtgAPI.PowerShell.dll"}
+                @{Type = "File"; Path = "PrtgAPI.dll"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.dll"}
                 @{Type = "File"; Path = "Functions\New-Credential.ps1"}
                 @{Type = "File"; Path = "PrtgAPI.Format.ps1xml"}
                 @{Type = "File"; Path = "PrtgAPI.nuspec"}
                 @{Type = "File"; Path = "PrtgAPI.PowerShell.dll-Help.xml"}
                 @{Type = "File"; Path = "PrtgAPI.psd1"}
-                @{Type = "File"; Path = "PrtgAPI.psm1"}                
+                @{Type = "File"; Path = "PrtgAPI.psm1"}   
                 @{Type = "Folder"; Path = "_rels"}
-                @{Type = "Folder"; Path = "fullclr"}
+                @{Type = "Folder"; Path = "Functions"}
             ) -Type PowerShell } | Should Throw "Package is missing required items:`n'package\*'"
+        }
+    }
+
+    Context "Redistributable" {
+        It "has all files for .NET Framework for Debug" {
+            TestPackageContents $false @(
+                @{Type = "File"; Path = "about_ChannelSettings.help.txt"}
+                @{Type = "File"; Path = "about_ObjectSettings.help.txt"}
+                @{Type = "File"; Path = "about_ChannelSettings.help.txt"}
+                @{Type = "File"; Path = "about_PrtgAPI.help.txt"}
+                @{Type = "File"; Path = "about_SensorParameters.help.txt"}
+                @{Type = "File"; Path = "about_SensorSettings.help.txt"}
+                @{Type = "File"; Path = "Functions\New-Credential.ps1"}
+                @{Type = "File"; Path = "PrtgAPI.cmd"}
+                @{Type = "File"; Path = "PrtgAPI.dll"}
+                @{Type = "File"; Path = "PrtgAPI.Format.ps1xml"}
+                @{Type = "File"; Path = "PrtgAPI.pdb"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.dll"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.dll-Help.xml"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.pdb"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.xml"}
+                @{Type = "File"; Path = "PrtgAPI.psd1"}
+                @{Type = "File"; Path = "PrtgAPI.psm1"}
+                @{Type = "File"; Path = "PrtgAPI.sh"}
+                @{Type = "File"; Path = "PrtgAPI.xml"}
+                @{Type = "Folder"; Path = "Functions"}
+            ) -Type Redist
+        }
+
+        It "has all files for .NET Framework for Release" {
+            TestPackageContents $false @(
+                @{Type = "File"; Path = "about_ChannelSettings.help.txt"}
+                @{Type = "File"; Path = "about_ObjectSettings.help.txt"}
+                @{Type = "File"; Path = "about_ChannelSettings.help.txt"}
+                @{Type = "File"; Path = "about_PrtgAPI.help.txt"}
+                @{Type = "File"; Path = "about_SensorParameters.help.txt"}
+                @{Type = "File"; Path = "about_SensorSettings.help.txt"}
+                @{Type = "File"; Path = "Functions\New-Credential.ps1"}
+                @{Type = "File"; Path = "PrtgAPI.cmd"}
+                @{Type = "File"; Path = "PrtgAPI.dll"}
+                @{Type = "File"; Path = "PrtgAPI.Format.ps1xml"}
+                @{Type = "File"; Path = "PrtgAPI.pdb"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.dll"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.dll-Help.xml"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.pdb"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.xml"}
+                @{Type = "File"; Path = "PrtgAPI.psd1"}
+                @{Type = "File"; Path = "PrtgAPI.psm1"}
+                @{Type = "File"; Path = "PrtgAPI.sh"}
+                @{Type = "File"; Path = "PrtgAPI.xml"}
+                @{Type = "Folder"; Path = "Functions"}
+            ) "Release" -Type Redist
+        }
+
+        It "has all files for .NET Core for Debug" {
+            TestPackageContents $true @(
+                @{Type = "File"; Path = "about_ChannelSettings.help.txt"}
+                @{Type = "File"; Path = "about_ObjectSettings.help.txt"}
+                @{Type = "File"; Path = "about_ChannelSettings.help.txt"}
+                @{Type = "File"; Path = "about_PrtgAPI.help.txt"}
+                @{Type = "File"; Path = "about_SensorParameters.help.txt"}
+                @{Type = "File"; Path = "about_SensorSettings.help.txt"}
+                @{Type = "File"; Path = "Functions\New-Credential.ps1"}
+                @{Type = "File"; Path = "PrtgAPI.cmd"}
+                @{Type = "File"; Path = "PrtgAPI.dll"}
+                @{Type = "File"; Path = "PrtgAPI.Format.ps1xml"}
+                @{Type = "File"; Path = "PrtgAPI.pdb"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.deps.json"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.dll"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.pdb"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.xml"}
+                @{Type = "File"; Path = "PrtgAPI.psd1"}
+                @{Type = "File"; Path = "PrtgAPI.psm1"}
+                @{Type = "File"; Path = "PrtgAPI.sh"}
+                @{Type = "File"; Path = "PrtgAPI.xml"}
+                @{Type = "Folder"; Path = "Functions"}
+            ) -Type Redist
+        }
+
+        It "has all files for .NET Core for Release" {
+            TestPackageContents $true @(
+                @{Type = "File"; Path = "about_ChannelSettings.help.txt"}
+                @{Type = "File"; Path = "about_ObjectSettings.help.txt"}
+                @{Type = "File"; Path = "about_ChannelSettings.help.txt"}
+                @{Type = "File"; Path = "about_PrtgAPI.help.txt"}
+                @{Type = "File"; Path = "about_SensorParameters.help.txt"}
+                @{Type = "File"; Path = "about_SensorSettings.help.txt"}
+                @{Type = "File"; Path = "Functions\New-Credential.ps1"}
+                @{Type = "File"; Path = "PrtgAPI.cmd"}
+                @{Type = "File"; Path = "coreclr\PrtgAPI.deps.json"}
+                @{Type = "File"; Path = "coreclr\PrtgAPI.dll"}
+                @{Type = "File"; Path = "coreclr\PrtgAPI.pdb"}
+                @{Type = "File"; Path = "coreclr\PrtgAPI.xml"}
+                @{Type = "File"; Path = "coreclr\PrtgAPI.PowerShell.deps.json"}
+                @{Type = "File"; Path = "coreclr\PrtgAPI.PowerShell.dll"}
+                @{Type = "File"; Path = "coreclr\PrtgAPI.PowerShell.pdb"}
+                @{Type = "File"; Path = "coreclr\PrtgAPI.PowerShell.xml"}
+                @{Type = "File"; Path = "fullclr\PrtgAPI.dll"}
+                @{Type = "File"; Path = "fullclr\PrtgAPI.pdb"}
+                @{Type = "File"; Path = "fullclr\PrtgAPI.xml"}
+                @{Type = "File"; Path = "fullclr\PrtgAPI.PowerShell.dll"}
+                @{Type = "File"; Path = "fullclr\PrtgAPI.PowerShell.pdb"}
+                @{Type = "File"; Path = "fullclr\PrtgAPI.PowerShell.xml"}
+                @{Type = "File"; Path = "PrtgAPI.Format.ps1xml"}
+                @{Type = "File"; Path = "PrtgAPI.PowerShell.dll-Help.xml"}
+                @{Type = "File"; Path = "PrtgAPI.psd1"}
+                @{Type = "File"; Path = "PrtgAPI.psm1"}
+                @{Type = "File"; Path = "PrtgAPI.sh"}
+                @{Type = "Folder"; Path = "coreclr"}
+                @{Type = "Folder"; Path = "fullclr"}
+                @{Type = "Folder"; Path = "Functions"}
+            ) "Release" -Type Redist
         }
     }
 

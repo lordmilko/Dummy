@@ -16,20 +16,20 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\PrtgAPI\fullclr\</OutputPath>
+    <OutputPath>bin\Debug\PrtgAPI\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\PrtgAPI\fullclr\PrtgAPI.PowerShell.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\PrtgAPI\PrtgAPI.PowerShell.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\PrtgAPI\fullclr\</OutputPath>
+    <OutputPath>bin\Release\PrtgAPI\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\PrtgAPI\fullclr\PrtgAPI.PowerShell.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\PrtgAPI\PrtgAPI.PowerShell.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
@@ -224,8 +224,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(ProjectDir)PowerShell\Resources\*.*" "$(TargetDir)..\"
-xcopy /Y "$(ProjectDir)PowerShell\Functions\*.*" "$(TargetDir)..\Functions\"</PostBuildEvent>
+    <PostBuildEvent>copy "$(ProjectDir)PowerShell\Resources\*.*" "$(TargetDir)"
+xcopy /Y "$(ProjectDir)PowerShell\Functions\*.*" "$(TargetDir)Functions\"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\XmlDoc2CmdletDoc.0.2.12\build\XmlDoc2CmdletDoc.targets" Condition="Exists('..\packages\XmlDoc2CmdletDoc.0.2.12\build\XmlDoc2CmdletDoc.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

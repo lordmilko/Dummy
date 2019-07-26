@@ -275,7 +275,7 @@ Describe "Set-ChannelProperty" -Tag @("PowerShell", "UnitTest") {
 
             try
             {
-                Set-ChannelProperty
+                Invoke-Interactive "Set-ChannelProperty"
 
                 throw "An exception should have been raised, however none occurred"
             }

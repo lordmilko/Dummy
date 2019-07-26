@@ -4,22 +4,11 @@ function Get-CodeCoverage
 {
     [CmdletBinding()]
     param(
-        [Parameter()]
         [string]$Name = "*",
-
-        [Parameter()]
         [string]$BuildFolder = $env:APPVEYOR_BUILD_FOLDER,
-
-        [Parameter()]
-        [string[]]$Type = "All",
-
-        [Parameter()]
+        [string[]]$Type,
         [string]$Configuration = "Debug",
-
-        [Parameter()]
         [switch]$TestOnly,
-
-        [Parameter()]
         [switch]$IsCore
     )
 
@@ -64,8 +53,6 @@ class CodeCoverage
     {
         Install-CIDependency OpenCover
 
-        Write-Host "$(& $([CodeCoverage]::OpenCover) -version)"
-
         $this.ClearCoverage()
 
         $this.GetPowerShellCoverage()
@@ -76,7 +63,7 @@ class CodeCoverage
 
     [void]GetCSharpCoverage()
     {
-        if(!$this.RequireCSharpCoverage())
+        if(!($this.Type | HasType "C#"))
         {
             return
         }
@@ -178,17 +165,12 @@ class CodeCoverage
         return $opencoverParams
     }
 
-    [bool]RequireCSharpCoverage()
-    {
-        return "All" -in $this.Type -or "C#" -in $this.Type
-    }
-
     #endregion
     #region PowerShell
 
     [void]GetPowerShellCoverage()
     {
-        if(!$this.RequirePowerShellCoverage())
+        if(!($this.Type | HasType "PowerShell"))
         {
             return
         }
@@ -334,11 +316,6 @@ class CodeCoverage
                dotnet build $csproj -c Release
             } -WriteHost
         }
-    }
-
-    [bool]RequirePowerShellCoverage()
-    {
-        return "All" -in $this.Type -or "PowerShell" -in $this.Type
     }
 
     #endregion

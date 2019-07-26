@@ -170,7 +170,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 "Invoke-Process.ps1",
                 "Appveyor.Tests.ps1",
                 "Start-PrtgAPI.ps1",
-                "MethodXmlDocBuilder.cs"
+                "MethodXmlDocBuilder.cs",
+                "New-PowerShellPackage.ps1"
             };
 
             var exprs = new[]
@@ -180,6 +181,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 "`r",
                 "`n"
             };
+
+            //todo: travis needs to be able to execute this
 
             var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Where(f =>
                 types.Any(f.EndsWith) && IsNotExcludedFolder(path, f) && !f.Contains("PrtgAPI.Tests")

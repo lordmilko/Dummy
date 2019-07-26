@@ -87,7 +87,7 @@ Describe "Clear-PrtgBuild" -Tag @("PowerShell", "Build") {
 
                 $root = Get-SolutionRoot
 
-                $p = $p.Replace($root, "")
+                $p = $p.Replace($root, "").Trim('\')
 
                 $global:clearPrtgBuildMockRemovals += $p
             }
@@ -128,6 +128,14 @@ Describe "Clear-PrtgBuild" -Tag @("PowerShell", "Build") {
                 }
             }
 
+            if($Filter -eq "*.zip")
+            {
+                return [PSCustomObject]@{
+                    FullName = Join-Path $Path "PrtgAPI.zip"
+                    Name = "PrtgAPI.zip"
+                }
+            }
+
             throw "Path was $Path, Filter was $Filter"
         } -ModuleName "CI"
 
@@ -161,6 +169,7 @@ Describe "Clear-PrtgBuild" -Tag @("PowerShell", "Build") {
         $expectedRemovals += @(
             "msbuild.binlog"
             "PrtgAPI.nupkg"
+            "PrtgAPI.zip"
         )
 
         $extraRemovals = $global:clearPrtgBuildMockRemovals | where { $_ -notin $expectedRemovals }

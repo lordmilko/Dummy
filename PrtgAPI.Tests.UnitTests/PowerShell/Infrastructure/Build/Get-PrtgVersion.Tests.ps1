@@ -249,6 +249,7 @@ Describe "Get-PrtgVersion" -Tag @("PowerShell", "Build") {
     }
 
     It "doesn't throw terminating errors when an error occurs" {
+
         Mock "Get-CIVersionInternal" {
             return [PSCustomObject]@{
                 Package = "1.2.3"
@@ -259,6 +260,6 @@ Describe "Get-PrtgVersion" -Tag @("PowerShell", "Build") {
             }
         } -ModuleName CI
 
-        Get-PrtgVersion
+        Get-PrtgVersion -ErrorAction SilentlyContinue
     }
 }

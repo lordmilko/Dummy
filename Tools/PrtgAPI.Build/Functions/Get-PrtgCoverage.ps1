@@ -47,8 +47,8 @@ function Get-PrtgCoverage
         [string]$Name = "*",
 
         [Parameter(Mandatory = $false)]
-        [ValidateSet('C#', 'PowerShell', 'All')]
-        [string[]]$Type = "All",
+        [ValidateSet('C#', 'PowerShell')]
+        [string[]]$Type,
 
         [Parameter(Mandatory=$false)]
         [ValidateSet("Debug", "Release")]

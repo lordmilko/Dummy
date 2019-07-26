@@ -29,8 +29,15 @@ function Install-CIDependency
         throw "Could not find dependency '$dependencies'"
     }
 
+    $silentSkip = $false
+
+    if($Name)
+    {
+        $silentSkip = $true
+    }
+
     foreach($dependency in $dependencies)
     {
-        Install-Dependency @dependency -Log:$Log
+        Install-Dependency @dependency -Log:$Log -SilentSkip:$silentSkip
     }
 }

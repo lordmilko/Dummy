@@ -1,12 +1,32 @@
-﻿$skipExport = $true
-. $PSScriptRoot\..\..\..\Tools\CI\Helpers\Write-Log.ps1
-
-if(!$skipBuildModule)
+﻿if(!$skipBuildModule)
 {
     ipmo $PSScriptRoot\..\..\..\Tools\PrtgAPI.Build
 }
 
 ipmo $PSScriptRoot\..\..\..\Tools\CI\ci.psm1
+
+function Describe
+{
+    param(
+        [Parameter(Position = 0)]
+        $Name,
+
+        [Parameter(Position = 1)]
+        $ScriptBlock,
+
+        [Parameter(Mandatory = $false)]
+        [string[]]$Tag
+    )
+
+    Pester\Describe $Name -Tag:$Tag {
+        if(!$skipBuildModule)
+        {
+            Mock "Write-Log" {} -ModuleName "CI"
+        }
+
+        & $ScriptBlock
+    }
+}
 
 function It
 {
@@ -25,9 +45,10 @@ function It
         [switch]$Skip
     )
 
-    Write-LogInfo "Processing test '$name'"
-
     Pester\It $name -TestCases $TestCases -Skip:$Skip {
+
+        Write-LogInfo "Processing test '$name'"
+
         try
         {
             & $script @args
@@ -40,7 +61,7 @@ function It
         }
         finally
         {
-            RemoveMocks
+            #RemoveMocks
         }
     }
 }
@@ -292,7 +313,7 @@ function Mock-InstallDotnet
                 param($Uri)
 
                 $Uri | Should Be "https://dot.net/v1/dotnet-install.ps1"
-            } -Verifiable
+            }
 
             Mock Unblock-File { }
 
@@ -365,6 +386,20 @@ function Mock-InstallDotnet
     Mock @mockCommandArgs -ModuleName CI
     Mock @mockCommandArgs -ModuleName PrtgAPI.Build
     Mock @mockCommandArgs
+}
+
+function global:MockGetChocolateyCommand
+{
+    Mock "Get-ChocolateyCommand" {
+        param($CommandName)
+
+        if(!$CommandName.EndsWith(".exe"))
+        {
+            $CommandName = "$CommandName.exe"
+        }
+
+        return "C:\ProgramData\chocolatey\bin\$CommandName"
+    } -ModuleName CI
 }
 
 function Get-SolutionRoot

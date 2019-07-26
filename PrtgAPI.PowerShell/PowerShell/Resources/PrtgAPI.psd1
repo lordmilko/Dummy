@@ -9,14 +9,7 @@
 @{
 
 # Script module or binary module file associated with this manifest.
-RootModule = if($PSEdition -eq 'Core')
-{
-    'coreclr\PrtgAPI.PowerShell.dll'
-}
-else # Desktop
-{
-    'fullclr\PrtgAPI.PowerShell.dll'
-}
+RootModule = 'PrtgAPI.PowerShell.dll'
 
 # Version number of this module.
 ModuleVersion = '0.9.7'

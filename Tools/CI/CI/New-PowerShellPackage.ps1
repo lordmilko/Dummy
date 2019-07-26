@@ -12,7 +12,13 @@ function New-PowerShellPackage
         [string]$Configuration,
 
         [Parameter(Mandatory = $true)]
-        [switch]$IsCore
+        [switch]$IsCore,
+
+        [Parameter(Mandatory = $true)]
+        [switch]$Redist,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$PowerShell
     )
 
     if($Configuration -eq "Release" -and $IsCore)
@@ -27,63 +33,180 @@ function New-PowerShellPackage
         {
             param($tempPath)
 
-            $list = @(
-                "*.cmd"
-                "*.pdb"
-                "*.sh"
-                "*.json"
-                "PrtgAPI.xml"
-                "PrtgAPI.PowerShell.xml"
-            )
+            Update-RootModule $tempPath $Configuration $IsCore
 
-            gci $tempPath -Include $list -Recurse | Remove-Item -Force
+            New-RedistributablePackage $tempPath $OutputDir $Configuration $IsCore $Redist
 
-            if($IsCore)
+            if($PowerShell)
             {
-                if($Configuration -eq "Release" -and $IsCore)
+                $modulePath = $tempPath
+
+                if($IsCore -and $Configuration -eq "Release")
                 {
-                    if(Test-IsWindows)
-                    {
-                        $coreclr = Join-Path $tempPath "netstandard2.0\PrtgAPI\coreclr"
-                        $net452PrtgAPI = Join-Path $tempPath "net452\PrtgAPI"
-
-                        Write-LogInfo "`t`tMerging coreclr/fullclr builds"
-
-                        Move-Item $coreclr $net452PrtgAPI
-
-                        $tempPath = $net452PrtgAPI
-                    }
-                    else
-                    {
-                        Write-LogError "Skipping merging coreclr/fullclr builds as not running on Windows"
-                        $tempPath = Join-Path $tempPath "netcoreapp2.1\PrtgAPI"
-                    }
+                    $modulePath = Join-Path $tempPath "net452\PrtgAPI"
                 }
-            }
-            else
-            {
-                $helpXml = Join-Path $tempPath "fullclr\PrtgAPI.PowerShell.dll-Help.xml"
 
-                Move-Item $helpXml $tempPath
-            }
-
-            Write-LogInfo "`t`tPublishing module to $([PackageManager]::RepoName)"
-
-            $expr = "Publish-Module -Path '$tempPath' -Repository $([PackageManager]::RepoName) -WarningAction SilentlyContinue"
-
-            # PowerShell Core currently has a bug wherein attempting to execute Start-Process -Wait doesn't work on Windows 7.
-            # Work around this by diverting to Windows PowerShell
-            if($PSEdition -eq "Core" -and (Test-IsWindows))
-            {
-                Write-Verbose "Executing powershell -command '$expr'"
-                # Clear the PSModulePath to prevent PowerShell Core specific directories contaminating Publish-Module's inner cmdlet lookups
-                powershell -command "`$env:PSModulePath = '$env:ProgramFiles\WindowsPowerShell\Modules;$env:SystemRoot\WindowsPowerShell\v1.0\Modules'; $expr"
-            }
-            else
-            {
-                Write-Verbose "Executing '$expr'"
-                Invoke-Expression $expr
-            }
+                New-PowerShellPackageInternal $modulePath
+            }            
         }
     )
+}
+
+function Update-RootModule($tempPath, $configuration, $isCore)
+{
+    if($isCore -and $configuration -eq "Release")
+    {
+        $psd1Path = Join-Path $tempPath "net452\PrtgAPI\PrtgAPI.psd1"
+
+        $contents = gc $psd1Path
+
+        $newContents = $contents | foreach {
+            if($_ -eq "RootModule = 'PrtgAPI.PowerShell.dll'")
+            {
+                return @(
+                    "RootModule = if(`$PSEdition -eq 'Core')"
+                    "{"
+                    "    'coreclr\PrtgAPI.PowerShell.dll'"
+                    "}"
+                    "else # Desktop"
+                    "{"
+                    "    'fullclr\PrtgAPI.PowerShell.dll'"
+                    "}"
+                )
+            }
+            else
+            {
+                return $_
+            }
+        }
+
+        $newContents | Set-Content $psd1Path
+    }
+}
+
+function New-RedistributablePackage($tempPath, $outputDir, $configuration, $isCore, $redist)
+{
+    $packageDir = Move-PowerShellAssemblies $tempPath $outputDir $configuration $isCore
+
+    if($redist)
+    {
+        $packageDir = Join-Path $packageDir "*"
+
+        $destinationPath = Join-Path (PackageManager -RepoLocation) "PrtgAPI.zip"
+
+        if(Test-Path $destinationPath)
+        {
+            Remove-Item $destinationPath -Force
+        }
+
+        try
+        {
+            $global:ProgressPreference = "SilentlyContinue"
+
+            Compress-Archive $packageDir -DestinationPath $destinationPath
+        }
+        finally
+        {
+            $global:ProgressPreference = "Continue"
+        }
+    }
+}
+
+function Move-PowerShellAssemblies($tempPath, $outputDir, $configuration, $isCore)
+{
+    if($isCore -and $configuration -eq "Release")
+    {
+        $netstandardPrtgAPI = Join-Path $tempPath "netstandard2.0\PrtgAPI"
+        $netframeworkPrtgAPI = Join-Path $tempPath "net452\PrtgAPI"
+
+        $coreclr = Join-Path $netframeworkPrtgAPI "coreclr"
+        $fullclr = Join-Path $netframeworkPrtgAPI "fullclr"
+
+        $list = @(
+            "*.dll"
+            "*.json"
+            "*.xml"
+            "*.pdb"
+        )
+
+        $standardFiles = gci $netstandardPrtgAPI -Include $list -Exclude "*-Help.xml" -Recurse
+        $netframeworkFiles = gci $netframeworkPrtgAPI -Include $list -Exclude "*-Help.xml" -Recurse
+
+        if(!(Test-Path $coreclr))
+        {
+            New-Item $coreclr -ItemType Directory | Out-Null
+        }
+
+        if(!(Test-Path $fullclr))
+        {
+            New-Item $fullclr -ItemType Directory | Out-Null
+        }
+
+        $standardFiles | Move-Item -Destination $coreclr
+        $netframeworkFiles | Move-Item -Destination $fullclr
+
+        $prtgAPIOutputDir = Join-Path $outputDir "..\..\..\PrtgAPI\bin\Release\netstandard2.0" | Resolve-Path | select -expand path
+
+        $deps = Join-Path $prtgAPIOutputDir "PrtgAPI.deps.json"
+
+        $deps | Copy-Item -Destination $coreclr
+
+        return $netframeworkPrtgAPI
+    }
+
+    return $tempPath
+}
+
+function New-PowerShellPackageInternal($modulePath)
+{
+    # Remove any files that are not required in the nupkg
+
+    $list = @(
+        "*.cmd"
+        "*.pdb"
+        "*.sh"
+        "*.json"
+        "PrtgAPI.xml"
+        "PrtgAPI.PowerShell.xml"
+    )
+
+    gci $modulePath -Include $list -Recurse | Remove-Item -Force
+
+    Publish-PowerShellPackage $modulePath
+}
+
+function Publish-PowerShellPackage($tempPath)
+{
+    Write-LogInfo "`t`tPublishing module to $(PackageManager -RepoName)"
+
+    $expr = "try { `$global:ProgressPreference = 'SilentlyContinue'; Publish-Module -Path '$tempPath' -Repository $(PackageManager -RepoName) -WarningAction SilentlyContinue } finally { `$global:ProgressPreference = 'Continue' }"
+
+    # PowerShell Core currently has a bug wherein attempting to execute Start-Process -Wait doesn't work on Windows 7.
+    # Work around this by diverting to Windows PowerShell
+    if($PSEdition -eq "Core" -and (Test-IsWindows))
+    {
+        Write-Verbose "Executing powershell -command '$expr'"
+        # Clear the PSModulePath to prevent PowerShell Core specific directories contaminating Publish-Module's inner cmdlet lookups
+        powershell -command "`$env:PSModulePath = '$env:ProgramFiles\WindowsPowerShell\Modules;$env:SystemRoot\WindowsPowerShell\v1.0\Modules'; $expr"
+    }
+    else
+    {
+        $expr = $expr -replace "Publish-Module","Publish-ModuleEx"
+
+        Write-Verbose "Executing '$expr'"
+        Invoke-Expression $expr
+    }
+}
+
+function Publish-ModuleEx
+{
+    [CmdletBinding()]
+    param(
+        [string]$Path,
+        [string]$Repository
+    )
+
+    Get-CallerPreference $PSCmdlet $ExecutionContext.SessionState
+
+    Publish-Module -Path $Path -Repository $Repository -WarningAction $WarningPreference
 }

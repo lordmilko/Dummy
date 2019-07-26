@@ -13,6 +13,12 @@ Describe "New-PrtgPackage" -Tag @("PowerShell", "Build") {
         $root = Get-SolutionRoot
         $tempRepository = Join-Path ([IO.Path]::GetTempPath()) "TempRepository"
 
+        Mock "Get-PrtgVersion" {
+            return [PSCustomObject]@{
+                Package = "1.2.3"
+            }
+        } -ModuleName PrtgAPI.Build
+
         $expected = @(
             "&"
             "dotnet"
@@ -76,14 +82,15 @@ Describe "New-PrtgPackage" -Tag @("PowerShell", "Build") {
 
             $empty = {}
 
-            Mock "Publish-Module" $empty
-            Mock "Get-PSRepository" $empty
-            Mock "Register-PSRepository" $empty
-            Mock "Unregister-PSRepository" $empty
+            Mock "Publish-ModuleEx" $empty
+            Mock "Get-PSRepositoryEx" $empty
+            Mock "Register-PSRepositoryEx" $empty
+            Mock "Unregister-PSRepositoryEx" $empty
             Mock "Remove-Item" $empty
             Mock "Move-Item" $empty
             Mock "New-Item" $empty
             Mock "Get-Item" $empty
+            Mock "Update-RootModule" $empty
             Mock "Test-Path" {
                 return $true
             }
@@ -91,6 +98,11 @@ Describe "New-PrtgPackage" -Tag @("PowerShell", "Build") {
                 return [System.IO.DirectoryInfo]"C:\PrtgAPI\bin\Release"
             }
             Mock "Copy-Item" $empty
+            Mock "Resolve-Path" {
+                return [PSCustomObject]@{
+                    Path = "C:\PrtgAPI\bin\Release\netstandard2.0"
+                }
+            }
         }
 
         New-PrtgPackage -Type PowerShell -Configuration $name
@@ -104,10 +116,10 @@ Describe "New-PrtgPackage" -Tag @("PowerShell", "Build") {
 
             $empty = {}
 
-            Mock "Publish-Module" $empty
-            Mock "Get-PSRepository" $empty
-            Mock "Register-PSRepository" $empty
-            Mock "Unregister-PSRepository" $empty
+            Mock "Publish-ModuleEx" $empty
+            Mock "Get-PSRepositoryEx" $empty
+            Mock "Register-PSRepositoryEx" $empty
+            Mock "Unregister-PSRepositoryEx" $empty
             Mock "Remove-Item" $empty
             Mock "Move-Item" $empty
             Mock "New-Item" $empty
@@ -122,5 +134,73 @@ Describe "New-PrtgPackage" -Tag @("PowerShell", "Build") {
         }
 
         New-PrtgPackage -Type PowerShell -IsCore:$false -Configuration $name
+    }
+
+    It "creates a redistributable package on core for <name>" -TestCases $testCases {
+        param($name)
+
+        InModuleScope "CI" {
+
+            $empty = {}
+
+            Mock "Publish-ModuleEx" $empty
+            Mock "Get-PSRepositoryEx" $empty
+            Mock "Register-PSRepositoryEx" $empty
+            Mock "Unregister-PSRepositoryEx" $empty
+            Mock "Remove-Item" $empty
+            Mock "Move-Item" $empty
+            Mock "New-Item" $empty
+            Mock "Get-Item" $empty
+            Mock "Update-RootModule" $empty
+            Mock "Test-Path" {
+                return $true
+            }
+            Mock "Get-ChildItem" {
+                return [System.IO.DirectoryInfo]"C:\PrtgAPI\bin\Release"
+            }
+            Mock "Copy-Item" $empty
+            Mock "Resolve-Path" {
+                return [PSCustomObject]@{
+                    Path = "C:\PrtgAPI\bin\Release\netstandard2.0"
+                }
+            }
+            Mock "Compress-Archive" $empty
+        }
+
+        New-PrtgPackage -Type Redist -Configuration $name
+    }
+
+    It "creates a redistributable package on desktop for <name>" -TestCases $testCases {
+        param($name)
+
+        InModuleScope "CI" {
+
+            $empty = {}
+
+            Mock "Publish-ModuleEx" $empty
+            Mock "Get-PSRepositoryEx" $empty
+            Mock "Register-PSRepositoryEx" $empty
+            Mock "Unregister-PSRepositoryEx" $empty
+            Mock "Remove-Item" $empty
+            Mock "Move-Item" $empty
+            Mock "New-Item" $empty
+            Mock "Get-Item" $empty
+            Mock "Update-RootModule" $empty
+            Mock "Test-Path" {
+                return $true
+            }
+            Mock "Get-ChildItem" {
+                return [System.IO.DirectoryInfo]"C:\PrtgAPI\bin\Release"
+            }
+            Mock "Copy-Item" $empty
+            Mock "Resolve-Path" {
+                return [PSCustomObject]@{
+                    Path = "C:\PrtgAPI\bin\Release\netstandard2.0"
+                }
+            }
+            Mock "Compress-Archive" $empty
+        }
+
+        New-PrtgPackage -Type Redist -IsCore:$false -Configuration $name
     }
 }

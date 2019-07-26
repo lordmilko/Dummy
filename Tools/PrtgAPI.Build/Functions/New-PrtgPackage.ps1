@@ -1,5 +1,3 @@
-. "$PSScriptRoot\..\..\..\Tools\CI\Helpers\PackageManager.ps1"
-
 <#
 .SYNOPSIS
 Creates NuGet packages from PrtgAPI for distribution
@@ -16,7 +14,8 @@ Unlike packaging done in CI builds, New-PrtgPackage does not verify that the con
 of the generated package are correct.
 
 .PARAMETER Type
-Type of NuGet packages to create. By default both C# and PowerShell packages are created.
+Type of packages to create. By default C# and PowerShell packages as well as a redistributable
+zip file are created.
 
 .PARAMETER Configuration
 Configuration to pack. If no value is specified, the last Debug build will be packed.
@@ -44,8 +43,8 @@ function New-PrtgPackage
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
-        [ValidateSet('C#', 'PowerShell', 'All')]
-        [string[]]$Type = "All",
+        [ValidateSet('C#', 'PowerShell', 'Redist')]
+        [string[]]$Type,
 
         [Parameter(Mandatory=$false)]
         [ValidateSet("Debug", "Release")]
@@ -59,23 +58,23 @@ function New-PrtgPackage
 
     $manager = New-PackageManager
 
-    if($Type -in "All","C#")
+    if($Type | HasType "C#")
     {
         $created = $true
 
-        if(!(Test-Path ([PackageManager]::RepoLocation)))
+        if(!(Test-Path (PackageManager -RepoLocation)))
         {
-            New-Item ([PackageManager]::RepoLocation) -ItemType Directory -Force | Out-Null
+            New-Item (PackageManager -RepoLocation) -ItemType Directory -Force | Out-Null
             $created = $true
         }
         else
         {
-            gci ([PackageManager]::RepoLocation) -Recurse | Remove-Item -Force
+            gci (PackageManager -RepoLocation) -Recurse | Remove-Item -Force
         }
 
         $csharpArgs = @{
             BuildFolder = $root
-            OutputFolder = ([PackageManager]::RepoLocation)
+            OutputFolder = (PackageManager -RepoLocation)
             Version = (Get-PrtgVersion -IsCore:$IsCore -ErrorAction Stop).Package
             Configuration = $Configuration
             IsCore = $IsCore
@@ -89,13 +88,20 @@ function New-PrtgPackage
 
         if($created)
         {
-            Remove-Item ([PackageManager]::RepoLocation) -Force
+            Remove-Item (PackageManager -RepoLocation) -Force
         }
     }
 
-    if($Type -in "All","PowerShell")
+    if($Type | HasType "PowerShell","Redist")
     {
-        Write-PrtgProgress "New-PrtgPackage" "Creating PowerShell Package" -PercentComplete 50
+        $text = "PowerShell"
+
+        if(!($Type | HasType "PowerShell"))
+        {
+            $text = "Redistributable"
+        }
+
+        Write-PrtgProgress "New-PrtgPackage" "Creating $text Package" -PercentComplete 50
         
         $manager.InstallPowerShellRepository()
 
@@ -106,6 +112,8 @@ function New-PrtgPackage
             RepoManager = $manager
             Configuration = $Configuration
             IsCore = $IsCore
+            Redist = $Type | HasType "Redist"
+            PowerShell = $Type | HasType "PowerShell"
         }
 
         New-PowerShellPackage @powershellArgs

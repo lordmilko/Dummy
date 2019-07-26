@@ -73,8 +73,8 @@ function Get-PrtgTestResult
         [string[]]$Path,
 
         [Parameter(Mandatory = $false, ParameterSetName = "Default")]
-        [ValidateSet('C#', 'PowerShell', 'All')]
-        [string[]]$Type = "All",
+        [ValidateSet('C#', 'PowerShell')]
+        [string[]]$Type,
 
         [Parameter(Mandatory = $false, ParameterSetName = "Default")]
         [ValidateSet("Success", "Failed")]
@@ -143,7 +143,7 @@ function ListAvailable($name, $integration)
 
 function GetCSharpTestResults($type, $path, $integration)
 {
-    if(!($type -in "All","C#"))
+    if(!($type | HasType "C#"))
     {
         return
     }
@@ -194,7 +194,7 @@ function GetCSharpTestResults($type, $path, $integration)
 
 function GetPowerShellTestResults($type, $path, $integration)
 {
-    if(!($type -in "All","PowerShell"))
+    if(!($type | HasType "PowerShell"))
     {
         return
     }

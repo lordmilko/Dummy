@@ -48,7 +48,7 @@
     <!-- Target Frameworks -->
 
     <!-- Default target framework for debugging on Windows. Release target frameworks will be defined in each project's csproj file -->
-    <TargetFrameworks Condition="$(IsWindows) AND '$(BuildAllTargets)' == 'false'">net461</TargetFrameworks>
+    <TargetFrameworks Condition="$(IsWindows) AND '$(BuildAllTargets)' == 'false'">netstandard2.0</TargetFrameworks>
 
     <!-- Override all target frameworks on Linux; only .NET Core is supported. Ignore .NET Standard, since we do releases on Windows -->
     <TargetFrameworks Condition="$(IsUnix)">netcoreapp2.1</TargetFrameworks>

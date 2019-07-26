@@ -65,7 +65,7 @@ function Clear-PrtgBuild
 
         foreach($project in $projects)
         {
-            Write-Log "Processing $project"
+            Write-LogInfo "Processing $project"
 
             $folder = Split-Path $project.FullName -Parent
 
@@ -87,7 +87,7 @@ function Clear-PrtgBuild
             }
         }
 
-        Write-Log "Processing NuGet Packages"
+        Write-LogInfo "Processing Redistributable Packages"
 
         $clearArgs = @{
             BuildFolder = $root

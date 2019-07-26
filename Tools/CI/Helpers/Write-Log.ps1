@@ -76,8 +76,3 @@ function Write-LogVerbose($msg, $color)
         Write-Log $msg $color
     }
 }
-
-if(!$skipExport)
-{
-    Export-ModuleMember Write-LogHeader,Write-LogSubHeader,Write-LogInfo,Write-LogError,Write-LogVerbose
-}

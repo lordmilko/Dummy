@@ -30,7 +30,7 @@ function Invoke-AppveyorPesterTest($IsCore)
     }
     else
     {
-        $result = Invoke-CIPowerShellTest $env:APPVEYOR_BUILD_FOLDER -IsCore:$IsCore
+        $result = Invoke-CIPowerShellTest $env:APPVEYOR_BUILD_FOLDER (@{ExcludeTag = "Build"}) -IsCore:$IsCore
 
         if($env:APPVEYOR)
         {

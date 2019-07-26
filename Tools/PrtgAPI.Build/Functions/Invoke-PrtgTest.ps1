@@ -29,6 +29,10 @@ Build configuration to test. If no value is specified, the last Debug build will
 .PARAMETER Integration
 Specifies to run integration tests instead of unit tests.
 
+.PARAMETER Tag
+Specifies tags or test categories to execute. If a Name is specified as well, these
+two categories will be filtered using logical AND.
+
 .EXAMPLE
 C:\> Invoke-PrtgTest
 Executes all unit tests on the last PrtgAPI build.
@@ -56,12 +60,13 @@ function Invoke-PrtgTest
 {
     [CmdletBinding()]
     param(
+        [ValidateNotNullOrEmpty()]
         [Parameter(Mandatory = $false, Position = 0)]
         [string[]]$Name,
 
         [Parameter(Mandatory = $false)]
-        [ValidateSet('C#', 'PowerShell', 'All')]
-        [string[]]$Type = "All",
+        [ValidateSet('C#', 'PowerShell')]
+        [string[]]$Type,
 
         [Parameter(Mandatory = $false)]
         [switch]$IsCore = $true,
@@ -71,7 +76,11 @@ function Invoke-PrtgTest
         [string]$Configuration = "Debug",
 
         [Parameter(Mandatory = $false)]
-        [switch]$Integration
+        [switch]$Integration,
+
+        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $false)]
+        [string[]]$Tag
     )
 
     $testArgs = @{
@@ -80,20 +89,21 @@ function Invoke-PrtgTest
         IsCore = $IsCore
         Configuration = $Configuration
         Integration = $Integration
+        Tags = $Tag
     }
 
     InvokeCSharpTest @testArgs
     InvokePowerShellTest @testArgs
 }
 
-function InvokeCSharpTest($name, $type, $isCore, $configuration, $integration)
+function InvokeCSharpTest($name, $type, $isCore, $configuration, $integration, $tags)
 {
-    if("All" -in $type -or "C#" -in $type)
+    if($type | HasType "C#")
     {
         $additionalArgs = @()
 
         $additionalArgs += GetLoggerArgs $isCore
-        $additionalArgs += GetLoggerFilters $name $isCore
+        $additionalArgs += GetLoggerFilters $name $tags $isCore
 
         $testArgs = @{
             BuildFolder = Get-SolutionRoot
@@ -103,13 +113,27 @@ function InvokeCSharpTest($name, $type, $isCore, $configuration, $integration)
             Integration = $integration
         }
 
-        Invoke-CICSharpTest @testArgs -Verbose
+        $projectDir = Join-Path (Get-SolutionRoot) (Get-TestProject $isCore $integration).Directory
+
+        try
+        {
+            # Legacy vstest.console stores the test results in the TestResults folder under the current directory.
+            # Change into the project directory whole we execute vstest to ensure the results get stored
+            # in the right folder
+            Push-Location $projectDir
+
+            Invoke-CICSharpTest @testArgs -Verbose
+        }
+        finally
+        {
+            Pop-Location
+        }
     }
 }
 
-function InvokePowerShellTest($name, $type, $isCore, $configuration, $integration)
+function InvokePowerShellTest($name, $type, $isCore, $configuration, $integration, $tags)
 {
-    if("All" -in $type -or "PowerShell" -in $type)
+    if($type | HasType "PowerShell")
     {
         $projectDir = Join-Path (Get-SolutionRoot) (Get-TestProject $isCore $integration).Directory
         $testResultsDir = Join-Path $projectDir "TestResults"
@@ -129,6 +153,11 @@ function InvokePowerShellTest($name, $type, $isCore, $configuration, $integratio
         if($name -ne $null)
         {
             $additionalArgs.TestName = $name
+        }
+
+        if($null -ne $tags)
+        {
+            $additionalArgs.Tag = $tags
         }
 
         $testArgs = @{
@@ -159,12 +188,31 @@ function GetLoggerArgs($IsCore)
     }
 }
 
-function GetLoggerFilters($name, $IsCore)
+function GetLoggerFilters($name, $tags, $IsCore)
 {
-    if($name -ne $null -and $name -ne "")
+    $filter = $null
+
+    if($name)
     {
         $filter = ($name | foreach { "FullyQualifiedName~$($_.Trim('*'))" }) -join "|"
+    }
 
+    if($tags)
+    {
+        $tagsFilter = ($tags | foreach { "TestCategory=$($_)" }) -join "|"
+
+        if($filter)
+        {
+            $filter = "($filter)&($tagsFilter)"
+        }
+        else
+        {
+            $filter = $tagsFilter
+        }
+    }
+
+    if($filter)
+    {
         if($IsCore)
         {
             return @(

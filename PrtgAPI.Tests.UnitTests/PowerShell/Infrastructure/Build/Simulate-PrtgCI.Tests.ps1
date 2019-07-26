@@ -46,18 +46,23 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
 
             InModuleScope "CI" {
                 $empty = {}
-                
+
                 Mock "Copy-Item" $empty
                 Mock "Remove-Item" $empty
                 Mock "Get-PackageSourceEx" $empty
-                Mock "Register-PackageSource" $empty
-                Mock "Unregister-PackageSource" $empty
-                Mock "Get-PSRepository" $empty
-                Mock "Register-PSRepository" $empty
-                Mock "Unregister-PSRepository" $empty
+                Mock "Register-PackageSourceEx" $empty
+                Mock "Unregister-PackageSourceEx" $empty
+                Mock "Get-PSRepositoryEx" $empty
+                Mock "Register-PSRepositoryEx" $empty
+                Mock "Unregister-PSRepositoryEx" $empty
                 Mock "New-Item" $empty
-                Mock "Publish-Module" $empty
-                Mock "Get-ChildItem" $empty
+                Mock "Publish-ModuleEx" $empty
+                Mock "Compress-Archive" $empty
+                Mock "Get-ChildItem" {
+                    return [PSCustomObject]@{
+                        FullName = "C:\"
+                    }
+                }
             }
 
             InModuleScope "Appveyor" {
@@ -68,6 +73,8 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
                 Mock "Clear-Repo" $empty
                 Mock "Test-CSharpPackageInstalls" $empty
                 Mock "Test-PowerShellPackageInstalls" $empty
+                Mock "Test-PowerShellPackageInstallsInternal" $empty
+                Mock "Get-Item" $empty
 
                 Mock "Get-ChildItem" {
                     param(
@@ -127,7 +134,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
             )
 
             Mock-InvokeProcess $expected {
-                Simulate-PrtgCI -Appveyor -Task NuGet
+                Simulate-PrtgCI -Appveyor -Task Package
             }
         }
 
@@ -175,6 +182,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
         It "creates coverage" {
 
             Mock-InstallDotnet -Windows
+            MockGetChocolateyCommand
 
             Mock Get-VSTest {
                 return "C:\vstest.console.exe"
@@ -187,7 +195,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
 
             $expected1 = @(
                 "&"
-                "`"OpenCover.Console.exe`""
+                "`"C:\ProgramData\chocolatey\bin\OpenCover.Console.exe`""
                 "-target:C:\vstest.console.exe"
                 "-targetargs:<regex>.+?</regex>"
                 "/TestAdapterPath:\`"$root\Tools\PowerShell.TestAdapter\bin\Release\netstandard2.0\`""
@@ -200,7 +208,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
 
             $expected2 = @(
                 "&"
-                "`"OpenCover.Console.exe`""
+                "`"C:\ProgramData\chocolatey\bin\OpenCover.Console.exe`""
                 "-target:$dotnet"
                 "-targetargs:test --filter TestCategory!=SlowCoverage&TestCategory!=SkipCI `"$root\PrtgAPI.Tests.UnitTests\PrtgAPIv17.Tests.UnitTests.csproj`" --verbosity:n --no-build -c Debug"
                 "-output:`"$($temp)opencover.xml`""
@@ -214,7 +222,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
 
             $expected3 = @(
                 "&"
-                "`"reportgenerator`""
+                "C:\ProgramData\chocolatey\bin\reportgenerator.exe"
                 "-reports:$($temp)opencover.xml"
                 "-reporttypes:CsvSummary"
                 "-targetdir:$($temp)report"
@@ -303,6 +311,8 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
 
                     $allowed = @(
                         "dotnet"
+
+                        # These are called to get the version of the command once its installed
                         "codecov"
                         "opencover.console"
                         "reportgenerator"
@@ -316,6 +326,36 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
 
                     throw "Get-Command was called with Name: '$Name'"
                 } -ParameterFilter { $Name -ne "Invoke-Expression" } -Verifiable
+
+                Mock "Get-ChocolateyCommand" {
+
+                    $allowed = @(
+                        "codecov"
+                        "opencover.console"
+                        "reportgenerator"
+                        "vswhere"
+                    )
+
+                    if($CommandName -eq "chocolatey")
+                    {
+                        return "C:\chocolatey.exe"
+                    }
+
+                    if($CommandName -in $allowed)
+                    {
+                        return $null
+                    }
+
+                    throw "Get-ChocolateyCommand was called with Name: '$CommandName'"
+                } -Verifiable
+
+                Mock "Get-Item" {
+                    return [PSCustomObject]@{
+                        VersionInfo = [PSCustomObject]@{
+                            FileVersion = "9999.0.0.0"
+                        }
+                    }
+                } -ModuleName "CI" -ParameterFilter { $Path -eq "C:\chocolatey.exe" }
 
                 Mock "Get-PackageProvider" {
                     return $null
@@ -471,12 +511,31 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
                     throw "Get-Command was called with Name: '$Name'"
                 } -ParameterFilter { $Name -ne "Invoke-Expression" } -Verifiable
 
+                Mock "Get-Item" {
+                    return [PSCustomObject]@{
+                        VersionInfo = [PSCustomObject]@{
+                            FileVersion = "9999.0.0.0"
+                        }
+                    }
+                } -ModuleName "CI" -ParameterFilter { $Path -eq "C:\chocolatey.exe" }
+
                 Mock "Get-PackageProvider" {
 
                     return [PSCustomObject]@{
                         Name = "NuGet"
                     }
                 } -Verifiable
+
+                Mock "Get-ChocolateyCommand" {
+                    param($CommandName)
+
+                    if(!$CommandName.EndsWith(".exe"))
+                    {
+                        $CommandName = "$CommandName.exe"
+                    }
+
+                    return "C:\ProgramData\chocolatey\bin\$CommandName"
+                }
             }
 
             Simulate-PrtgCI -Appveyor -Task Install
@@ -504,7 +563,6 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
                 "-nologo"
                 "-c"
                 "Debug"
-                "-p:EnableSourceLink=true"
             )
 
             $test = @(
@@ -529,9 +587,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
 
             $commands = GetTravisCommands
 
-            Mock Invoke-Pester {
-
-            } -ModuleName "CI" -Verifiable
+            Mock Invoke-Pester {} -ModuleName "CI" -Verifiable
 
             Mock-InvokeProcess $commands {
                 Simulate-PrtgCI -Travis -IsCore:$true

@@ -7,7 +7,6 @@ function MockInvokePester($action)
 
             $root = Get-SolutionRoot
 
-            $ExcludeTag | Should Be "Build"
             $PassThru | Should be $true
             $OutputFile | Should BeLike (Join-Path $root "PrtgAPI.Tests.UnitTests\TestResults\PrtgAPI_PowerShell_*.xml")
             $OutputFormat | Should Be "NUnitXml"
@@ -167,6 +166,76 @@ Describe "Invoke-PrtgTest" -Tag @("PowerShell", "Build") {
 
         Mock-InvokeProcess $expected {
             Invoke-PrtgTest *dynamic* -Type C# -Integration
+        }
+    }
+
+    It "specifies C# tags" {
+        $solutionRoot = Get-SolutionRoot
+
+        $expected = @(
+            "& `"dotnet`""
+            "test"
+            "$solutionRoot\PrtgAPI.Tests.UnitTests\PrtgAPIv17.Tests.UnitTests.csproj"
+            "-nologo"
+            "--no-restore"
+            "--no-build"
+            "--verbosity:n"
+            "-c"
+            "Debug"
+            "--logger"
+            "trx;LogFileName=PrtgAPI_C#.trx"
+            "--filter"
+            "TestCategory=UnitTest|TestCategory=SlowCoverage"
+        )
+
+        Mock-InvokeProcess $expected {
+            Invoke-PrtgTest -Tag UnitTest,SlowCoverage -Type C#
+        }
+    }
+
+    It "specifies PowerShell tags" {
+
+        InModuleScope CI {
+            Mock Invoke-Pester {
+
+                $root = Get-SolutionRoot
+
+                $PassThru | Should be $true
+                $OutputFile | Should BeLike (Join-Path $root "PrtgAPI.Tests.UnitTests\TestResults\PrtgAPI_PowerShell_*.xml")
+                $OutputFormat | Should Be "NUnitXml"
+                $Script | Should Be (Join-Path $root "PrtgAPI.Tests.UnitTests\PowerShell")
+                $Tag[0] | Should Be "UnitTest"
+                $Tag[1] | Should Be "IntegrationTest"
+
+            } -Verifiable
+        }
+
+        Invoke-PrtgTest -Tag UnitTest,IntegrationTest -Type PowerShell
+
+        Assert-VerifiableMocks
+    }
+
+    It "specifies C# names and tags" {
+        $solutionRoot = Get-SolutionRoot
+
+        $expected = @(
+            "& `"dotnet`""
+            "test"
+            "$solutionRoot\PrtgAPI.Tests.UnitTests\PrtgAPIv17.Tests.UnitTests.csproj"
+            "-nologo"
+            "--no-restore"
+            "--no-build"
+            "--verbosity:n"
+            "-c"
+            "Debug"
+            "--logger"
+            "trx;LogFileName=PrtgAPI_C#.trx"
+            "--filter"
+            "(FullyQualifiedName~dynamic|FullyQualifiedName~potato)&(TestCategory=UnitTest|TestCategory=SlowCoverage)"
+        )
+
+        Mock-InvokeProcess $expected {
+            Invoke-PrtgTest *dynamic*,*potato* -Tag UnitTest,SlowCoverage -Type C#
         }
     }
 }

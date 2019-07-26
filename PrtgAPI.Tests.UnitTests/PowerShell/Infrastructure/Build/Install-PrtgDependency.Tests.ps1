@@ -19,7 +19,67 @@ function Mock-Command($name)
     } -Verifiable -ParameterFilter { $Name -ne "Invoke-Expression" } -ModuleName "CI"
 }
 
+function Mock-ChocolateyCommand($name)
+{
+    Mock "Get-ChocolateyCommand" {
+
+        if($CommandName -eq "chocolatey")
+        {
+            return "C:\chocolatey.exe"
+        }
+
+        return $null
+    } -Verifiable -ModuleName "CI"
+
+    Mock "Get-Item" {
+        return [PSCustomObject]@{
+            VersionInfo = [PSCustomObject]@{
+                FileVersion = "9999.0.0.0"
+            }
+        }
+    } -ModuleName "CI" -ParameterFilter { $Path -eq "C:\chocolatey.exe" }
+}
+
 Describe "Install-PrtgDependency" -Tag @("PowerShell", "Build") {
+
+    It "installs chocolatey" {
+
+        InModuleScope "CI" {
+
+            Mock "Get-ChocolateyCommand" {} -Verifiable
+
+            Mock "Invoke-WebRequest" {
+                return "iwr-response"
+            } -Verifiable
+
+            Mock "Invoke-Expression" {} -ParameterFilter { $Command -eq "iwr-response" } -Verifiable
+        }
+
+        Install-PrtgDependency chocolatey
+
+        Assert-VerifiableMocks
+    }
+
+    It "upgrades chocolatey" {
+
+        InModuleScope "CI" {
+            Mock "Get-ChocolateyCommand" {
+                return "C:\chocolatey.exe"
+            } -Verifiable
+
+            Mock "Get-Item" {
+                return [PSCustomObject]@{
+                    VersionInfo = [PSCustomObject]@{
+                        FileVersion = "0.0.0.1"
+                    }
+                }
+            } -ParameterFilter { $Path -eq "C:\chocolatey.exe" } -Verifiable
+        }    
+
+        Mock-InvokeProcess "choco upgrade chocolatey --limitoutput --no-progress -y" {
+            Install-PrtgDependency chocolatey
+        }
+    }
 
     It "installs dotnet on Windows" {
         Mock-InstallDotnet -Windows
@@ -39,7 +99,7 @@ Describe "Install-PrtgDependency" -Tag @("PowerShell", "Build") {
             return $true
         } -ModuleName CI
 
-        Mock-Command "codecov"
+        Mock-ChocolateyCommand "codecov"
 
         Mock-InvokeProcess "choco install codecov --limitoutput --no-progress -y" {
             Install-PrtgDependency codecov
@@ -47,7 +107,7 @@ Describe "Install-PrtgDependency" -Tag @("PowerShell", "Build") {
     }
 
     It "installs opencover.portable" {
-        Mock-Command "opencover.console"
+        Mock-ChocolateyCommand "opencover.console"
 
         Mock-InvokeProcess "choco install opencover.portable --limitoutput --no-progress -y" {
             Install-PrtgDependency opencover
@@ -55,7 +115,7 @@ Describe "Install-PrtgDependency" -Tag @("PowerShell", "Build") {
     }
 
     It "installs reportgenerator.portable" {
-        Mock-Command "reportgenerator"
+        Mock-ChocolateyCommand "reportgenerator"
 
         Mock-InvokeProcess "choco install reportgenerator.portable --limitoutput --no-progress -y" {
             Install-PrtgDependency reportgenerator
@@ -63,7 +123,7 @@ Describe "Install-PrtgDependency" -Tag @("PowerShell", "Build") {
     }
 
     It "installs vswhere" {
-        Mock-Command "vswhere"
+        Mock-ChocolateyCommand "vswhere"
 
         Mock-InvokeProcess "choco install vswhere --limitoutput --no-progress -y" {
             Install-PrtgDependency vswhere
@@ -120,16 +180,16 @@ Describe "Install-PrtgDependency" -Tag @("PowerShell", "Build") {
         Assert-VerifiableMocks
     }
 
-    It "installs Pester" {
+    It "installs Pester without an existing version" {
         InModuleScope "CI" {
             Mock "Get-Module" {
                 return
             } -Verifiable
 
-            Mock "Install-Package" {
-                param($Name)
-
+            Mock "Install-Package" {                
                 $Name | Should Be "Pester"
+                $Version | Should Be "3.4.6"
+                $MinimumVersion | Should BeNullOrEmpty
             } -Verifiable
         }
 
@@ -156,10 +216,30 @@ Describe "Install-PrtgDependency" -Tag @("PowerShell", "Build") {
         Assert-VerifiableMocks
     }
 
+    It "skips installing a PowerShell Version when the MinimumVersion is already installed" {
+        InModuleScope "CI" {
+            Mock "Get-Module" {
+                return [PSCustomObject]@{
+                    Name = "Pester"
+                    Version = [Version]"3.4.0"
+                }
+            } -Verifiable
+
+            Mock "Install-Package" {                
+                throw "Should not have attempted to install package"
+            }
+        }
+
+        Install-PrtgDependency Pester
+
+        Assert-VerifiableMocks
+    }
+
     It "installs expected dependencies" {
 
         $expected = @(
             # If you add one to the list, make sure you also add an appropriate individual test for it above
+            "chocolatey"
             "dotnet"
             "codecov"
             "opencover.portable"

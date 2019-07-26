@@ -12,7 +12,7 @@ function GetPowerShellCommand
 
     $expected = @(
         "&"
-        "`"OpenCover.Console.exe`""
+        "`"C:\ProgramData\chocolatey\bin\OpenCover.Console.exe`""
         "-target:C:\vstest.console.exe"
         "-targetargs:<regex>.+?</regex>"
         "/TestAdapterPath:\`"$root\Tools\PowerShell.TestAdapter\bin\Release\netstandard2.0\`""
@@ -38,7 +38,7 @@ function GetCSharpCoreCommand($configuration = "Debug")
 
     return @(
         "&"
-        "`"OpenCover.Console.exe`""
+        "`"C:\ProgramData\chocolatey\bin\OpenCover.Console.exe`""
         "-target:$dotnet"
         "-targetargs:test --filter TestCategory!=SlowCoverage&TestCategory!=SkipCI `"$root\PrtgAPI.Tests.UnitTests\PrtgAPIv17.Tests.UnitTests.csproj`" --verbosity:n --no-build -c $configuration"
         "-output:`"$($temp)opencover.xml`""
@@ -61,7 +61,7 @@ function GetCSharpFullCommand($configuration = "Debug")
     $temp = [IO.Path]::GetTempPath()
 
     $expected = @(
-        "`"OpenCover.Console.exe`""
+        "`"C:\ProgramData\chocolatey\bin\OpenCover.Console.exe`""
         "-target:C:\vstest.console.exe"
         "-targetargs:/TestCaseFilter:TestCategory!=SlowCoverage&TestCategory!=SkipCI \`"$root\PrtgAPI.Tests.UnitTests\bin\$configuration\PrtgAPI.Tests.UnitTests.dll\`""
         "-output:`"$($temp)opencover.xml`""
@@ -81,7 +81,7 @@ function GetReportCommands
 
     $expected1 = @(
         "&"
-        "`"reportgenerator`""
+        "C:\ProgramData\chocolatey\bin\reportgenerator.exe"
         "-reports:$($temp)opencover.xml"
         "-reporttypes:Html"
         "-targetdir:$($temp)PrtgCoverage_<regex>\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d</regex>"
@@ -117,6 +117,8 @@ function MockCore
         } -ParameterFilter { $Path -notlike "*dotnet*" }
 
         Mock "Remove-Item" {}
+
+        MockGetChocolateyCommand
     }
 }
 
@@ -216,7 +218,7 @@ Describe "Get-PrtgCoverage" -Tag @("PowerShell", "Build") {
 
         $expected1 = @(
             "&"
-            "`"OpenCover.Console.exe`""
+            "`"C:\ProgramData\chocolatey\bin\OpenCover.Console.exe`""
             "-target:$dotnet"
             "-targetargs:test --filter TestCategory!=SlowCoverage&TestCategory!=SkipCI&FullyQualifiedName~dynamic `"$root\PrtgAPI.Tests.UnitTests\PrtgAPIv17.Tests.UnitTests.csproj`" --verbosity:n --no-build -c Debug"
             "-output:`"$($temp)opencover.xml`""
@@ -227,6 +229,7 @@ Describe "Get-PrtgCoverage" -Tag @("PowerShell", "Build") {
             "-mergeoutput"
             "-oldstyle"
         )
+
         $expected2 = GetReportCommands
 
         $expected = ,$expected1 + $expected2
@@ -248,7 +251,7 @@ Describe "Get-PrtgCoverage" -Tag @("PowerShell", "Build") {
 
         $expected1 = @(
             "&"
-            "`"OpenCover.Console.exe`""
+            "`"C:\ProgramData\chocolatey\bin\OpenCover.Console.exe`""
             "-target:C:\vstest.console.exe"
             "-targetargs:\`"$root\PrtgAPI.Tests.UnitTests\PowerShell\ObjectManipulation\New-SensorParameters.Tests.ps1\`""
             "/TestAdapterPath:\`"$root\Tools\PowerShell.TestAdapter\bin\Release\netstandard2.0\`""
