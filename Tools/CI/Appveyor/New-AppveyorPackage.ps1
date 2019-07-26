@@ -573,6 +573,12 @@ function Hide-Module($name, $script)
 
         Write-LogInfo "script invocation completed"
     }
+    catch
+    {
+        Write-LogInfo "an error occurred, so thats why we didnt reach the finally, duh!"
+
+        Write-LogInfo $_.Exception.StackTrace
+    }
     finally
     {
         Write-LogInfo "if hidden"
