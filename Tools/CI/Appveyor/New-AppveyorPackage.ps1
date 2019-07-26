@@ -451,11 +451,14 @@ function Test-PowerShellPackageInstalls
         {
             if($config.Configuration -eq "Release" -and $config.IsCore)
             {
+                Write-LogInfo "release path"
                 Test-PowerShellPackageInstallsInternal "powershell"
                 Test-PowerShellPackageInstallsInternal "pwsh"
             }
             else
             {
+                Write-LogInfo "non-release path"
+
                 $exe = Get-PowerShellExecutable
 
                 Test-PowerShellPackageInstallsInternal $exe
@@ -479,25 +482,28 @@ function Test-PowerShellPackageInstalls
 
 function Test-PowerShellPackageInstallsInternal($exe, $module = "PrtgAPI")
 {
+    Write-Host "first"
     $resultCmdlet =   (& $exe -command "&{ import-module '$module'; try { Get-Sensor } catch [exception] { `$_.exception.message }}")
+    Write-Host "second"
     $resultFunction = (& $exe -command "&{ import-module '$module'; (New-Credential a b).ToString() }")
-
+    Write-Host "third"
     Write-LogInfo "`t`t`t`t`tValidating '$exe' cmdlet output"
-
+    Write-Host "fourth"
     if($resultCmdlet -ne "You are not connected to a PRTG Server. Please connect first using Connect-PrtgServer.")
     {
         Write-LogInfo "bad cmdlet result. gonna throw"
         throw "Cmdlet did not throw expected exception message. Actual message: $resultCmdlet"
     }
-
+    Write-Host "fifth"
     $str = [string]::Join("", $resultFunction)
-
+    Write-Host "sixth"
     if($resultFunction -ne "System.Management.Automation.PSCredential")
     {
         Write-LogInfo "bad function result. gonna throw"
 
         throw $resultFunction
     }
+    Write-Host "seventh"
 }
 
 function Get-PowerShellExecutable
