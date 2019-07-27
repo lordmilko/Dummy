@@ -128,6 +128,8 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         [TestCategory("UnitTest")]
         public void Sensor_ReadOnly()
         {
+            throw new NotImplementedException("aaaa");
+
             var client = Initialize_ReadOnlyClient(GetResponse(new[] { GetItem() }));
 
             var device = client.GetSensor(1001);
