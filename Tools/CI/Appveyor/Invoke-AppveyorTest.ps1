@@ -89,12 +89,15 @@ function Invoke-AppveyorCSharpTest($IsCore)
 {
     if($IsCore)
     {
-        $additionalArgs = $null        
+        $additionalArgs = @(
+            "--filter"
+            "TestCategory!=SkipCI"
+        )
 
         # .NET Core is not currently supported https://github.com/appveyor/ci/issues/2212
         <#if($env:APPVEYOR)
         {
-            $additionalArgs = "--logger:Appveyor"
+            $additionalArgs += "--logger:Appveyor"
         }#>
 
         Invoke-CICSharpTest $env:APPVEYOR_BUILD_FOLDER $additionalArgs -IsCore:$IsCore
