@@ -3,7 +3,8 @@ function Install-CIDependency
     [CmdletBinding()]
     param(
         [string[]]$Name,
-        [switch]$Log = $true
+        [switch]$Log = $true,
+        [switch]$SilentSkip
     )
 
     Get-CallerPreference $PSCmdlet $ExecutionContext.SessionState
@@ -33,11 +34,18 @@ function Install-CIDependency
 
     if($Name)
     {
-        $silentSkip = $true
+        if($PSBoundParameters.ContainsKey("SilentSkip"))
+        {
+            $silentSkipInternal = $SilentSkip
+        }
+        else
+        {
+            $silentSkipInternal = $true
+        }
     }
 
     foreach($dependency in $dependencies)
     {
-        Install-Dependency @dependency -Log:$Log -SilentSkip:$silentSkip
+        Install-Dependency @dependency -Log:$Log -SilentSkip:$silentSkipInternal
     }
 }

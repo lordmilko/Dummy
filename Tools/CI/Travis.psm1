@@ -7,4 +7,7 @@ $script:SolutionDir = $script:SolutionDir = Get-SolutionRoot
 
 $env:CONFIGURATION = "Release"
 
-$global:ProgressPreference = "SilentlyContinue"
+if($env:TRAVIS)
+{
+    $global:ProgressPreference = "SilentlyContinue"
+}

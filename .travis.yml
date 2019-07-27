@@ -6,6 +6,8 @@ dotnet: 2.1.605
 #  directories:
 #    - $TRAVIS_BUILD_DIR/snaps-cache
 
+#todo: why didnt we get a message on travis about how the installation of pester went
+
 matrix:
   include:
     - os: linux
@@ -13,10 +15,10 @@ matrix:
       osx_image: xcode10.2
 
 install:
-  - pwsh -c "ipmo ./Tools/CI/Travis.psm1; Invoke-TravisInstall"
+  - pwsh -c "ipmo ./Tools/CI/Travis.psm1 -DisableNameChecking; Invoke-TravisInstall"
 
 script:
-  - pwsh -c "ipmo ./Tools/CI/Travis.psm1; Invoke-TravisScript"
+  - pwsh -c "ipmo ./Tools/CI/Travis.psm1 -DisableNameChecking; Invoke-TravisScript"
 
 addons:
   snaps:
