@@ -6,16 +6,17 @@ dotnet: 2.1.605
 #  directories:
 #    - $TRAVIS_BUILD_DIR/snaps-cache
 
-os:
-  - linux
-  - osx
-osx_image: xcode10.2
+matrix:
+  include:
+    - os: linux
+    - os: osx
+      osx_image: xcode10.2
 
 install:
-  - pwsh -f "ipmo ./Tools/CI/Travis.psm1; Invoke-TravisInstall"
+  - pwsh -c "ipmo ./Tools/CI/Travis.psm1; Invoke-TravisInstall"
 
 script:
-  - pwsh -f "ipmo ./Tools/CI/Travis.psm1; Invoke-TravisScript"
+  - pwsh -c "ipmo ./Tools/CI/Travis.psm1; Invoke-TravisScript"
 
 addons:
   snaps:
