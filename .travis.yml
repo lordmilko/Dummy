@@ -18,7 +18,8 @@ script:
 
 addons:
   snaps:
-  - powershell
+  - name: powershell
+    confinement: classic
   homebrew:
     casks:
     - powershell
