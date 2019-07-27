@@ -327,10 +327,9 @@ namespace PrtgAPI.Request
                 {
                     var inner = ex.InnerException as WebException;
 
-                    var result = await HandleRequestExceptionAsync(inner, ex, request, retriesRemaining, token).ConfigureAwait(false);
-                    retriesRemaining = result.Item2;
+                    var result = HandleRequestException(inner, ex, request, ref retriesRemaining, null, token);
 
-                    if (!result.Item1)
+                    if (!result)
                         throw;
                 }
                 catch (TaskCanceledException ex)
@@ -389,36 +388,6 @@ namespace PrtgAPI.Request
 
         private bool HandleRequestException(Exception innerMostEx, Exception fallbackHandlerEx, PrtgRequestMessage request, ref int retriesRemaining, Action thrower, CancellationToken token)
         {
-            int delay = 0;
-
-            if (!HandleRequestExceptionInternal(innerMostEx, fallbackHandlerEx, request, ref retriesRemaining, thrower, ref delay))
-                return false;
-
-            if (retriesRemaining > 0)
-                token.WaitHandle.WaitOne(delay * 1000);
-
-            retriesRemaining--;
-
-            return true;
-        }
-
-        private async Task<Tuple<bool, int>> HandleRequestExceptionAsync(Exception innerMostEx, Exception fallbackHandlerEx, PrtgRequestMessage request, int retriesRemaining, CancellationToken token)
-        {
-            int delay = 0;
-
-            if (!HandleRequestExceptionInternal(innerMostEx, fallbackHandlerEx, request, ref retriesRemaining, null, ref delay))
-                return Tuple.Create(false, retriesRemaining);
-
-            if (retriesRemaining > 0)
-                await token.WaitHandle.WaitOneAsync(delay * 1000, token).ConfigureAwait(false);
-
-            retriesRemaining--;
-
-            return Tuple.Create(true, retriesRemaining);
-        }
-
-        private bool HandleRequestExceptionInternal(Exception innerMostEx, Exception fallbackHandlerEx, PrtgRequestMessage request, ref int retriesRemaining, Action thrower, ref int delay)
-        {
             if (innerMostEx != null) //Synchronous + Asynchronous
             {
                 if (retriesRemaining > 0)
@@ -445,8 +414,15 @@ namespace PrtgAPI.Request
             if (retriesRemaining > 0)
             {
                 var attemptsMade = prtgClient.RetryCount - retriesRemaining + 1;
-                delay = prtgClient.RetryDelay * attemptsMade;
+                var delay = prtgClient.RetryDelay * attemptsMade;
+
+                //Note that we don't have an asynchronous wait for the asynchronous version,
+                //as this causes weird timing issues in tests like PrtgClient_RetriesWhileStreaming,
+                //where the final retry occurs after StreamSensors has supposedly completed
+                token.WaitHandle.WaitOne(delay * 1000);
             }
+
+            retriesRemaining--;
 
             return true;
         }
