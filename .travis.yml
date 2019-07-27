@@ -3,9 +3,7 @@ mono: none
 dotnet: 2.1.605
 
 env:
-  global:
-    - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
-    - DOTNET_CLI_TELEMETRY_OPTOUT=1
+  - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 #cache:
 #  directories:
@@ -19,7 +17,7 @@ install:
   - pwsh -File ./Tools/CI/Travis/Invoke-TravisInstall.ps1
 
 script:
-  - ./Tools/Travis/travis.sh
+  - pwsh -File ./Tools/CI/Travis/Invoke-TravisScript.ps1
 
 addons:
   snaps:
