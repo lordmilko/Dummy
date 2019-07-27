@@ -12,6 +12,7 @@ env:
 os:
   - linux
   - osx
+osx_image: xcode10.2
 
 install:
   - pwsh -f "${env:TRAVIS_BUILD_DIR}/Tools/CI/Travis/Invoke-TravisInstall.ps1"
