@@ -16,7 +16,7 @@ os:
   - osx
 
 install:
-  - ./Tools/Travis/install.sh
+  - pwsh -File ./Tools/CI/Travis/Invoke-TravisInstall.ps1
 
 script:
   - ./Tools/Travis/travis.sh
