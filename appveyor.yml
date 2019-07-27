@@ -39,7 +39,8 @@ artifacts:
   - path: '*.snupkg'
 skip_commits:
   files:
-    - README.md
+    - '**/*.md'
+    - '**/*.yml'
     - '**/*.nuspec'
     - assets/*
     - tools/*
