@@ -36,6 +36,7 @@ after_test:
 artifacts:
   - path: '*.zip'
   - path: '*.nupkg'
+  - path: '*.snupkg'
 skip_commits:
   files:
     - README.md
