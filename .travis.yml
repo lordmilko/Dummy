@@ -15,10 +15,10 @@ os:
 osx_image: xcode10.2
 
 install:
-  - pwsh -f "${env:TRAVIS_BUILD_DIR}/Tools/CI/Travis/Invoke-TravisInstall.ps1"
+  - pwsh -f "./Tools/CI/Travis/Invoke-TravisInstall.ps1"
 
 script:
-  - pwsh -f "${env:TRAVIS_BUILD_DIR}/Tools/CI/Travis/Invoke-TravisScript.ps1"
+  - pwsh -f "./Tools/CI/Travis/Invoke-TravisScript.ps1"
 
 addons:
   snaps:
