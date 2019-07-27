@@ -3,7 +3,7 @@ mono: none
 dotnet: 2.1.605
 
 env:
-  - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
+  - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 
 #cache:
 #  directories:
@@ -14,7 +14,7 @@ os:
   - osx
 
 install:
-  - pwsh -File ./Tools/CI/Travis/Invoke-TravisInstall.ps1
+  - pwsh -Command "Write-Host 'hello world'"
 
 script:
   - pwsh -File ./Tools/CI/Travis/Invoke-TravisScript.ps1
