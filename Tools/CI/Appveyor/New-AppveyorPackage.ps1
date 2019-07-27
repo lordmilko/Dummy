@@ -282,8 +282,6 @@ function Process-PowerShellPackage($config)
 
     Test-PowerShellPackage $config
 
-    Write-LogInfo "going to test redist package"
-
     Test-RedistributablePackage $config
 
     Move-AppveyorPackages $config "_PowerShell"
@@ -304,16 +302,8 @@ function Test-PowerShellPackage
         Test-PowerShellPackageDefinition $config $extractFolder
         Test-PowerShellPackageContents $config $extractFolder
     }
-    try
-    {
-    Test-PowerShellPackageInstalls
-        }
-    catch
-    {
-        Write-LogInfo $_.Exception.StackTrace
 
-        throw
-    }
+    Test-PowerShellPackageInstalls
 }
 
 function Test-PowerShellPackageDefinition($config, $extractFolder)
@@ -438,78 +428,82 @@ function Test-PowerShellPackageInstalls
 {
     Write-LogInfo "`t`t`tInstalling Package"
 
-    Hide-Module "PrtgAPI" {
+    if($config.Configuration -eq "Release" -and $config.IsCore)
+    {
+        Test-PowerShellPackageInstallsHidden "Desktop"
+        Test-PowerShellPackageInstallsHidden "Core"
+    }
+    else
+    {
+        Test-PowerShellPackageInstallsHidden $PSEdition
+    }
+}
 
-        if(!(Install-Package PrtgAPI -Source (PackageManager -RepoName) -AllowClobber)) # TShell has a Get-Device cmdlet
+function Test-PowerShellPackageInstallsHidden($edition, $config)
+{
+    if([string]::IsNullOrEmpty($edition))
+    {
+        $edition = "Desktop"
+    }
+
+    Write-LogInfo "`t`t`t`tTesting package installs on $edition"
+
+    Hide-Module $edition {
+
+        param($edition)
+
+        if(!(Install-EditionPackage $edition PrtgAPI -Source (PackageManager -RepoName) -AllowClobber)) # TShell has a Get-Device cmdlet
         {
             throw "PrtgAPI did not install properly"
         }
 
-        Write-LogInfo "`t`t`t`tTesting Package cmdlets"
+        Write-LogInfo "`t`t`t`t`tTesting Package cmdlets"
 
         try
         {
-            if($config.Configuration -eq "Release" -and $config.IsCore)
-            {
-                Write-LogInfo "release path"
-                Test-PowerShellPackageInstallsInternal "powershell"
-                $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-                Test-PowerShellPackageInstallsInternal "pwsh"
-            }
-            else
-            {
-                Write-LogInfo "non-release path"
-
-                $exe = Get-PowerShellExecutable
-
-                Test-PowerShellPackageInstallsInternal $exe
-            }
+            Test-PowerShellPackageInstallsInternal $edition
         }
         finally
         {
-            Write-LogInfo "`t`t`t`tUninstalling Package"
-            
-            if(!(Uninstall-Package PrtgAPI))
+            Write-LogInfo "`t`t`t`t`tUninstalling Package"
+
+            if(!(Uninstall-EditionPackage $edition PrtgAPI))
             {
                 throw "PrtgAPI did not uninstall properly"
             }
-
-            Write-LogInfo "PrtgAPI was successfully uninstalled"
         }
     }
-
-    Write-LogInfo "module unhidden"
 }
 
-function Test-PowerShellPackageInstallsInternal($exe, $module = "PrtgAPI")
+#todo: change the redist package to use the same technique of calling this method
+
+function Test-PowerShellPackageInstallsInternal($edition, $module = "PrtgAPI")
 {
-    Write-Host "first"
+    $exe = Get-PowerShellExecutable $edition
+
+    Write-LogInfo "`t`t`t`t`t`tValidating '$exe' cmdlet output"
+
     $resultCmdlet =   (& $exe -command "&{ import-module '$module'; try { Get-Sensor } catch [exception] { `$_.exception.message }}")
-    Write-Host "second"
     $resultFunction = (& $exe -command "&{ import-module '$module'; (New-Credential a b).ToString() }")
-    Write-Host "third"
-    Write-LogInfo "`t`t`t`t`tValidating '$exe' cmdlet output"
-    Write-Host "fourth"
+    
+    #todo: pwsh module directory is different to powershell module directory    
+
     if($resultCmdlet -ne "You are not connected to a PRTG Server. Please connect first using Connect-PrtgServer.")
     {
-        Write-LogInfo "bad cmdlet result. gonna throw"
-        throw "Cmdlet did not throw expected exception message. Actual message: $resultCmdlet"
+        throw $resultCmdlet
     }
-    Write-Host "fifth"
+
     $str = [string]::Join("", $resultFunction)
-    Write-Host "sixth"
+
     if($resultFunction -ne "System.Management.Automation.PSCredential")
     {
-        Write-LogInfo "bad function result. gonna throw"
-
         throw $resultFunction
     }
-    Write-Host "seventh"
 }
 
-function Get-PowerShellExecutable
+function Get-PowerShellExecutable($edition)
 {
-    if($PSEdition -eq "Core")
+    if($edition -eq "Core")
     {
         return "pwsh.exe"
     }
@@ -519,24 +513,147 @@ function Get-PowerShellExecutable
     }
 }
 
-function Hide-Module($name, $script)
+function Get-EditionModule
 {
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$Edition
+    )
+
+    $command = "Get-Module PrtgAPI -ListAvailable"
+
+    if($PSEdition -eq $Edition)
+    {
+        return Invoke-Expression $command | Select Path,Version
+    }
+    else
+    {
+        $response = Invoke-Edition $Edition "$command | foreach { `$_.Path + '|' + `$_.Version }"
+
+        foreach($line in $response)
+        {
+            $split = $line.Split('|')
+
+            [PSCustomObject]@{
+                Path = $split[0]
+                Version = $split[1]
+            }
+        }
+    }
+}
+
+function Install-EditionPackage
+{
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$Edition,
+
+        [Parameter(Mandatory = $true, Position = 1)]
+        [string]$Name,
+
+        [Parameter()]
+        [string]$Source,
+
+        [Parameter()]
+        [switch]$AllowClobber
+    )
+
+    $command = "Install-Package $Name -Source $Source -AllowClobber:([bool]'$AllowClobber')"
+
+    if($PSEdition -eq $Edition)
+    {
+        return Invoke-Expression $command
+    }
+    else
+    {
+        $response = Invoke-Edition $Edition "$command | foreach { `$_.Name + '|' + `$_.Version }"
+
+        foreach($line in $response)
+        {
+            $split = $line.Split('|')
+
+            [PSCustomObject]@{
+                Name = $split[0]
+                Version = $split[1]
+            }
+        }
+    }
+
+    #todo: how do we know there was "no response" when invoking an external process? test!
+}
+
+function Uninstall-EditionPackage
+{
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$Edition,
+
+        [Parameter(Mandatory = $true, Position = 1)]
+        [string]$Name
+    )
+
+    $command = "Uninstall-Package $Name"
+
+    if($PSEdition -eq $Edition)
+    {
+        return Invoke-Expression $command
+    }
+    else
+    {
+        $response = Invoke-Edition $Edition "$command | foreach { `$_.Name + '|' + `$_.Version }"
+
+        foreach($line in $response)
+        {
+            $split = $line.Split('|')
+
+            [PSCustomObject]@{
+                Name = $split[0]
+                Version = $split[1]
+            }
+        }
+    }
+
+    #todo: how do we know there was "no response" when invoking an external process? test!
+}
+
+function Invoke-Edition($edition, $command)
+{
+    if($PSEdition -eq $edition)
+    {
+        throw "Cannot invoke command '$command' in edition 'edition': edition is the same as the currently running process"
+    }
+    else
+    {
+        $exe = Get-PowerShellExecutable $edition
+
+        $response = & $exe -Command $command
+
+        if($LASTEXITCODE -ne 0)
+        {
+            #todo: test this works
+            throw "'$edition' invocation failed with exit code '$LASTEXITCODE': $response"
+        }
+
+        return $response
+    }
+}
+
+function Hide-Module($edition, $script)
+{
+    #todo: need to be able to do hidemodule/check/install/uninstall against both powershell and pwsh
+
     $hidden = $false
 
-    Write-LogInfo "get-module"
-
-    $module = Get-Module $name -ListAvailable
+    #$module = Get-Module $name -ListAvailable
+    $module = Get-EditionModule $edition
 
     try
     {
-
-        Write-LogInfo "if module"
         if($module)
         {
-            Write-LogInfo "had module"
             $hidden = $true
 
-            Write-LogInfo "`t`t`t`tRenaming module info files"
+            Write-LogInfo "`t`t`t`t`tRenaming module info files"
 
             foreach($m in $module)
             {
@@ -551,7 +668,7 @@ function Hide-Module($name, $script)
                 }
             }
 
-            Write-LogInfo "`t`t`t`tRenaming module directories"
+            Write-LogInfo "`t`t`t`t`tRenaming module directories"
 
             foreach($m in $module)
             {
@@ -577,26 +694,15 @@ function Hide-Module($name, $script)
             }
         }
 
-        Write-LogInfo "`t`t`t`tInvoking script"
+        Write-LogInfo "`t`t`t`t`tInvoking script"
 
-        & $script
-
-        Write-LogInfo "script invocation completed"
-    }
-    catch
-    {
-        Write-LogInfo "an error occurred, so thats why we didnt reach the finally, duh!"
-        Write-LogInfo $_.Exception.Message
-
-        Write-LogInfo $_.Exception.StackTrace
+        & $script $edition
     }
     finally
     {
-        Write-LogInfo "if hidden"
         if($hidden)
         {
-            Write-LogInfo "true...was hidden"
-            Write-LogInfo "`t`t`t`tRestoring module directories"
+            Write-LogInfo "`t`t`t`t`tRestoring module directories"
 
             foreach($m in $module)
             {
@@ -609,7 +715,7 @@ function Hide-Module($name, $script)
                 }
             }
 
-            Write-LogInfo "`t`t`t`tRestoring module info files"
+            Write-LogInfo "`t`t`t`t`tRestoring module info files"
 
             foreach($m in $module)
             {
@@ -621,20 +727,14 @@ function Hide-Module($name, $script)
                 }
             }
         }
-
-        Write-LogInfo "hidden completed"
     }
-
-    Write-LogInfo "finally completed"
-
-    Get-PSCallStack
 }
 
 function Get-ModuleFolder($module)
 {
-    $path = $m.Path -replace "PrtgAPI.psd1",""
+    $path = $module.Path -replace "PrtgAPI.psd1",""
 
-    $versionFolder = "$($m.Version)\"
+    $versionFolder = "$($module.Version)\"
 
     if($path.EndsWith($versionFolder))
     {
@@ -748,12 +848,12 @@ function Test-RedistributableModuleInstalls($config, $extractFolder)
 {
     if($config.IsCore)
     {
-        Test-PowerShellPackageInstallsInternal "powershell" $extractFolder
-        Test-PowerShellPackageInstallsInternal "pwsh" $extractFolder
+        Test-PowerShellPackageInstallsInternal "Desktop" $extractFolder
+        Test-PowerShellPackageInstallsInternal "Core" $extractFolder
     }
     else
     {
-        Test-PowerShellPackageInstallsInternal "powershell" $extractFolder
+        Test-PowerShellPackageInstallsInternal "Desktop" $extractFolder
     }
 }
 
