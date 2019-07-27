@@ -6,3 +6,5 @@ $script:SolutionDir = $script:SolutionDir = Get-SolutionRoot
 . Import-ModuleFunctions "$PSScriptRoot\Travis"
 
 $env:CONFIGURATION = "Release"
+
+$global:ProgressPreference = "SilentlyContinue"
