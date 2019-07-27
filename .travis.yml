@@ -2,9 +2,6 @@ language: csharp
 mono: none
 dotnet: 2.1.605
 
-env:
-  - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
-
 #cache:
 #  directories:
 #    - $TRAVIS_BUILD_DIR/snaps-cache
@@ -15,10 +12,10 @@ os:
 osx_image: xcode10.2
 
 install:
-  - pwsh -f "./Tools/CI/Travis/Invoke-TravisInstall.ps1"
+  - pwsh -f "ipmo ./Tools/CI/Travis.psm1; Invoke-TravisInstall"
 
 script:
-  - pwsh -f "./Tools/CI/Travis/Invoke-TravisScript.ps1"
+  - pwsh -f "ipmo ./Tools/CI/Travis.psm1; Invoke-TravisScript"
 
 addons:
   snaps:
