@@ -2,11 +2,14 @@ language: csharp
 mono: none
 dotnet: 2.1.605
 
-#cache:
-#  directories:
-#    - $TRAVIS_BUILD_DIR/snaps-cache
+env:
+  global:
+    - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 
-#todo: why didnt we get a message on travis about how the installation of pester went
+cache:
+  timeout: 360
+  directories:
+    - $HOME/.nuget
 
 matrix:
   include:
