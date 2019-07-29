@@ -475,8 +475,6 @@ function Test-PowerShellPackageInstallsHidden($edition, $config)
     }
 }
 
-#todo: change the redist package to use the same technique of calling this method
-
 function Test-PowerShellPackageInstallsInternal($edition, $module = "PrtgAPI")
 {
     $exe = Get-PowerShellExecutable $edition
@@ -485,8 +483,6 @@ function Test-PowerShellPackageInstallsInternal($edition, $module = "PrtgAPI")
 
     $resultCmdlet =   (& $exe -command "&{ import-module '$module'; try { Get-Sensor } catch [exception] { `$_.exception.message }}")
     $resultFunction = (& $exe -command "&{ import-module '$module'; (New-Credential a b).ToString() }")
-    
-    #todo: pwsh module directory is different to powershell module directory    
 
     if($resultCmdlet -ne "You are not connected to a PRTG Server. Please connect first using Connect-PrtgServer.")
     {
@@ -578,8 +574,6 @@ function Install-EditionPackage
             }
         }
     }
-
-    #todo: how do we know there was "no response" when invoking an external process? test!
 }
 
 function Uninstall-EditionPackage
@@ -612,8 +606,6 @@ function Uninstall-EditionPackage
             }
         }
     }
-
-    #todo: how do we know there was "no response" when invoking an external process? test!
 }
 
 function Invoke-Edition($edition, $command)
@@ -630,7 +622,6 @@ function Invoke-Edition($edition, $command)
 
         if($LASTEXITCODE -ne 0)
         {
-            #todo: test this works
             throw "'$edition' invocation failed with exit code '$LASTEXITCODE': $response"
         }
 
@@ -640,11 +631,8 @@ function Invoke-Edition($edition, $command)
 
 function Hide-Module($edition, $script)
 {
-    #todo: need to be able to do hidemodule/check/install/uninstall against both powershell and pwsh
-
     $hidden = $false
 
-    #$module = Get-Module $name -ListAvailable
     $module = Get-EditionModule $edition
 
     try

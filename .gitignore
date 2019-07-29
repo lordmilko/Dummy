@@ -20,6 +20,7 @@ packages/
 # NuGet Packages
 *.nupkg
 *.snupkg
+*.zip
 
 # MSBuild logs
 *.binlog
@@ -47,3 +48,10 @@ Desktop.ini
 
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
+
+##################
+# MacOS detritus #
+##################
+
+# Folder config file
+.DS_Store

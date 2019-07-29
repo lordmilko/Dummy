@@ -74,9 +74,6 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         [TestCategory("UnitTest")]
         public void PrtgClient_RetriesWhileStreaming()
         {
-            //todo: why does this keep intermittantly returning 6 instead of 4 now
-            //with new async retry stuff. maybe try logging some state/thread id etc
-
             var response = new SensorResponse(Enumerable.Repeat(new SensorItem(), 1001).ToArray());
 
             var client = new PrtgClient("prtg.example.com", "username", "passhash", AuthMode.PassHash, new MockRetryWebClient(response, false));

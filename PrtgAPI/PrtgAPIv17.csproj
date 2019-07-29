@@ -4,7 +4,8 @@
   <!-- Project Configuration -->
 
   <PropertyGroup>
-    <TargetFrameworks Condition="'$(TargetFrameworks)' == ''">net452;netstandard2.0</TargetFrameworks>
+    <!-- TargetFramework listed first will be debugged in Release mode -->
+    <TargetFrameworks Condition="'$(TargetFrameworks)' == ''">netstandard2.0;net452</TargetFrameworks>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\PrtgAPI.xml</DocumentationFile>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <AssemblyName>PrtgAPI</AssemblyName>
@@ -24,10 +25,6 @@
       <_Parameter1>PrtgAPI.Tests.UnitTests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
-
-  <!-- Content -->
-
-
   
   <!-- Common Definitions -->
 

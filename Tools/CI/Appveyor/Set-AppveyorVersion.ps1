@@ -51,8 +51,6 @@ function Get-AppveyorVersion($IsCore)
         throw "Failed to determine the type of build"
     }
 
-    Write-LogInfo "Setting Appveyor build to '$result'"
-
     return $result
 }
 
@@ -272,7 +270,7 @@ function Set-AppveyorVersion
         Write-LogInfo "Calculating version"
         $version = Get-AppveyorVersion $IsCore
 
-        Write-LogInfo "`tSetting AppVeyor build to version '$version'"
+        Write-LogInfo "Setting AppVeyor build to version '$version'"
 
         if($env:APPVEYOR)
         {

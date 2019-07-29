@@ -182,8 +182,6 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 "`n"
             };
 
-            //todo: travis needs to be able to execute this
-
             var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Where(f =>
                 types.Any(f.EndsWith) && IsNotExcludedFolder(path, f) && !f.Contains("PrtgAPI.Tests")
             );

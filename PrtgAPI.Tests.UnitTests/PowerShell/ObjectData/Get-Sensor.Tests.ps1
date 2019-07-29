@@ -3,7 +3,6 @@
 Describe "Get-Sensor" -Tag @("PowerShell", "UnitTest") {
     
     It "can deserialize" {
-
         $sensors = Get-Sensor
         $sensors.Count | Should Be 1
     }

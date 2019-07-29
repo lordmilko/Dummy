@@ -336,6 +336,11 @@ function Install-PSPackage
 
     if(!$installedModules)
     {
+        if($Log)
+        {
+            Write-LogInfo "`tInstalling '$PackageName' PowerShell Module"
+        }
+
         $result = Install-Package @packageArgs
 
         if(!$Log)
@@ -377,7 +382,7 @@ function Install-PSPackageProvider
     {
         if($Log)
         {
-            Write-LogInfo "`tInstalling $PackageName package provider"
+            Write-LogInfo "`tInstalling '$PackageName' package provider"
         }
         
         $result = Install-PackageProvider @packageArgs
@@ -396,7 +401,7 @@ function Install-PSPackageProvider
                 Write-LogInfo "`tSkipping installing '$PackageName' package provider as it is already installed"
             }
         }
-        else #todo: silentskip doesnt seem to be working in appveyor?
+        else
         {
             WriteDependencyResult $PackageName "PackageProvider" $provider.Version "Skipped"
         }

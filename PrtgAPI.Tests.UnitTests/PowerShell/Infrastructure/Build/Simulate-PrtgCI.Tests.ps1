@@ -12,6 +12,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
                 "dotnet"
                 "restore"
                 "`"$root\PrtgAPIv17.sln`""
+                "`"-p:EnableSourceLink=true`""
             )
 
             Mock-InvokeProcess $expected {
@@ -33,6 +34,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
                 "-c"
                 "Debug"
                 "-p:EnableSourceLink=true"
+                "--no-restore"
             )
 
             Mock-InvokeProcess $expected {
@@ -166,7 +168,8 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
                     "--verbosity:n"
                     "-c"
                     "Debug"
-                    "--logger:Appveyor"
+                    "--filter"
+                    "TestCategory!=SkipCI"
                 )
 
                 Mock-InvokeProcess $expected {
@@ -576,6 +579,8 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
                 "--verbosity:n"
                 "-c"
                 "Debug"
+                "--filter"
+                "TestCategory!=SkipCI"
             )
 
             return $clean,$build,$test

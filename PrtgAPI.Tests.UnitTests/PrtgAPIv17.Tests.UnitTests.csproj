@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <!-- Project Configuration -->
 
   <PropertyGroup>
@@ -6,6 +7,7 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <AssemblyName>PrtgAPI.Tests.UnitTests</AssemblyName>
+    <RootNamespace>PrtgAPI.Tests.UnitTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

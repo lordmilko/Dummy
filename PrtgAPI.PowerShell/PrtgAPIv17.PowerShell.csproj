@@ -4,7 +4,8 @@
 
   <PropertyGroup>
     <Description>PowerShell interface for PRTG Network Monitor</Description>
-    <TargetFrameworks Condition="'$(TargetFrameworks)' == ''">net452;netstandard2.0</TargetFrameworks>
+    <!-- TargetFramework listed first will be debugged in Release mode -->
+    <TargetFrameworks Condition="'$(TargetFrameworks)' == ''">netstandard2.0;net452</TargetFrameworks>
     <OutputPath>bin\$(Configuration)\$(TargetFramework)\PrtgAPI\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)\$(Configuration)\$(TargetFramework.ToLowerInvariant())\</IntermediateOutputPath>
@@ -70,8 +71,4 @@
     <Copy SourceFiles="@(PowerShellResources)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(PowerShellFunctions)" DestinationFolder="$(OutputPath)Functions" SkipUnchangedFiles="true" />
   </Target>
-
-  <!--<Target Name="MoveXmlDoc2CmdletDocOutput" AfterTargets="XmlDoc2CmdletDoc" Condition="'$(FrameworkType)' == 'Full'">
-    <Move SourceFiles="$(TargetPath)-Help.xml" DestinationFolder="$(ModulePath)" />
-  </Target>-->
 </Project>

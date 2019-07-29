@@ -3,16 +3,12 @@
   <!-- Framework Constants -->
   
   <PropertyGroup Condition="$(TargetFramework.StartsWith('netcoreapp'))">
-    <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
     <FrameworkType>Core</FrameworkType>
   </PropertyGroup>
   <PropertyGroup Condition="$(TargetFramework.StartsWith('netstandard'))">
-    <DefineConstants>$(DefineConstants);NETSTANDARD</DefineConstants>
     <FrameworkType>Standard</FrameworkType>
   </PropertyGroup>
   <PropertyGroup Condition="$(TargetFramework.StartsWith('net4'))">
-    <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
-    <!-- TODO: why dont things grey out when i rename this constant? -->
     <FrameworkType>Full</FrameworkType>
   </PropertyGroup>
 
@@ -48,8 +44,5 @@
   <ItemGroup>
     <Compile Remove="$(ProjectDir)Properties\*.cs"/>
       <None Remove="**\*.DotSettings"/>
-    <!--<None Remove="**/*" />-->
-    <!-- Hide *.DotSettings files -->
-    <!--<Content Include="**\*.*" Exclude="bin\**\*.*;obj\**\*.*;*.csproj;*.DotSettings;*.user;*.cs" Pack="false" />-->
   </ItemGroup>
 </Project>

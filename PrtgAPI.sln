@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.572
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrtgAPI.PowerShell", "PrtgAPI.PowerShell\PrtgAPI.PowerShell.csproj", "{C55D8F50-71DE-42C6-A758-5EFF855F318D}"
 EndProject
@@ -99,6 +99,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{4E3C0D88
 		Tools\CI\Tests\CI.Tests.ps1 = Tools\CI\Tests\CI.Tests.ps1
 		Tools\CI\Tests\Travis.Tests.ps1 = Tools\CI\Tests\Travis.Tests.ps1
 	EndProjectSection
+	ProjectSection(FolderStartupServices) = postProject
+		{82A7F48D-3B50-4B1E-B82E-3ADA8210C358} = {82A7F48D-3B50-4B1E-B82E-3ADA8210C358}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Travis", "Travis", "{7386C761-E5E4-429D-A5AF-58AE25646917}"
 	ProjectSection(SolutionItems) = preProject
@@ -108,6 +111,25 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Travis", "Travis", "{7386C7
 		Tools\CI\Travis\Invoke-TravisScript.ps1 = Tools\CI\Travis\Invoke-TravisScript.ps1
 		Tools\CI\Travis\Invoke-TravisTest.ps1 = Tools\CI\Travis\Invoke-TravisTest.ps1
 		Tools\CI\Travis\Simulate-Travis.ps1 = Tools\CI\Travis\Simulate-Travis.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7AE797AC-853F-419D-9B53-800AD28046D8}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		.travis.yml = .travis.yml
+		appveyor.yml = appveyor.yml
+		README.md = README.md
+		ThirdPartyNotices.txt = ThirdPartyNotices.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{9C910B54-023C-4775-8327-C043705A5DF4}"
+	ProjectSection(SolutionItems) = preProject
+		build\Common.props = build\Common.props
+		Directory.Build.props = Directory.Build.props
+		build\NuGet.props = build\NuGet.props
+		build\Version.props = build\Version.props
 	EndProjectSection
 EndProject
 Global

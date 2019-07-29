@@ -40,7 +40,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
 
             this.exactMatch = exactMatch;
 
-#if NETCORE
+#if NETCOREAPP
             AllowReorder = true;
 #endif
         }
