@@ -1,8 +1,7 @@
-﻿ipmo $PSScriptRoot\..\..\..\..\Tools\PrtgAPI.Build
-ipmo $PSScriptRoot\..\..\..\..\Tools\CI\ci.psm1
+﻿. $PSScriptRoot\..\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell\BuildCore.ps1
 
 Describe "Update-PrtgVersion_IT" -Tag @("PowerShell", "Build_IT") {
-    It "updates version on core" {
+    It "updates version on core" -Skip:(SkipBuildTest) {
         $originalVersion = (Get-PrtgVersion).File
 
         try
@@ -21,7 +20,7 @@ Describe "Update-PrtgVersion_IT" -Tag @("PowerShell", "Build_IT") {
         }
     }
 
-    It "updates version on desktop" -Skip:(!(Test-IsWindows)) {
+    It "updates version on desktop" -Skip:(!(Test-IsWindows) -or (SkipBuildTest)) {
         $originalVersion = (Get-PrtgVersion -IsCore:$false).File
 
         try

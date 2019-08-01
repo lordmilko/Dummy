@@ -1,9 +1,4 @@
-﻿if(!$skipBuildModule)
-{
-    ipmo $PSScriptRoot\..\..\..\Tools\PrtgAPI.Build
-}
-
-ipmo $PSScriptRoot\..\..\..\Tools\CI\ci.psm1
+﻿. $PSScriptRoot\BuildCore.ps1
 
 function Describe
 {
@@ -110,24 +105,6 @@ function RemoveMocks
             $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName, $mock.FunctionScope, $mock.Alias
             $mockTable.Remove($mockKey)
         }
-    }
-}
-
-function WithoutTestDrive($script)
-{
-    $drive = Get-PSDrive TestDrive -Scope Global
-
-    $drive | Remove-PSDrive -Force
-    Remove-Variable $drive.Name -Scope Global -Force
-
-    try
-    {
-        & $script
-    }
-    finally
-    {
-        New-PSDrive $drive.Name -PSProvider $drive.Provider -Root $drive.Root -Scope Global
-        New-Variable $drive.Name -Scope Global -Value $drive.Root
     }
 }
 
@@ -400,9 +377,4 @@ function global:MockGetChocolateyCommand
 
         return "C:\ProgramData\chocolatey\bin\$CommandName"
     } -ModuleName CI
-}
-
-function Get-SolutionRoot
-{
-    return Resolve-Path "$PSScriptRoot\..\..\.."
 }

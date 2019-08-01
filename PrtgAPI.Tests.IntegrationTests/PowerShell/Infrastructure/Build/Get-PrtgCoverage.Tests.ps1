@@ -1,5 +1,4 @@
-﻿ipmo $PSScriptRoot\..\..\..\..\Tools\PrtgAPI.Build
-ipmo $PSScriptRoot\..\..\..\..\Tools\CI\ci.psm1
+﻿. $PSScriptRoot\..\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell\BuildCore.ps1
 
 $testCases = @(
     @{name = "Debug"}
@@ -7,7 +6,7 @@ $testCases = @(
 )
 
 Describe "Get-PrtgCoverage_IT" -Tag @("PowerShell", "Build_IT") {
-    It "gets coverage on core" {
+    It "gets coverage on core" -Skip:(SkipBuildTest) {
 
         Clear-PrtgBuild -Full
 
@@ -23,7 +22,7 @@ Describe "Get-PrtgCoverage_IT" -Tag @("PowerShell", "Build_IT") {
         }
     }
 
-    It "gets coverage on desktop" -TestCases $testCases -Skip:(!(Test-IsWindows)) {
+    It "gets coverage on desktop" -TestCases $testCases -Skip:(!(Test-IsWindows) -or (SkipBuildTest)) {
 
         param($name)
 

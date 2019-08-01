@@ -1,5 +1,4 @@
-﻿ipmo $PSScriptRoot\..\..\..\..\Tools\PrtgAPI.Build
-ipmo $PSScriptRoot\..\..\..\..\Tools\CI\ci.psm1
+﻿. $PSScriptRoot\..\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell\BuildCore.ps1
 
 $testCases = @(
     @{name = "Debug"}
@@ -7,7 +6,7 @@ $testCases = @(
 )
 
 Describe "Clear-PrtgBuild_IT" -Tag @("PowerShell", "Build_IT") {
-    It "clears the last build on core for <name>" -TestCases $testCases {
+    It "clears the last build on core for <name>" -TestCases $testCases -Skip:(SkipBuildTest) {
 
         param($name)
 
@@ -18,7 +17,7 @@ Describe "Clear-PrtgBuild_IT" -Tag @("PowerShell", "Build_IT") {
         Clear-PrtgBuild -Configuration $name
     }
 
-    It "clears the last build on desktop for <name>" -TestCases $testCases -Skip:(!(Test-IsWindows)) {
+    It "clears the last build on desktop for <name>" -TestCases $testCases -Skip:(!(Test-IsWindows) -or (SkipBuildTest)) {
 
         param($name)
 
@@ -29,7 +28,7 @@ Describe "Clear-PrtgBuild_IT" -Tag @("PowerShell", "Build_IT") {
         Clear-PrtgBuild -Configuration $name -IsCore:$false
     }
 
-    It "clears all files" {
+    It "clears all files" -Skip:(SkipBuildTest) {
         Clear-PrtgBuild -Full
 
         Invoke-PrtgBuild

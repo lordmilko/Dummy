@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\..\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell\Build.ps1
+﻿. $PSScriptRoot\..\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell\BuildCore.ps1
 
 $testCases = @(
     @{name = "Debug"}
@@ -7,7 +7,7 @@ $testCases = @(
 
 Describe "Invoke-PrtgTest_IT" -Tag @("PowerShell", "Build_IT") {
     
-    It "tests on desktop for <name>" -Skip:(!(Test-IsWindows)) {
+    It "tests on desktop for <name>" -Skip:(!(Test-IsWindows) -or (SkipBuildTest)) {
 
         param($name)
 
@@ -20,7 +20,7 @@ Describe "Invoke-PrtgTest_IT" -Tag @("PowerShell", "Build_IT") {
         Invoke-PrtgTest -IsCore:$false -Type C# -Configuration $name
     }
     
-    It "tests on core" {
+    It "tests on core" -Skip:(SkipBuildTest) {
         Clear-PrtgBuild -Full
 
         # Need a PowerShell Desktop build candidate for running this file in Windows PowerShell

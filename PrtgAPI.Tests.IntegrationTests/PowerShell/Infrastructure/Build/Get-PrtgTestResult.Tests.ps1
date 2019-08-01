@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\..\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell\Build.ps1
+﻿. $PSScriptRoot\..\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell\BuildCore.ps1
 
 $testCases = @(
     @{name = "Debug"}
@@ -7,7 +7,7 @@ $testCases = @(
 
 Describe "Get-PrtgTestResult_IT" -Tag @("PowerShell", "Build_IT") {
     
-    It "gets test results from desktop for <name>" -TestCases $testCases -Skip:(!(Test-IsWindows)) {
+    It "gets test results from desktop for <name>" -TestCases $testCases -Skip:(!(Test-IsWindows) -or (SkipBuildTest)) {
 
         param($name)
 
@@ -21,7 +21,7 @@ Describe "Get-PrtgTestResult_IT" -Tag @("PowerShell", "Build_IT") {
         Get-PrtgTestResult -Type C#
     }
     
-    It "gets test results from core for <name>" -TestCases $testCases {
+    It "gets test results from core for <name>" -TestCases $testCases -Skip:(SkipBuildTest) {
 
         param($name)
 

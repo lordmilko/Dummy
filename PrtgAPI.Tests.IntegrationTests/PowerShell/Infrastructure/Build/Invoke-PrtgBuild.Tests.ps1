@@ -1,5 +1,4 @@
-﻿ipmo $PSScriptRoot\..\..\..\..\Tools\PrtgAPI.Build
-ipmo $PSScriptRoot\..\..\..\..\Tools\CI\ci.psm1
+﻿. $PSScriptRoot\..\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell\BuildCore.ps1
 
 $testCases = @(
     @{name = "Debug"}
@@ -8,7 +7,7 @@ $testCases = @(
 
 Describe "Invoke-PrtgBuild_IT" -Tag @("PowerShell", "Build_IT") {
     
-    It "builds on core for <name>" -TestCases $testCases {
+    It "builds on core for <name>" -TestCases $testCases -Skip:(SkipBuildTest) {
 
         param($name)
 
@@ -17,7 +16,7 @@ Describe "Invoke-PrtgBuild_IT" -Tag @("PowerShell", "Build_IT") {
         Invoke-PrtgBuild -Configuration $name
     }
     
-    It "builds on desktop for <name>" -TestCases $testCases -Skip:(!(Test-IsWindows)) {
+    It "builds on desktop for <name>" -TestCases $testCases -Skip:(!(Test-IsWindows) -or (SkipBuildTest)) {
 
         param($name)
 

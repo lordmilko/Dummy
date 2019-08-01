@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\..\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell\Build.ps1
+﻿. $PSScriptRoot\..\..\..\..\PrtgAPI.Tests.UnitTests\Support\PowerShell\BuildCore.ps1
 
 $testCases = @(
     @{name = "Debug"}
@@ -16,7 +16,7 @@ Describe "Simulate-PrtgCI_IT" -Tag @("PowerShell", "Build_IT") {
         $exe = "powershell"
     }
 
-    It "simulates Appveyor on core" {
+    It "simulates Appveyor on core" -Skip:(SkipBuildTest) {
 
         if(Test-IsWindows)
         {
@@ -33,7 +33,7 @@ Describe "Simulate-PrtgCI_IT" -Tag @("PowerShell", "Build_IT") {
         }
     }
 
-    It "simulates Appveyor on desktop for <name>" -TestCases $testCases -Skip:(!(Test-IsWindows)) {
+    It "simulates Appveyor on desktop for <name>" -TestCases $testCases -Skip:(!(Test-IsWindows) -or (SkipBuildTest)) {
         param($name)
 
         & $exe  -NonInteractive -Command ". '$path'; Simulate-PrtgCI -Configuration $name -IsCore:`$false" | Write-Host
@@ -44,7 +44,7 @@ Describe "Simulate-PrtgCI_IT" -Tag @("PowerShell", "Build_IT") {
         }
     }
 
-    It "simulates Travis" {
+    It "simulates Travis" -Skip:(SkipBuildTest) {
 
         pwsh -NonInteractive -Command ". '$path'; Simulate-PrtgCI -Travis -Configuration Release" | Write-Host
 
