@@ -1,6 +1,6 @@
 ﻿. $PSScriptRoot\..\..\..\Support\PowerShell\Build.ps1
 
-function Mock-Command($name)
+function global:Mock-Command($name)
 {
     $global:prtgCommandName = $name
 
@@ -38,6 +38,8 @@ function Mock-ChocolateyCommand($name)
             }
         }
     } -ModuleName "CI" -ParameterFilter { $Path -eq "C:\chocolatey.exe" }
+
+    Mock-Command $name
 }
 
 Describe "Install-PrtgDependency" -Tag @("PowerShell", "Build") {
@@ -47,6 +49,7 @@ Describe "Install-PrtgDependency" -Tag @("PowerShell", "Build") {
         InModuleScope "CI" {
 
             Mock "Get-ChocolateyCommand" {} -Verifiable
+            Mock-Command "chocolatey"
 
             Mock "Invoke-WebRequest" {
                 return "iwr-response"
@@ -74,6 +77,8 @@ Describe "Install-PrtgDependency" -Tag @("PowerShell", "Build") {
                     }
                 }
             } -ParameterFilter { $Path -eq "C:\chocolatey.exe" } -Verifiable
+
+            Mock-Command "chocolatey"
         }    
 
         Mock-InvokeProcess "choco upgrade chocolatey --limitoutput --no-progress -y" {

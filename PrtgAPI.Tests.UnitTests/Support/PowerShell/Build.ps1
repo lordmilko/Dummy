@@ -377,4 +377,12 @@ function global:MockGetChocolateyCommand
 
         return "C:\ProgramData\chocolatey\bin\$CommandName"
     } -ModuleName CI
+
+    Mock "Get-Item" {
+        return [PSCustomObject]@{
+            VersionInfo = [PSCustomObject]@{
+                FileVersion = "9999.0.0.0"
+            }
+        }
+    } -ModuleName "CI" -ParameterFilter { $Path -like "*chocolatey*" }
 }
