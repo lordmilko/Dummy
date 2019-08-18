@@ -1,0 +1,221 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{60277601-FF8C-4712-BE9B-972921F5C763}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>PrtgAPI.Tests.IntegrationTests</RootNamespace>
+    <AssemblyName>PrtgAPI.Tests.IntegrationTests</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+    <ReferencePath>$(ProgramFiles)\Common Files\microsoft shared\VSTT\$(VisualStudioVersion)\UITestExtensionPackages</ReferencePath>
+    <IsCodedUITest>False</IsCodedUITest>
+    <TestProjectType>UnitTest</TestProjectType>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <Choose>
+    <When Condition="('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
+      <ItemGroup>
+        <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework" />
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <ItemGroup>
+    <Compile Include="..\PrtgAPI\Enums\Serialization\ObjectPropertyCategory.cs">
+      <Link>Support\ObjectPropertyCategory.cs</Link>
+    </Compile>
+    <Compile Include="CSharp\ObjectData\ObjectTests.cs" />
+    <Compile Include="CSharp\ObjectData\Query\AnyTests.cs" />
+    <Compile Include="CSharp\ObjectData\Query\BaseQueryTest.cs" />
+    <Compile Include="CSharp\ObjectData\Query\CountTests.cs" />
+    <Compile Include="CSharp\ObjectData\Query\FirstTests.cs" />
+    <Compile Include="CSharp\ObjectData\Query\OrderByTests.cs" />
+    <Compile Include="CSharp\ObjectData\Query\SelectManyTests.cs" />
+    <Compile Include="CSharp\ObjectData\Query\SelectTests.cs" />
+    <Compile Include="CSharp\ObjectData\Query\SkipTests.cs" />
+    <Compile Include="CSharp\ObjectData\Query\TakeTests.cs" />
+    <Compile Include="CSharp\ObjectData\ScheduleTests.cs" />
+    <Compile Include="CSharp\ObjectData\SensorHistoryTests.cs" />
+    <Compile Include="CSharp\ObjectData\StreamTests.cs" />
+    <Compile Include="CSharp\ObjectData\SystemInfoTests.cs" />
+    <Compile Include="CSharp\ObjectManipulation\AddObjectTests.cs" />
+    <Compile Include="CSharp\ObjectManipulation\AdminToolTests.cs" />
+    <Compile Include="CSharp\ObjectManipulation\DynamicSensorParameterTests.cs" />
+    <Compile Include="CSharp\ObjectManipulation\NotificationTriggerTests.cs" />
+    <Compile Include="CSharp\ObjectManipulation\SetObjectPropertyTests.cs" />
+    <Compile Include="CSharp\ObjectManipulation\Types\ExeXmlRawSensorParameters.cs" />
+    <Compile Include="CSharp\ObjectData\GetObjectProperties.cs" />
+    <Compile Include="CSharp\ObjectData\LogTests.cs" />
+    <Compile Include="CSharp\ObjectData\SensorTargetTests.cs" />
+    <Compile Include="CSharp\ObjectData\Query\FilterTests.cs" />
+    <Compile Include="CSharp\ObjectData\Query\WhereTests.cs" />
+    <Compile Include="Support\PrtgObjectComparer.cs" />
+    <Compile Include="Support\SensorTypeManager.cs" />
+    <Compile Include="Support\ServerManager.cs" />
+    <Compile Include="Support\AssertEx.cs" />
+    <Compile Include="Support\BasePrtgClientTest.cs" />
+    <Compile Include="CSharp\ObjectData\ChannelTests.cs" />
+    <Compile Include="CSharp\ObjectData\NotificationActionTests.cs" />
+    <Compile Include="CSharp\ObjectData\SensorTotalsTests.cs" />
+    <Compile Include="Support\Impersonator.cs" />
+    <Compile Include="Support\Logger.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="CSharp\ObjectManipulation\SetChannelPropertyTests.cs" />
+    <Compile Include="CSharp\Infrastructure\PrtgClientConnectionTests.cs" />
+    <Compile Include="CSharp\ObjectData\DeviceTests.cs" />
+    <Compile Include="CSharp\ObjectData\GroupTests.cs" />
+    <Compile Include="CSharp\ObjectData\NotificationTriggerTests.cs" />
+    <Compile Include="CSharp\ObjectData\ProbeTests.cs" />
+    <Compile Include="CSharp\ObjectData\SensorTests.cs" />
+    <Compile Include="CSharp\ObjectManipulation\StateTests.cs" />
+    <Compile Include="Settings.cs" />
+    <Compile Include="Settings.Local.cs" Condition="Exists('Settings.Local.cs')" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PrtgAPI.Tests.UnitTests\PrtgAPI.Tests.UnitTests.csproj">
+      <Project>{2179c33f-c774-45af-a664-338b8c3b799b}</Project>
+      <Name>PrtgAPI.Tests.UnitTests</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\PrtgAPI\PrtgAPI.csproj">
+      <Project>{0f6f773a-7053-424e-89f8-43467a695433}</Project>
+      <Name>PrtgAPI</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Build\CI\Tests\Appveyor.Tests.ps1">
+      <Link>PowerShell\Infrastructure\Appveyor.Tests.ps1</Link>
+    </None>
+    <None Include="..\..\Build\CI\Tests\CI.Tests.ps1">
+      <Link>PowerShell\Infrastructure\CI.Tests.ps1</Link>
+    </None>
+    <None Include="..\..\Build\CI\Tests\Travis.Tests.ps1">
+      <Link>PowerShell\Infrastructure\Travis.Tests.ps1</Link>
+    </None>
+    <None Include="New-TestSettings.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Clear-PrtgBuild.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Get-PrtgCoverage.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Get-PrtgTestResult.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Get-PrtgVersion.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Invoke-PrtgAnalyzer.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Invoke-PrtgBuild.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Invoke-PrtgTest.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\New-PrtgPackage.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Set-PrtgVersion.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Simulate-PrtgCI.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Build\Update-PrtgVersion.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Add-Device.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Add-Group.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Add-NotificationTrigger.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Add-Sensor.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Backup-PrtgConfig.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Clear-PrtgCache.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Clone-Object.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\CodeGeneration.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\New-SensorParameters.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Set-NotificationTriggerProperty.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-Channel.Tests.ps1" />
+    <None Include="PowerShell\Infrastructure\Connect-PrtgServer.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-Device.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-Group.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-NotificationAction.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-NotificationTrigger.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-Object.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-ObjectLog.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-ObjectProperty.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-Probe.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-PrtgSchedule.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-PrtgStatus.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-Sensor.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-SensorFactorySource.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-SensorHistory.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-SensorTarget.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-SensorType.Tests.ps1" />
+    <None Include="PowerShell\ObjectData\Get-SystemInfo.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Load-PrtgConfigFile.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\New-Sensor.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\ObjectProperty\Set-ObjectProperty.Container.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\ObjectProperty\Set-ObjectProperty.DeviceOrGroup.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\ObjectProperty\Set-ObjectProperty.Group.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\ObjectProperty\Set-ObjectProperty.Probe.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Pause-Object.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Acknowledge-Sensor.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Refresh-SystemInfo.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Rename-Object.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Restart-Probe.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Restart-PrtgCore.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Resume-Object.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Set-ChannelProperty.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\ObjectProperty\Set-ObjectProperty.Device.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\ObjectProperty\Set-ObjectProperty.Sensor.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\ObjectProperty\Set-ObjectProperty.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Simulate-ErrorStatus.Tests.ps1" />
+    <None Include="PowerShell\ObjectManipulation\Start-AutoDiscovery.Tests.ps1" />
+    <None Include="Support\PowerShell\Init.ps1" />
+    <None Include="Support\PowerShell\IntegrationTest.ps1" />
+    <None Include="Support\PowerShell\IntegrationTestSafe.ps1" />
+    <None Include="Support\PowerShell\ObjectProperty.ps1" />
+  </ItemGroup>
+  <Choose>
+    <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
+      <ItemGroup>
+        <Reference Include="Microsoft.VisualStudio.QualityTools.CodedUITestFramework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+          <Private>False</Private>
+        </Reference>
+        <Reference Include="Microsoft.VisualStudio.TestTools.UITest.Common, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+          <Private>False</Private>
+        </Reference>
+        <Reference Include="Microsoft.VisualStudio.TestTools.UITest.Extension, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+          <Private>False</Private>
+        </Reference>
+        <Reference Include="Microsoft.VisualStudio.TestTools.UITesting, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+          <Private>False</Private>
+        </Reference>
+      </ItemGroup>
+    </When>
+  </Choose>
+  <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

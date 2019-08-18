@@ -35,8 +35,9 @@
   </Target>
 
   <!-- Clear the TestResults directory under the project folder to prevent files/folders under this directory from accumulating -->
-  <Target Name="ClearTestResults" BeforeTargets="BeforeBuild" Condition="'$(IsTestProject)' == 'true'">
+  <Target Name="ClearTestResults" BeforeTargets="DispatchToInnerBuilds" Condition="'$(IsTestProject)' == 'true'">
     <RemoveDir Directories="$(ProjectDir)TestResults" />
+    <RemoveDir Directories="$(SolutionDir)TestResults" />
   </Target>
 
   <!-- Contents -->
