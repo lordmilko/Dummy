@@ -19,7 +19,7 @@ function Invoke-AppveyorPesterTest($IsCore)
     {
         Write-LogInfo "`tExecuting PowerShell tests under PowerShell Core"
 
-        pwsh -NonInteractive -Command "Invoke-Pester '$env:APPVEYOR_BUILD_FOLDER\PrtgAPI.Tests.UnitTests\PowerShell' -EnableExit"
+        pwsh -NonInteractive -Command "Invoke-Pester '$env:APPVEYOR_BUILD_FOLDER\src\PrtgAPI.Tests.UnitTests\PowerShell' -EnableExit"
 
         $failed = $LASTEXITCODE
 

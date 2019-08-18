@@ -563,7 +563,7 @@ function Install-NETFrameworkTargetingPack
         {
             if(!$SilentSkip)
             {
-                Write-LogInfo "`tSkipping installing '$PackageName' package provider as it is already installed"
+                Write-LogInfo "`tSkipping installing '$PackageName' targeting pack as it is already installed"
             }
         }
         else
