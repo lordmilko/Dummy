@@ -1,4 +1,4 @@
-﻿#ipmo $PSScriptRoot\..\..\..\..\..\build\CI\ci.psm1
+﻿ipmo $PSScriptRoot\..\..\..\..\..\build\CI\ci.psm1 -Scope Local
 
 Describe "Clear-PrtgBuild" -Tag @("PowerShell", "Build") {
 
