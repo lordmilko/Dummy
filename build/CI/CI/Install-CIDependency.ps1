@@ -32,7 +32,7 @@ function Install-CIDependency
 
     if(!$dependencies)
     {
-        throw "Could not find dependency '$dependencies'"
+        throw "Could not find dependency '$Name'"
     }
 
     $silentSkip = $false

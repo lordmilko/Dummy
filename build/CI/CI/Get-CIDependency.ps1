@@ -4,7 +4,7 @@ function Get-CIDependency
     # Install-PrtgDependency.Tests.ps1 (including both the standalone test and the test as part of all dependencies)
     $dependencies = @(
         #@{ Name = "chocolatey";               Chocolatey = $true;      MinimumVersion = "0.10.5.0";  Manager = $true }
-        #@{ Name = "dotnet";                   Dotnet     = $true }
+        @{ Name = "dotnet";                   Dotnet     = $true }
         #@{ Name = "codecov";                  Chocolatey = $true }
         #@{ Name = "opencover.portable";       Chocolatey = $true;      MinimumVersion = "4.7.922.0"; CommandName = "opencover.console" }
         #@{ Name = "reportgenerator.portable"; Chocolatey = $true;      MinimumVersion = "3.0.0.0";   CommandName = "reportgenerator" }
@@ -14,8 +14,8 @@ function Get-CIDependency
         #@{ Name = "PowerShellGet";            PowerShell = $true;      MinimumVersion = "2.0.0" }
         @{ Name = "Pester";                   PowerShell = $true;      MinimumVersion = "3.4.5";     Version = "3.4.6"; SkipPublisherCheck = $true }
         #@{ Name = "PSScriptAnalyzer";         PowerShell = $true }
-        #@{ Name = "net452";                   TargetingPack = $true;   Version = "4.5.2" }
-        #@{ Name = "net461";                   TargetingPack = $true ;  Version = "4.6.1" }
+        @{ Name = "net452";                   TargetingPack = $true;   Version = "4.5.2" }
+        @{ Name = "net461";                   TargetingPack = $true ;  Version = "4.6.1" }
     )
 
     if($PSEdition -eq "Core" -and !$IsWindows)
