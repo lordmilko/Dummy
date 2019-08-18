@@ -1,4 +1,4 @@
-ipmo $PSScriptRoot\ci.psm1
+ipmo $PSScriptRoot\ci.psm1 -Scope Local
 
 $script:SolutionDir = $script:SolutionDir = Get-SolutionRoot
 
