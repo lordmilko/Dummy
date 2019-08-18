@@ -2,11 +2,7 @@
 
 Describe "Clear-PrtgBuild" -Tag @("PowerShell", "Build") {
 
-    $solutionRoot = Get-SolutionRoot
-
     It "clears core" {
-
-        Mock-InstallDotnet -Windows
 
         Mock Invoke-CIProcess {
             Write-Host "called"
