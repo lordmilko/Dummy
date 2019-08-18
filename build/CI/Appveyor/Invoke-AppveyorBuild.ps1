@@ -21,5 +21,5 @@ function Invoke-AppveyorBuild
         $additionalArgs += "--no-restore"
     }
 
-    #Invoke-CIBuild $env:APPVEYOR_BUILD_FOLDER $additionalArgs -IsCore:$IsCore -SourceLink
+    Invoke-CIBuild $env:APPVEYOR_BUILD_FOLDER $additionalArgs -IsCore:$IsCore -SourceLink
 }

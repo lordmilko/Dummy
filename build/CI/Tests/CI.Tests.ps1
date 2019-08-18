@@ -1,4 +1,4 @@
-Import-Module $PSScriptRoot\..\ci.psm1
+Import-Module $PSScriptRoot\..\ci.psm1 -Scope Local
 
 Describe "CI" {
 

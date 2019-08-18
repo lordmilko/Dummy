@@ -1,9 +1,9 @@
 ﻿if(!$skipBuildModule)
 {
-    ipmo $PSScriptRoot\..\..\..\..\build\PrtgAPI.Build
+    ipmo $PSScriptRoot\..\..\..\..\build\PrtgAPI.Build -Scope Local
 }
 
-ipmo $PSScriptRoot\..\..\..\..\build\CI\ci.psm1
+ipmo $PSScriptRoot\..\..\..\..\build\CI\ci.psm1 -Scope Local
 
 Install-CIDependency pester
 

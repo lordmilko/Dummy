@@ -8,7 +8,6 @@ function Invoke-Process
         [switch]$WriteHost
     )
 
-    Write-Host "about to call in $pid"
     Invoke-CIProcess $ScriptBlock -IgnoreExitCode:$IgnoreExitCode -WriteHost:$WriteHost
 }
 
