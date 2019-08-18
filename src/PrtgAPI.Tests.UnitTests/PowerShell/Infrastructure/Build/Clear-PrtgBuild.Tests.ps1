@@ -8,8 +8,8 @@ Describe "Clear-PrtgBuild" -Tag @("PowerShell", "Build") {
 
         Mock-InstallDotnet -Windows
 
-        Mock-InvokeProcess "dotnet clean `"$(Join-PathEx $solutionRoot PrtgAPIv17.sln)`" -c Debug" {
+        <#Mock-InvokeProcess "dotnet clean `"$(Join-PathEx $solutionRoot PrtgAPIv17.sln)`" -c Debug" {
             Clear-PrtgBuild
-        }
+        }#>
     }
 }
