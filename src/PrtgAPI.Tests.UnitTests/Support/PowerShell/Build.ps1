@@ -367,7 +367,7 @@ function Mock-InstallDotnet
                 param($Uri)
 
                 $Uri | Should Be "https://dot.net/v1/dotnet-install.ps1"
-            } -ParameterFilter { $Uri -like "*dotnet*" } -Verifiable
+            } -ParameterFilter { $Uri -like "*dotnet*" } -Verifiable:($env:CI -eq $null)
 
             if($PSEdition -eq "Core" -and $IsWindows)
             {
@@ -397,7 +397,7 @@ function Mock-InstallDotnet
                 param($Uri)
 
                 $Uri | Should Be "https://dot.net/v1/dotnet-install.sh"
-            } -ParameterFilter { $Uri -like "*dotnet*" } -Verifiable
+            } -ParameterFilter { $Uri -like "*dotnet*" } -Verifiable:($env:CI -eq $null)
 
             Mock Test-CIIsWindows {
                 return $false
