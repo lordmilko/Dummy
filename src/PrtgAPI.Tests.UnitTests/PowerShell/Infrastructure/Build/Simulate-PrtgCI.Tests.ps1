@@ -9,7 +9,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
 
     Context "Appveyor" {
 
-        It "restores packages" -Skip:$env:CI {
+        It "restores packages" -Skip:($env:CI -ne $null) {
 
             Mock Test-CIIsWindows {
                 return $true
@@ -29,7 +29,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
             }
         }
 
-        It "builds" -Skip:$env:CI {
+        It "builds" -Skip:($env:CI -ne $null) {
 
             Mock-InstallDotnet -Windows
             Mock-StartProcess
@@ -56,7 +56,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
             }
         }
 
-        It "creates nupkg" -Skip:$env:CI {
+        It "creates nupkg" -Skip:($env:CI -ne $null) {
 
             Mock-InstallDotnet -Windows
 
@@ -160,7 +160,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
             }
         }
 
-        It "tests" -Skip:$env:CI {
+        It "tests" -Skip:($env:CI -ne $null) {
 
             Mock-InstallDotnet -Windows
 
@@ -202,7 +202,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
             }
         }
         
-        It "creates coverage" -Skip:$env:CI {
+        It "creates coverage" -Skip:($env:CI -ne $null) {
 
             Mock-InstallDotnet -Windows
             MockGetChocolateyCommand
@@ -292,7 +292,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
             } -Operator "Match"
         }
 
-        It "installs dependencies" -Skip:$env:CI {
+        It "installs dependencies" -Skip:($env:CI -ne $null) {
 
             Mock-InstallDotnet -Windows
 
@@ -492,7 +492,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
             }
         }
 
-        It "skips installing dependencies" -Skip:$env:CI {
+        It "skips installing dependencies" -Skip:($env:CI -ne $null) {
 
             Mock Test-CIIsWindows {
                 return $true
@@ -649,7 +649,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
             return $restoreClean,$clean,$build,$test
         }
 
-        It "executes with core" -Skip:$env:CI {
+        It "executes with core" -Skip:($env:CI -ne $null) {
 
             Mock-InstallDotnet -Unix
 
@@ -662,7 +662,7 @@ Describe "Simulate-PrtgCI" -Tag @("PowerShell", "Build") {
             }
         }
 
-        It "throws executing with desktop" -Skip:$env:CI {
+        It "throws executing with desktop" -Skip:($env:CI -ne $null) {
 
             Mock-InstallDotnet -Unix
 
