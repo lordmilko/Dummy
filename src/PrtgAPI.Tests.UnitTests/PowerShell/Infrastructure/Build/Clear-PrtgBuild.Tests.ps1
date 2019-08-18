@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\..\..\..\Support\PowerShell\Build.ps1
+﻿ipmo $PSScriptRoot\..\..\..\..\..\build\CI\ci.psm1
 
 Describe "Clear-PrtgBuild" -Tag @("PowerShell", "Build") {
 
