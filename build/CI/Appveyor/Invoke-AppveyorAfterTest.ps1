@@ -5,5 +5,5 @@ function Invoke-AppveyorAfterTest
         [switch]$IsCore = $script:APPEYOR_BUILD_CORE
     )
 
-    Measure-AppveyorCoverage $IsCore
+    #Measure-AppveyorCoverage $IsCore
 }

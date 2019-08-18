@@ -9,8 +9,8 @@ function Invoke-AppveyorTest
 
     Write-LogHeader "Executing tests"
 
-    Invoke-AppveyorPesterTest $IsCore
-    Invoke-AppveyorCSharpTest $IsCore
+    #Invoke-AppveyorPesterTest $IsCore
+    #Invoke-AppveyorCSharpTest $IsCore
 }
 
 function Invoke-AppveyorPesterTest($IsCore)
