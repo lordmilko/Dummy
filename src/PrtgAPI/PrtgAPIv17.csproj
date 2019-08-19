@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\build\NuGet.props" />
 
-  <!-- Project Configuration -->
+  <!-- Project Configuration1 -->
 
   <PropertyGroup>
     <!-- TargetFramework listed first will be debugged in Release mode -->
