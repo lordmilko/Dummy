@@ -7,7 +7,7 @@ Describe "Clear-PrtgBuild" -Tag @("PowerShell", "Build") {
     It "clears core" {
 
         Mock-InstallDotnet -Windows
-        Mock "Remove-Item" {} -ModuleName "CI" -Verifiable
+        Mock "Remove-Item" {} -ModuleName "CI"
 
         Mock-InvokeProcess "dotnet clean `"$(Join-PathEx $solutionRoot PrtgAPIv17.sln)`" -c Debug" {
             Clear-PrtgBuild
@@ -20,7 +20,7 @@ Describe "Clear-PrtgBuild" -Tag @("PowerShell", "Build") {
             return "C:\msbuild.exe"
         } -ModuleName CI
 
-        Mock "Remove-Item" {} -ModuleName "CI" -Verifiable
+        Mock "Remove-Item" {} -ModuleName "CI"
 
         Mock-InvokeProcess "& C:\msbuild.exe /t:clean `"$(Join-PathEx $solutionRoot PrtgAPI.sln)`" /p:Configuration=Debug" {
             Clear-PrtgBuild -Legacy

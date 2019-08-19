@@ -1,1 +1,0 @@
-#todo: test whether net452 or netstandard2.0 is closer to net461 and net472 projects when visual studio installs the nuget package
