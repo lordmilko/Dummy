@@ -1,10 +1,10 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 using System.Xml.Linq;
 using PrtgAPI.Attributes;
+using PrtgAPI.Tree;
 using PrtgAPI.Utilities;
 
 namespace PrtgAPI
@@ -15,15 +15,19 @@ namespace PrtgAPI
     /// <para type="description">Causes notification actions to occur when a sensor exhibits a specified behaviour.</para>
     /// </summary>
     [DataContract]
-    [Description("Notification Trigger")]
-    [DebuggerDisplay("Type = {Type}, Inherited = {Inherited}, OnNotificationAction = {OnNotificationAction}")]
-    public class NotificationTrigger : ISubObject
+    [AlternateDescription("Notification Trigger")]
+    [DebuggerDisplay("Type = {Type}, SubId = {SubId}, Inherited = {Inherited}, OnNotificationAction = {OnNotificationAction}")]
+    public class NotificationTrigger : ISubObject, ITreeValue
     {
         [DataMember(Name = "type")]
         private string type;
 
         [ExcludeFromCodeCoverage]
         string IObject.Name => OnNotificationAction.Name;
+
+        string ITreeValue.Name => OnNotificationAction.Name;
+
+        int? ITreeValue.Id => SubId;
 
         /// <summary>
         /// The ID of the object this notification trigger was retrieved from and applies to.
@@ -92,7 +96,7 @@ namespace PrtgAPI
         /// Applies to: State Triggers
         /// </summary>
         [PropertyParameter(TriggerProperty.State)]
-        public TriggerSensorState? State => stateTrigger == null ? null : (TriggerSensorState?)EnumExtensions.XmlToEnumAnyAttrib(stateTrigger, typeof(TriggerSensorState));
+        public TriggerSensorState? State => stateTrigger?.XmlToEnumAnyAttrib<TriggerSensorState>();
 
         /// <summary>
         /// Delay (in seconds) before this notification is activated after activation requirements have been met.
@@ -104,6 +108,8 @@ namespace PrtgAPI
 
         [DataMember(Name = "channel")]
         internal string channelName;
+
+        internal string translatedChannelName;
 
         //Manually assigned to by GetNotificationTriggers
         internal Channel channelObj;
@@ -143,7 +149,7 @@ namespace PrtgAPI
         /// Applies to: Volume, Speed Triggers
         /// </summary>
         [PropertyParameter(TriggerProperty.UnitSize)]
-        public DataUnit? UnitSize => unitSizeStr?.DescriptionToEnum<DataUnit>();
+        public DataUnit? UnitSize => unitSizeStr?.XmlToEnumAnyAttrib<DataUnit>();
 
         [DataMember(Name = "unittime")]
         private string unitTimeStr;
@@ -153,7 +159,7 @@ namespace PrtgAPI
         /// Applies to: Speed Triggers
         /// </summary>
         [PropertyParameter(TriggerProperty.UnitTime)]
-        public TimeUnit? UnitTime => unitTimeStr?.DescriptionToEnum<TimeUnit>();
+        public TimeUnit? UnitTime => unitTimeStr?.XmlToEnumAnyAttrib<TimeUnit>();
 
         [DataMember(Name = "period")]
         private string periodStr;
@@ -163,7 +169,7 @@ namespace PrtgAPI
         /// Applies to: Volume Triggers
         /// </summary>
         [PropertyParameter(TriggerProperty.Period)]
-        public TriggerPeriod? Period => periodStr?.DescriptionToEnum<TriggerPeriod>();
+        public TriggerPeriod? Period => periodStr?.XmlToEnumAnyAttrib<TriggerPeriod>();
 
         [DataMember(Name = "onnotificationid")]
         private string onNotificationActionStr;
@@ -209,7 +215,7 @@ namespace PrtgAPI
         /// </summary>
         [PropertyParameter(TriggerProperty.Threshold)]
         [DataMember(Name = "threshold")]
-        public int? Threshold { get; set; }
+        public double? Threshold { get; set; }
 
         [DataMember(Name = "condition")]
         private string conditionStr;
@@ -219,7 +225,7 @@ namespace PrtgAPI
         /// Applies to: Speed, Threshold Triggers
         /// </summary>
         [PropertyParameter(TriggerProperty.Condition)]
-        public TriggerCondition? Condition => conditionStr?.DescriptionToEnum<TriggerCondition>() ?? TriggerCondition.Equals;
+        public TriggerCondition? Condition => conditionStr?.XmlToEnumAnyAttrib<TriggerCondition>() ?? TriggerCondition.Equals;
 
         /// <summary>
         /// Delay (in seconds) before the <see cref="EscalationNotificationAction"/> occurs after this trigger has been activated.
@@ -256,7 +262,7 @@ namespace PrtgAPI
 
         internal bool HasChannel()
         {
-            switch(Type)
+            switch (Type)
             {
                 case TriggerType.Speed:
                 case TriggerType.Threshold:
@@ -266,10 +272,10 @@ namespace PrtgAPI
                     return false;
             }
         }
-        
+
         internal bool SetEnumChannel()
         {
-            var @enum = EnumExtensions.XmlToEnum<XmlEnumAlternateName>(channelName, typeof(StandardTriggerChannel), false);
+            var @enum = EnumExtensions.XmlToEnum<XmlEnumAlternateName>(translatedChannelName ?? channelName, typeof(StandardTriggerChannel), false);
 
             if (@enum != null)
             {

@@ -195,7 +195,7 @@ namespace PrtgAPI.Tests.UnitTests
             return field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(LazyValue<>);
         }
 
-        public static void Throws<T>(Action action, string message) where T : Exception
+        public static void Throws<T>(Action action, string message, bool checkMessage = true) where T : Exception
         {
             try
             {
@@ -205,7 +205,8 @@ namespace PrtgAPI.Tests.UnitTests
             }
             catch (T ex)
             {
-                Assert.IsTrue(ex.Message.Contains(message), $"Exception message '{ex.Message}' did not contain string '{message}'");
+                if (checkMessage)
+                    Assert.IsTrue(ex.Message.Contains(message), $"Exception message '{ex.Message}' did not contain string '{message}'");
             }
             catch (Exception ex) when (!(ex is AssertFailedException))
             {
@@ -213,7 +214,7 @@ namespace PrtgAPI.Tests.UnitTests
             }
         }
 
-        public static async Task ThrowsAsync<T>(Func<Task> action, string message) where T : Exception
+        public static async Task ThrowsAsync<T>(Func<Task> action, string message, bool checkMessage = true) where T : Exception
         {
             try
             {
@@ -223,7 +224,8 @@ namespace PrtgAPI.Tests.UnitTests
             }
             catch (T ex)
             {
-                Assert.IsTrue(ex.Message.Contains(message), $"Exception message '{ex.Message}' did not contain string '{message}'");
+                if (checkMessage)
+                    Assert.IsTrue(ex.Message.Contains(message), $"Exception message '{ex.Message}' did not contain string '{message}'");
             }
             catch (Exception ex) when (!(ex is AssertFailedException))
             {
@@ -237,7 +239,10 @@ namespace PrtgAPI.Tests.UnitTests
 
         public static void AreEqualLists<T>(List<T> first, List<T> second, IEqualityComparer<T> comparer, string message) => AreEqualListsInternal(first, second, comparer, null, message);
 
-        private static void AreEqualListsInternal<T>(List<T> first, List<T> second, IEqualityComparer<T> comparer, Action<T, T> assert, string message)
+        //We don't support specifying a comparer as comparer calls Assert.IsTrue on the comparer.Equals(), which we don't override
+        public static void AreNotEqualLists<T>(List<T> first, List<T> second, string message) => AreEqualListsInternal(first, second, null, Assert.AreNotEqual, message, true);
+
+        private static void AreEqualListsInternal<T>(List<T> first, List<T> second, IEqualityComparer<T> comparer, Action<T, T> assert, string message, bool ignoreSize = false)
         {
             if (first == null && second == null)
                 return;
@@ -282,11 +287,14 @@ namespace PrtgAPI.Tests.UnitTests
                 }
             }
 
-            if (second.Count > first.Count)
+            if (!ignoreSize)
             {
-                var missing = second.Skip(first.Count).ToList();
+                if (second.Count > first.Count)
+                {
+                    var missing = second.Skip(first.Count).ToList();
 
-                Assert.Fail($"{message}. Elements " + string.Join(", ", missing) + " were missing from first");
+                    Assert.Fail($"{message}. Elements " + string.Join(", ", missing) + " were missing from first");
+                }
             }
         }
 

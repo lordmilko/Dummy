@@ -1,5 +1,6 @@
 using System.Xml.Serialization;
 using PrtgAPI.Attributes;
+using PrtgAPI.Targets;
 
 namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
 {
@@ -51,18 +52,61 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
         [XmlElement("injected_arraypropertymissingsplittablestring")]
         public string[] ArrayPropertyMissingSplittableString { get; set; }
 
-        [XmlElement("injected_typelookupwithoutiformattable")]
-        public string TypeWithoutIFormattable { get; set; }
+        [XmlElement("injected_typelookupwithoutiserializable")]
+        public string TypeWithoutISerializable { get; set; }
 
-        [SplittableString(' ')]
+        [StandardSplittableString]
         [XmlElement("injected_arrayproperty")]
         public string[] ArrayProperty { get; set; }
+
+        [XmlElement("injected_nonsplittablearrayproperty")]
+        public string[] NonSplittableArrayProperty { get; set; }
 
         [XmlElement("injected_integerproperty")]
         public int IntegerProperty { get; set; }
 
+        [XmlElement("injected_doubleproperty")]
+        public double DoubleProperty { get; set; }
+
+        [XmlElement("injected_boolproperty")]
+        public bool BoolProperty { get; set; }
+
+        [XmlElement("injected_enumproperty")]
+        public Status EnumProperty { get; set; }
+
+        [XmlElement("injected_numericenumproperty")]
+        public Priority NumericEnumProperty { get; set; }
+
+        [TypeLookup(typeof(XmlEnumAlternateName))]
+        [XmlElement("injected_alternateenumproperty")]
+        public HttpMode AlternateEnumProperty { get; set; }
+
+        [XmlElement("injected_nullableintegerproperty")]
+        public int? NullableIntegerProperty { get; set; }
+
+        [XmlElement("injected_serializableproperty")]
+        public string SerializableProperty { get; set; }
+
+        [XmlElement("injected_illegalserializabletype")]
+        public string IllegalSerializableType { get; set; }
+
+        [XmlElement("injected_valueconverterwithnullconversion")]
+        public Sensor ValueConverterWithNullConversion { get; set; }
+
+        [XmlElement("injected_valueconverterwithoutnullconversion")]
+        public Sensor ValueConverterWithoutNullConversion { get; set; }
+
         [XmlElement("injected_childofenum")]
         public string ChildOfEnum { get; set; }
+
+        [XmlElement("injected_classtype")]
+        public NotificationTypes ClassType { get; set; }
+
+        [XmlElement("injected_serializablevalueconverter")]
+        public string SerializableValueConverter { get; set; }
+
+        [XmlElement("injected_implicitlyconvertable")]
+        public ExeFileTarget ImplicitlyConvertable { get; set; }
 
         #endregion
     }

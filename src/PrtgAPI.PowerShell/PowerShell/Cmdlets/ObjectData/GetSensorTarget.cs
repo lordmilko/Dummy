@@ -112,7 +112,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// </summary>
     [OutputType(typeof(SensorTarget<>))]
     [Cmdlet(VerbsCommon.Get, "SensorTarget", DefaultParameterSetName = ParameterSet.Default)]
-    public class GetSensorTarget : PrtgProgressCmdlet, IPSCmdletEx
+    public class GetSensorTarget : PrtgProgressCmdlet
     {
         /// <summary>
         /// <para type="description">The device to retrieve sensor targets from. While results returned by Get-SensorTarget are guaranteed to be compatible
@@ -310,24 +310,12 @@ namespace PrtgAPI.PowerShell.Cmdlets
         private T EnsureSingle<T>(List<T> items)
         {
             if (items.Count > 1)
-                throw new InvalidOperationException($"Parameters for sensor type {Type} cannot be used against multiple targets in a single request. Please filter objects further with -Name, or create parameters manually with New-SensorParameters.");
+                throw new NonTerminatingException($"Parameters for sensor type {Type} cannot be used against multiple targets in a single request. Please filter objects further with -Name, or create parameters manually with New-SensorParameters.");
 
             if (items.Count == 1)
                 return items.First();
 
             return default(T);
         }
-
-        #region IPSCmdletEx
-
-        void IPSCmdletEx.BeginProcessingInternal() => BeginProcessing();
-
-        void IPSCmdletEx.ProcessRecordInternal() => ProcessRecord();
-
-        void IPSCmdletEx.EndProcessingInternal() => EndProcessing();
-
-        void IPSCmdletEx.StopProcessingInternal() => StopProcessing();
-
-        #endregion
     }
 }

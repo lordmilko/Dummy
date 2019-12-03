@@ -194,7 +194,7 @@ namespace PrtgAPI
         {
             RequestVersion max = RequestVersion.v14_4;
 
-            foreach(var pair in VersionMap.Map)
+            foreach (var pair in VersionMap.Map)
             {
                 if (Version >= pair.Value)
                     max = pair.Key;
@@ -414,30 +414,76 @@ namespace PrtgAPI
         #endregion
         #region Notification Triggers
 
+        private bool? isEnglish;
+
+        private bool IsEnglish
+        {
+            get
+            {
+                if (isEnglish == null)
+                {
+                    string language;
+
+                    if (GetObjectPropertiesRaw(WellKnownId.WebServerOptions).TryGetValue("languagefile", out language))
+                    {
+                        isEnglish = language == "english.lng";
+                    }
+                    else
+                        isEnglish = false;
+                }
+
+                return isEnglish.Value;
+            }
+        }
+
         private List<NotificationTrigger> GetNotificationTriggersInternal(Either<IPrtgObject, int> objectOrId, CancellationToken token)
         {
             var xmlResponse = ObjectEngine.GetObjectsXml(new NotificationTriggerParameters(objectOrId), token: token);
 
-            var parsed = ResponseParser.ParseNotificationTriggerResponse(objectOrId, xmlResponse);
+            var typed = ResponseParser.ParseNotificationTriggerResponse(objectOrId, xmlResponse);
 
-            UpdateTriggerChannels(parsed, token);
-            UpdateTriggerActions(parsed, token);
+            if (!IsEnglish)
+            {
+                var helper = new NotificationTriggerTranslator(typed, objectOrId.GetId());
 
-            return parsed;
+                NotificationTriggerDataTrigger[] raw = null;
+
+                int parentId;
+
+                while (helper.TranslateTriggers(raw, out parentId))
+                    raw = GetNotificationTriggerData(parentId, token).Triggers;                
+            }
+
+            UpdateTriggerChannels(objectOrId, typed, token);
+            UpdateTriggerActions(typed, token);
+
+            return typed;
         }
 
         private async Task<List<NotificationTrigger>> GetNotificationTriggersInternalAsync(Either<IPrtgObject, int> objectOrId, CancellationToken token)
         {
             var xmlResponse = await ObjectEngine.GetObjectsXmlAsync(new NotificationTriggerParameters(objectOrId), token: token).ConfigureAwait(false);
 
-            var parsed = ResponseParser.ParseNotificationTriggerResponse(objectOrId, xmlResponse);
+            var typed = ResponseParser.ParseNotificationTriggerResponse(objectOrId, xmlResponse);
 
-            var updateTriggerChannels = UpdateTriggerChannelsAsync(parsed, token);
-            var updateTriggerActions = UpdateTriggerActionsAsync(parsed, token);
+            if (!IsEnglish)
+            {
+                var helper = new NotificationTriggerTranslator(typed, objectOrId.GetId());
+
+                NotificationTriggerDataTrigger[] raw = null;
+
+                int parentId;
+
+                while (helper.TranslateTriggers(raw, out parentId))
+                    raw = (await GetNotificationTriggerDataAsync(parentId, token).ConfigureAwait(false)).Triggers;
+            }
+
+            var updateTriggerChannels = UpdateTriggerChannelsAsync(objectOrId, typed, token);
+            var updateTriggerActions = UpdateTriggerActionsAsync(typed, token);
 
             await Task.WhenAll(updateTriggerChannels, updateTriggerActions).ConfigureAwait(false);
 
-            return parsed;
+            return typed;
         }
 
         private void UpdateTriggerActions(List<NotificationTrigger> triggers, CancellationToken token)
@@ -546,6 +592,32 @@ namespace PrtgAPI
                 ParseNotificationTriggerTypesAsync,
                 token
             ).ConfigureAwait(false);
+
+        private bool IsSensor(Either<IPrtgObject, int> objectOrId)
+        {
+            if (objectOrId.IsLeft)
+                return IsSensorObject(objectOrId.Left);
+            else
+                return GetObjects(Property.Id, objectOrId.Right).FirstOrDefault()?.Type.Value == ObjectType.Sensor;
+        }
+
+        private async Task<bool> IsSensorAsync(Either<IPrtgObject, int> objectOrId)
+        {
+            if (objectOrId.IsLeft)
+                return IsSensorObject(objectOrId.Left);
+            else
+                return (await GetObjectsAsync(Property.Id, objectOrId.Right).ConfigureAwait(false)).FirstOrDefault()?.Type.Value == ObjectType.Sensor;
+        }
+
+        private bool IsSensorObject(IPrtgObject obj)
+        {
+            var prtgObject = obj as PrtgObject;
+
+            if (prtgObject?.Type.Value == ObjectType.Sensor)
+                return true;
+            else
+                return false;
+        }
 
         #endregion
         #region Sensor History
@@ -814,7 +886,7 @@ namespace PrtgAPI
         {
             var restartTime = waitForRestart ? (DateTime?)GetStatus().DateTime : null;
 
-            RequestEngine.ExecuteRequest(new CommandFunctionParameters(CommandFunction.RestartServer));
+            RequestEngine.ExecuteRequest(new CommandFunctionParameters(CommandFunction.RestartServer), token: token);
 
             if (waitForRestart)
                 WaitForCoreRestart(restartTime.Value, progressCallback, token);
@@ -822,9 +894,9 @@ namespace PrtgAPI
 
         private async Task RestartCoreInternalAsync(bool waitForRestart, Func<RestartCoreStage, bool> progressCallback, CancellationToken token)
         {
-            var restartTime = waitForRestart ? (DateTime?)(await GetStatusAsync().ConfigureAwait(false)).DateTime : null;
+            var restartTime = waitForRestart ? (DateTime?)(await GetStatusAsync(token).ConfigureAwait(false)).DateTime : null;
 
-            await RequestEngine.ExecuteRequestAsync(new CommandFunctionParameters(CommandFunction.RestartServer)).ConfigureAwait(false);
+            await RequestEngine.ExecuteRequestAsync(new CommandFunctionParameters(CommandFunction.RestartServer), token: token).ConfigureAwait(false);
 
             if (waitForRestart)
                 await WaitForCoreRestartAsync(restartTime.Value, progressCallback, token).ConfigureAwait(false);
@@ -834,7 +906,7 @@ namespace PrtgAPI
             RequestEngine.ExecuteRequest(new ApproveProbeParameters(probeOrId, action));
 
         internal async Task ApproveProbeInternalAsync(Either<Probe, int> probeOrId, ProbeApproval action, CancellationToken token) =>
-            await RequestEngine.ExecuteRequestAsync(new ApproveProbeParameters(probeOrId, action)).ConfigureAwait(false);
+            await RequestEngine.ExecuteRequestAsync(new ApproveProbeParameters(probeOrId, action), token: token).ConfigureAwait(false);
 
         #endregion
     #endregion

@@ -17,7 +17,7 @@ New-Alias Pause-Object Suspend-Object
 New-Alias Refresh-Object Update-Object
 New-Alias Refresh-SystemInfo Update-SystemInfo
 New-Alias Clone-Object Copy-Object
-New-Alias Sort-PrtgObject Start-SortPrtgObject
+New-Alias Sort-PrtgObject Invoke-SortPrtgObject
 New-Alias Simulate-ErrorStatus Test-ErrorStatus
 New-Alias Load-PrtgConfigFile Sync-PrtgConfigFile
 
@@ -31,6 +31,13 @@ New-Alias flt New-SearchFilter
 New-Alias fdef New-SensorFactoryDefinition
 
 New-Alias Restart-PrtgProbe Restart-Probe
+
+New-Alias SensorNode New-SensorNode
+New-Alias DeviceNode New-DeviceNode
+New-Alias GroupNode New-GroupNode
+New-Alias ProbeNode New-ProbeNode
+New-Alias TriggerNode New-TriggerNode
+New-Alias PropertyNode New-PropertyNode
 
 $ErrorActionPreference = "Stop"
 

@@ -44,13 +44,24 @@
     <Compile Include="..\PrtgAPI\Properties\Version.cs">
       <Link>Properties\Version.cs</Link>
     </Compile>
+    <Compile Include="Exceptions\NonTerminatingException.cs" />
     <Compile Include="PowerShell\AlternateParameterSet.cs" />
     <Compile Include="PowerShell\AlternateSensorTargetParameter.cs" />
     <Compile Include="PowerShell\Base\InternalNotificationTriggerCommand.cs" />
     <Compile Include="PowerShell\Base\InternalSetSubObjectPropertyCmdlet.cs" />
-    <Compile Include="PowerShell\Base\IPSCmdletEx.cs" />
+    <Compile Include="PowerShell\Base\PrtgNodeCmdlet.cs" />
+    <Compile Include="PowerShell\Base\PrtgTableNodeCmdlet.cs" />
+    <Compile Include="PowerShell\Base\PrtgTimedStateCmdlet.cs" />
     <Compile Include="PowerShell\Cmdlets\ObjectManipulation\SetNotificationTrigger.cs" />
     <Compile Include="PowerShell\Cmdlets\ObjectManipulation\SetNotificationTriggerProperty.cs" />
+    <Compile Include="PowerShell\Cmdlets\Tree\NewDeviceNode.cs" />
+    <Compile Include="PowerShell\Cmdlets\Tree\NewGroupNode.cs" />
+    <Compile Include="PowerShell\Cmdlets\Tree\NewProbeNode.cs" />
+    <Compile Include="PowerShell\Cmdlets\Tree\NewPropertyNode.cs" />
+    <Compile Include="PowerShell\Cmdlets\Tree\NewSensorNode.cs" />
+    <Compile Include="PowerShell\Cmdlets\Tree\NewTriggerNode.cs" />
+    <Compile Include="PowerShell\Cmdlets\Tree\ShowPrtgTree.cs" />
+    <Compile Include="PowerShell\ETSHelpers.cs" />
     <Compile Include="PowerShell\EventStack.cs" />
     <Compile Include="PowerShell\EventState.cs" />
     <Compile Include="Exceptions\UnknownParameterSetException.cs" />
@@ -74,7 +85,6 @@
     <Compile Include="PowerShell\Base\PrtgTableRecurseCmdlet.cs" />
     <Compile Include="PowerShell\Base\PrtgTableStatusCmdlet.cs" />
     <Compile Include="PowerShell\Base\PrtgTableTagCmdlet.cs" />
-    <Compile Include="PowerShell\Base\PSCmdletEx.cs" />
     <Compile Include="PowerShell\Base\StreamableCmdletProvider.cs" />
     <Compile Include="PowerShell\ChannelUnitMap.cs" />
     <Compile Include="PowerShell\CloneCmdletConfig.cs" />
@@ -186,6 +196,10 @@
     <Compile Include="PowerShell\RuntimeDefinedParameterEx.cs" />
     <Compile Include="PowerShell\DummyRuntime.cs" />
     <Compile Include="PowerShell\RuntimeDefinedParameterDictionaryEx.cs" />
+    <Compile Include="PowerShell\Cmdlets\Tree\GetPrtgTree.cs" />
+    <Compile Include="PowerShell\Tree\PowerShellPrettyColorWriter.cs" />
+    <Compile Include="PowerShell\Tree\PowerShellProgressDepthManager.cs" />
+    <Compile Include="PowerShell\Tree\PowerShellTreeProgressCallback.cs" />
     <Compile Include="PowerShell\TriggerParameterParser.cs" />
     <Compile Include="Utilities\PSCmdletInvoker.cs" />
     <Compile Include="Utilities\PSObjectUtilities.cs" />
@@ -205,6 +219,7 @@
     </None>
     <None Include="PowerShell\Resources\PrtgAPI.psd1" />
     <None Include="PowerShell\Resources\PrtgAPI.psm1" />
+    <None Include="PowerShell\Resources\PrtgAPI.Types.ps1xml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="PowerShell\Resources\about_ChannelSettings.help.txt" />
@@ -230,7 +245,7 @@ xcopy /Y "$(ProjectDir)PowerShell\Functions\*.*" "$(TargetDir)Functions\"</PostB
   <!-- When XmlDoc2CmdletDoc is first restored in VS2017+, for some reason (maybe due to the conditional import)
        none of the items in its targets property groupo are evaluated. So we manually define them here -->
   <PropertyGroup>
-    <XmlDoc2CmdletDocStrict>false</XmlDoc2CmdletDocStrict>   
+    <XmlDoc2CmdletDocStrict>false</XmlDoc2CmdletDocStrict>
     <XmlDocExeName Condition="'$(PlatformTarget)' == 'x86'">XmlDoc2CmdletDoc32.exe</XmlDocExeName>
     <XmlDocExeName Condition="'$(XmlDocExeName)' == ''">XmlDoc2CmdletDoc.exe</XmlDocExeName>
   </PropertyGroup>

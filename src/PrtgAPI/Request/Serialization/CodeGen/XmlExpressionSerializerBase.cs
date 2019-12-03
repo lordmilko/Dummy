@@ -162,6 +162,8 @@ namespace PrtgAPI.Linq.Expressions.Serialization
             if (s == "INF")
                 return double.PositiveInfinity;
 
+            //Note the lack of NumberStyles.AllowThousands (included by default in double.Parse() with no number style specified). This will prevent
+            //values from 0,1 being converted into 1 on a non-EU culture and appearing to be "successful" when they shouldn't be.
             var numberStyle = NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;
 
             double dVal;
@@ -230,9 +232,12 @@ namespace PrtgAPI.Linq.Expressions.Serialization
             }
         }
 
-        protected internal static string[] ToSplittableStringArray(string s, char ch)
+        protected internal static string[] ToSplittableStringArray(string s, params char[] chars)
         {
-            return ToNullableString(s)?.Split(new[] { ch }, StringSplitOptions.RemoveEmptyEntries);
+            if (chars.Length == 0)
+                throw new ArgumentException("At least one character must be specified.", nameof(chars));
+
+            return ToNullableString(s)?.Split(chars, StringSplitOptions.RemoveEmptyEntries);
         }
 
         #endregion

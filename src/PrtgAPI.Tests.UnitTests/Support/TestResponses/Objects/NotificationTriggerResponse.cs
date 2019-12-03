@@ -52,10 +52,13 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                 case Content.Triggers:
                     return base.GetResponseText(ref address);
                 case Content.Channels:
-
-                    if (Convert.ToInt32(components["id"]) >= 4000)
-                        return new ChannelResponse(channels).GetResponseText(ref address);
-                    return new ChannelResponse().GetResponseText(ref address);
+                    return new ChannelResponse(channels).GetResponseText(ref address);
+                case Content.Sensors:
+                    return new SensorResponse(new SensorItem()).GetResponseText(ref address);
+                case Content.Objects:
+                    if (Convert.ToInt32(components["filter_objid"]) >= 4000)
+                        return new ObjectResponse(new SensorItem()).GetResponseText(ref address);
+                    return new ObjectResponse(new DeviceItem()).GetResponseText(ref address);
                 case Content.Notifications:
                     return new NotificationActionResponse(new NotificationActionItem("301"), new NotificationActionItem("302"), new NotificationActionItem("303")).GetResponseText(ref address);
                 case Content.Schedules:
@@ -69,7 +72,10 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
         {
             var components = UrlUtilities.CrackUrl(address);
 
-            var objectType = components["objecttype"].ToEnum<ObjectType>();
+            var objectType = components["objecttype"]?.DescriptionToEnum<ObjectType>();
+
+            if (objectType == null && components["id"] == "810")
+                objectType = ObjectType.WebServerOptions;
 
             switch (objectType)
             {
@@ -82,6 +88,8 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                     };
                 case ObjectType.Schedule:
                     return new ScheduleResponse();
+                case ObjectType.WebServerOptions:
+                    return new WebServerOptionsResponse();
                 default:
                     throw new NotImplementedException($"Unknown object type '{objectType}' requested from {nameof(MultiTypeResponse)}");
             }

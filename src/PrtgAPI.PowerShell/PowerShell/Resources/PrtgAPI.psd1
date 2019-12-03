@@ -12,7 +12,7 @@
 RootModule = 'PrtgAPI.PowerShell.dll'
 
 # Version number of this module.
-ModuleVersion = '0.9.8'
+ModuleVersion = '0.9.10'
 
 # Supported PSEditions
 CompatiblePSEditions = @('Desktop', 'Core')
@@ -60,7 +60,7 @@ PowerShellVersion = '5.1'
 # ScriptsToProcess = @()
 
 # Type files (.ps1xml) to be loaded when importing this module
-# TypesToProcess = @()
+TypesToProcess = @('PrtgAPI.Types.ps1xml')
 
 # Format files (.ps1xml) to be loaded when importing this module
 FormatsToProcess = @('PrtgAPI.Format.ps1xml')
@@ -107,7 +107,7 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = 'Release Notes: https://github.com/lordmilko/PrtgAPI/releases/tag/v0.9.8
+        ReleaseNotes = 'Release Notes: https://github.com/lordmilko/PrtgAPI/releases/tag/v0.9.10
 
 ---
 

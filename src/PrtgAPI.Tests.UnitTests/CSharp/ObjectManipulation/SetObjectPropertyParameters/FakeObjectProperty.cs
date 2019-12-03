@@ -19,7 +19,7 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
         MissingTypeLookup,
 
         [TypeLookup(typeof(FakeSettings))]
-        [SecondaryProperty(nameof(SecondaryProperty), typeof(FakeObjectProperty))]
+        [SecondaryProperty(nameof(SecondaryProperty), typeof(FakeObjectProperty), SecondaryPropertyStrategy.MultipleSerializable)]
         HasSecondaryProperty,
 
         SecondaryProperty,
@@ -71,17 +71,65 @@ namespace PrtgAPI.Tests.UnitTests.ObjectManipulation
 
         [Type(typeof(int))]
         [TypeLookup(typeof(FakeSettings))]
-        TypeWithoutIFormattable,
+        TypeWithoutISerializable,
 
         [TypeLookup(typeof(FakeSettings))]
         ArrayProperty,
 
         [TypeLookup(typeof(FakeSettings))]
+        NonSplittableArrayProperty,
+
+        [TypeLookup(typeof(FakeSettings))]
         IntegerProperty,
 
         [TypeLookup(typeof(FakeSettings))]
+        DoubleProperty,
+
+        [TypeLookup(typeof(FakeSettings))]
+        BoolProperty,
+
+        [TypeLookup(typeof(FakeSettings))]
+        EnumProperty,
+
+        [TypeLookup(typeof(FakeSettings))]
+        NumericEnumProperty,
+
+        [TypeLookup(typeof(FakeSettings))]
+        AlternateEnumProperty,
+
+        [TypeLookup(typeof(FakeSettings))]
+        NullableIntegerProperty,
+
+        [Type(typeof(FakeSerializable))]
+        [TypeLookup(typeof(FakeSettings))]
+        SerializableProperty,
+
+        [Type(typeof(int))]
+        [TypeLookup(typeof(FakeSettings))]
+        IllegalSerializableType,
+
+        [TypeLookup(typeof(FakeSettings))]
+        [ValueConverter(typeof(ValueConverterWithNullConversionConverter))]
+        ValueConverterWithNullConversion,
+
+        [TypeLookup(typeof(FakeSettings))]
+        [ValueConverter(typeof(ValueConverterWithoutNullConversionConverter))]
+        ValueConverterWithoutNullConversion,
+
+        [TypeLookup(typeof(FakeSettings))]
         [DependentProperty(nameof(Status.Up), typeof(Status), Status.Up)]
-        ChildOfEnum
+        ChildOfEnum,
+
+        [TypeLookup(typeof(FakeSettings))]
+        ClassType,
+
+        [Type(typeof(FakeSerializable))]
+        [TypeLookup(typeof(FakeSettings))]
+        [ValueConverter(typeof(ValueConverterWithNullConversionConverter))]
+        SerializableValueConverter,
+
+        [TypeLookup(typeof(FakeSettings))]
+        ImplicitlyConvertable
 
         #endregion
     }

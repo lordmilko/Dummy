@@ -2,11 +2,11 @@
 
 function GetTrigger($type)
 {
-    $sensor = Get-Sensor
-    $sensor.Id = 1
+    $device = Get-Device -Count 1
+    $device.Id = 1
 
     $trigger = Run NotificationTrigger {
-        $sensor | Get-Trigger -Type $type | Select -First 1
+        $device | Get-Trigger -Type $type | Select -First 1
     }
 
     return $trigger
@@ -41,11 +41,11 @@ Describe "Set-NotificationTriggerProperty" -Tag @("PowerShell", "UnitTest") {
     SetResponseAndClient "SetNotificationTriggerResponse"
 
     It "sets a TriggerChannel from a property" {
-        $sensor = Get-Sensor
-        $sensor.Id = 1
+        $device = Get-Device -Count 1
+        $device.Id = 1
 
         $trigger = Run NotificationTrigger {
-            $sensor | Get-Trigger -Type Threshold
+            $device | Get-Trigger -Type Threshold
         }
 
         $trigger.Count | Should Be 1
@@ -55,7 +55,7 @@ Describe "Set-NotificationTriggerProperty" -Tag @("PowerShell", "UnitTest") {
     }
 
     It "sets an invalid property" {
-        $sensor = Get-Sensor
+        $sensor = Get-Sensor -Count 1
 
         $sensor.Id = 0
 
@@ -67,11 +67,11 @@ Describe "Set-NotificationTriggerProperty" -Tag @("PowerShell", "UnitTest") {
     }
 
     It "processes a state trigger" {
-        $sensor = Get-Sensor
-        $sensor.Id = 1
+        $device = Get-Device -Count 1
+        $device.Id = 1
 
         $trigger = Run NotificationTrigger {
-            $sensor | Get-Trigger -Type Threshold
+            $device | Get-Trigger -Type Threshold
         }
 
         $trigger | Set-NotificationTriggerProperty OffNotificationAction $null
@@ -203,7 +203,7 @@ Describe "Set-NotificationTriggerProperty" -Tag @("PowerShell", "UnitTest") {
         $trigger = Get-Sensor -Count 1 | Get-Trigger | Select -First 1
         $trigger.ObjectId = 0
 
-        { $trigger | Set-TriggerProperty OnNotificationAction $true } | Should Throw "Expected a value of type 'PrtgAPI.NotificationAction' while parsing property 'OnNotificationAction' however received a value of type 'System.Boolean'."
+        { $trigger | Set-TriggerProperty OnNotificationAction $true } | Should Throw "Value 'True' could not be assigned to property 'OnNotificationAction'. Expected type: 'PrtgAPI.NotificationAction'. Actual type: 'System.Boolean'."
     }
 
     It "specifies a Channel wildcard to a normal parameter" {
@@ -347,5 +347,57 @@ Describe "Set-NotificationTriggerProperty" -Tag @("PowerShell", "UnitTest") {
         }
 
         $trigger | Set-TriggerProperty Channel "total"
+    }
+
+    It "converts null to the None NotificationAction via a static property" {
+        SetMultiTypeResponse
+
+        $trigger = GetTrigger "Volume"
+
+        SetAddressValidatorResponse ([Request]::EditSettings("id=1&subid=6&onnotificationid_6=-1%7CNone"))
+
+        $trigger | Set-TriggerProperty OnNotificationAction $null
+    }
+
+    It "converts null to the None NotificationAction via a dynamic property" {
+        SetMultiTypeResponse
+
+        $trigger = GetTrigger "Volume"
+
+        SetAddressValidatorResponse ([Request]::EditSettings("id=1&subid=6&onnotificationid_6=-1%7CNone"))
+
+        $trigger | Set-TriggerProperty -OnNotificationAction $null
+    }
+
+    It "throws when null is assigned to a channel via a static property" {
+        SetMultiTypeResponse
+
+        $trigger = GetTrigger "Volume"
+
+        { $trigger | Set-TriggerProperty Channel $null } | Should Throw "Cannot specify 'null' for parameter 'Channel'"
+    }
+
+    It "throws when null is assigned to a channel via a dynamic property" {
+        SetMultiTypeResponse
+
+        $trigger = GetTrigger "Volume"
+
+        { $trigger | Set-TriggerProperty -Channel $null } | Should Throw "Cannot specify 'null' for parameter 'Channel'"
+    }
+
+    It "throws when null is assigned to a non-nullable type via a static property" {
+        SetMultiTypeResponse
+
+        $trigger = GetTrigger "Volume"
+
+        { $trigger | Set-TriggerProperty Threshold $null } | Should Throw "Value 'null' could not be assigned to property 'Threshold' of type 'System.Double'. Value cannot be null."
+    }
+
+    It "throws when null is assigned to a non-nullable type via a dynamic property" {
+        SetMultiTypeResponse
+
+        $trigger = GetTrigger "Volume"
+
+        { $trigger | Set-TriggerProperty -Threshold $null } | Should Throw "Value 'null' could not be assigned to property 'Threshold' of type 'System.Double'. Value cannot be null."
     }
 }

@@ -243,24 +243,6 @@ function BuildStr($str)
     return $str
 }
 
-function SetPrtgClient($client)
-{
-    $assembly = (gcm Connect-PrtgServer).ImplementingType.Assembly
-
-    $sessionType = $assembly.GetType("PrtgAPI.PowerShell.PrtgSessionState")
-    $editionType = $assembly.GetType("PrtgAPI.PowerShell.PSEdition")
-
-    $edition = [enum]::GetValues($editionType) | where { $_ -eq $PSEdition }
-
-    $flags = [System.Reflection.BindingFlags]::Static -bor [System.Reflection.BindingFlags]::NonPublic
-
-    $clientProperty = $sessionType.GetProperty("Client", $flags)
-    $editionProperty = $sessionType.GetProperty("PSEdition", $flags)
-
-    $clientProperty.SetValue($null, $client)
-    $editionProperty.SetValue($null, $edition)
-}
-
 function SetVersion($versionStr)
 {
     $client = Get-PrtgClient
@@ -285,7 +267,10 @@ function Invoke-Interactive
         [string]$ExceptionMessage,
 
         [Parameter(Mandatory = $false)]
-        [string[]]$AlternateExceptionMessage
+        [string[]]$AlternateExceptionMessage,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$NoThrow
     )
 
     if([string]::IsNullOrEmpty($ExceptionMessage))
@@ -302,6 +287,21 @@ function Invoke-Interactive
 
     $path = (gmo prtgapi).path
 
+    $folder = Split-Path $path -Parent
+    $psd1 = Join-Path $folder "PrtgAPI.psd1"
+
+    if(!(Test-Path $psd1))
+    {
+        $folder = Split-Path $folder -Parent
+        $psd1 = Join-Path "PrtgAPI.psd1"
+    }
+
+    if(!(Test-Path $psd1))
+    {
+        # Just use the EXE then
+        $psd1 = $path
+    }
+
     $exe = "powershell"
 
     if($PSEdition -eq "Core")
@@ -311,7 +311,7 @@ function Invoke-Interactive
 
     $expr = @"
 &{
-    import-module '$path'
+    import-module '$psd1'
     `$secureString = ConvertTo-SecureString "12345678" -AsPlainText -Force
     `$cred = New-Object System.Management.Automation.PSCredential -ArgumentList "username",`$secureString
     Connect-PrtgServer prtg.example.com `$cred -PassHash
@@ -346,6 +346,11 @@ function Invoke-Interactive
                 }
             }
         }
+    }
+
+    if($NoThrow)
+    {
+        return $result
     }
 
     throw $result

@@ -12,6 +12,9 @@ using PrtgAPI.Linq;
 using PrtgAPI.Linq.Expressions;
 using PrtgAPI.Parameters;
 using PrtgAPI.Request;
+using PrtgAPI.Tree;
+using PrtgAPI.Tree.Converters.Tree;
+using PrtgAPI.Tree.Progress;
 
 namespace PrtgAPI
 {
@@ -587,7 +590,7 @@ namespace PrtgAPI
         /// </summary>
         /// <param name="objectId">The ID of the object to retrieve supported types of.</param>
         /// <returns>If the specified object supports querying sensor types, a list descriptions of sensor types supported by the specified object. Otherwise, null.</returns>
-        public List<SensorTypeDescriptor> GetSensorTypes(int objectId = 1) =>
+        public List<SensorTypeDescriptor> GetSensorTypes(int objectId = WellKnownId.DefaultProbe) =>
             ResponseParser.ParseSensorTypes(ObjectEngine.GetObject<SensorTypeDescriptorInternal>(new SensorTypeParameters(objectId), ResponseParser.ValidateHasContent).Types);
 
         /// <summary>
@@ -597,7 +600,7 @@ namespace PrtgAPI
         /// <param name="objectId">The ID of the object to retrieve supported types of.</param>
         /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>If the specified object supports querying sensor types, a list descriptions of sensor types supported by the specified object. Otherwise, null.</returns>
-        public async Task<List<SensorTypeDescriptor>> GetSensorTypesAsync(int objectId = 1, CancellationToken token = default(CancellationToken)) =>
+        public async Task<List<SensorTypeDescriptor>> GetSensorTypesAsync(int objectId = WellKnownId.DefaultProbe, CancellationToken token = default(CancellationToken)) =>
             ResponseParser.ParseSensorTypes((await ObjectEngine.GetObjectAsync<SensorTypeDescriptorInternal>(new SensorTypeParameters(objectId), ResponseParser.ValidateHasContentAsync, token: token).ConfigureAwait(false)).Types);
 
             #endregion
@@ -918,7 +921,7 @@ namespace PrtgAPI
         /// </summary>
         /// <param name="deviceId">The ID of the device to retrieve supported device templates of. In practice all devices should support the same device templates.</param>
         /// <returns>A list of device templates supported by the specified object.</returns>
-        public List<DeviceTemplate> GetDeviceTemplates(int deviceId = 40) =>
+        public List<DeviceTemplate> GetDeviceTemplates(int deviceId = WellKnownId.DefaultProbeDevice) =>
             ResponseParser.GetTemplates(GetObjectPropertiesRawInternal(deviceId, ObjectType.Device).StringValue);
 
         /// <summary>
@@ -927,7 +930,7 @@ namespace PrtgAPI
         /// <param name="deviceId">The ID of the device to retrieve supported device templates of. In practice all devices should support the same device templates.</param>
         /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A list of device templates supported by the specified object.</returns>
-        public async Task<List<DeviceTemplate>> GetDeviceTemplatesAsync(int deviceId = 40, CancellationToken token = default(CancellationToken)) =>
+        public async Task<List<DeviceTemplate>> GetDeviceTemplatesAsync(int deviceId = WellKnownId.DefaultProbeDevice, CancellationToken token = default(CancellationToken)) =>
             ResponseParser.GetTemplates((await GetObjectPropertiesRawInternalAsync(deviceId, ObjectType.Device, token).ConfigureAwait(false)).StringValue);
 
         #endregion
@@ -2605,6 +2608,104 @@ namespace PrtgAPI
             (await ObjectEngine.GetObjectsRawAsync<object>(new TotalObjectParameters(content, filters), token: token).ConfigureAwait(false)).TotalCount;
 
         #endregion
+        #region Tree
+
+        /// <summary>
+        /// Retrieves a <see cref="PrtgNode"/> tree for a specified object. If no object is specified, the Root node will be used.
+        /// </summary>
+        /// <param name="value">The object at the root of the tree.</param>
+        /// <param name="options">Specifies the types of descendants to include in the tree. If no value is specified, <see cref="TreeParseOption.Common" /> will be used.</param>
+        /// <param name="progressCallback">A callback used to receive progress notifications.</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A <see cref="PrtgNode"/> encapsulating the specified <paramref name="value"/> and all its descendants.</returns>
+        public PrtgNode GetTree(PrtgObject value = null, FlagEnum<TreeParseOption>? options = null, ITreeProgressCallback progressCallback = null, CancellationToken token = default(CancellationToken))
+        {
+            if (value != null)
+                return GetTree((Either<PrtgObject, int>) value, options, progressCallback, token);
+
+            return GetTree(WellKnownId.Root, options, progressCallback, token);
+        }
+
+        /// <summary>
+        /// Asynchronously retrieves a <see cref="PrtgNode"/> tree for a specified object. If no object is specified, the Root node will be used.
+        /// </summary>
+        /// <param name="value">The object at the root of the tree.</param>
+        /// <param name="options">Specifies the types of descendants to include in the tree. If no value is specified, <see cref="TreeParseOption.Common" /> will be used.</param>
+        /// <param name="progressCallback">A callback used to receive progress notifications.</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A <see cref="PrtgNode"/> encapsulating the specified <paramref name="value"/> and all its descendants.</returns>
+        public async Task<PrtgNode> GetTreeAsync(PrtgObject value = null, FlagEnum<TreeParseOption>? options = null, ITreeProgressCallback progressCallback = null, CancellationToken token = default(CancellationToken))
+        {
+            if (value != null)
+                return await GetTreeAsync((Either<PrtgObject, int>) value, options, progressCallback, token).ConfigureAwait(false);
+
+            return await GetTreeAsync(WellKnownId.Root, options, progressCallback, token).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Retrieves a <see cref="PrtgNode"/> tree for a specified object or ID.
+        /// </summary>
+        /// <param name="objectOrId">The object or ID of the object at the root of the tree.</param>
+        /// <param name="options">Specifies the types of descendants to include in the tree. If no value is specified, <see cref="TreeParseOption.Common" /> will be used.</param>
+        /// <param name="progressCallback">A callback used to receive progress notifications.</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A <see cref="PrtgNode"/> encapsulating the specified object and all its descendants.</returns>
+        public PrtgNode GetTree(Either<PrtgObject, int> objectOrId, FlagEnum<TreeParseOption>? options = null, ITreeProgressCallback progressCallback = null, CancellationToken token = default(CancellationToken))
+        {
+            var builder = new TreeBuilder(this, options, progressCallback, TreeRequestType.Synchronous, token);
+
+            return builder.GetTree(objectOrId).ToStandaloneNode<PrtgNode>();
+        }
+
+        /// <summary>
+        /// Asynchronously retrieves a <see cref="PrtgNode"/> tree for a specified object or ID.
+        /// </summary>
+        /// <param name="objectOrId">The object or ID of the object at the root of the tree.</param>
+        /// <param name="options">Specifies the types of descendants to include in the tree. If no value is specified, <see cref="TreeParseOption.Common" /> will be used.</param>
+        /// <param name="progressCallback">A callback used to receive progress notifications.</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A <see cref="PrtgNode"/> encapsulating the specified object and all its descendants.</returns>
+        public async Task<PrtgNode> GetTreeAsync(Either<PrtgObject, int> objectOrId, FlagEnum<TreeParseOption>? options = null, ITreeProgressCallback progressCallback = null, CancellationToken token = default(CancellationToken))
+        {
+            var builder = new TreeBuilder(this, options, progressCallback, TreeRequestType.Asynchronous, token);
+
+            return (await builder.GetTreeAsync(objectOrId).ConfigureAwait(false)).ToStandaloneNode<PrtgNode>();
+        }
+
+        /// <summary>
+        /// Lazily retrieves a <see cref="PrtgNode"/> tree for a specified object. If no object is specified, the Root node will be used.<para/>
+        /// Children of the root object will be retrieved on demand upon being accessed.
+        /// </summary>
+        /// <param name="value">The object at the root of the tree.</param>
+        /// <param name="options">Specifies the types of descendants to include in the tree. If no value is specified, <see cref="TreeParseOption.Common" /> will be used.</param>
+        /// <param name="progressCallback">A callback used to retrieve progress notifications when children are lazily resolved.</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A <see cref="PrtgNode"/> encapsulating the specified <paramref name="value"/> that lazily calculates its descendants.</returns>
+        public PrtgNode GetTreeLazy(PrtgObject value = null, FlagEnum<TreeParseOption>? options = null, ITreeProgressCallback progressCallback = null, CancellationToken token = default(CancellationToken))
+        {
+            if (value != null)
+                return GetTreeLazy((Either<PrtgObject, int>) value, options, progressCallback, token);
+
+            return GetTreeLazy(WellKnownId.Root, options, progressCallback, token);
+        }
+
+        /// <summary>
+        /// Lazily retrieves a <see cref="PrtgNode"/> tree for a specified object or ID.<para/>
+        /// Children of the root object will be retrieved on demand upon being accessed.
+        /// </summary>
+        /// <param name="objectOrId">The object or ID of the object at the root of the tree.</param>
+        /// <param name="options">Specifies the types of descendants to include in the tree. If no value is specified, <see cref="TreeParseOption.Common" /> will be used.</param>
+        /// <param name="progressCallback">A callback used to retrieve progress notifications when children are lazily resolved.</param>
+        /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A <see cref="PrtgNode"/> encapsulating the specified object that lazily calculates its descendants.</returns>
+        public PrtgNode GetTreeLazy(Either<PrtgObject, int> objectOrId, FlagEnum<TreeParseOption>? options = null, ITreeProgressCallback progressCallback = null, CancellationToken token = default(CancellationToken))
+        {
+            var builder = new TreeBuilder(this, options, progressCallback, TreeRequestType.Synchronous | TreeRequestType.Lazy, token);
+
+            return builder.GetTree(objectOrId).ToStandaloneNode<PrtgNode>();
+        }
+
+        #endregion
     #endregion
     #region Object Manipulation
         #region Add Objects
@@ -3003,12 +3104,12 @@ namespace PrtgAPI
         /// <summary>
         /// Clones a sensor or group to another device or group.
         /// </summary>
-        /// <param name="sourceObject">The sensor or group to clone.</param>
+        /// <param name="objectOrId">The sensor or group to clone.</param>
         /// <param name="cloneName">The name that should be given to the cloned object.</param>
-        /// <param name="targetParentObject">If this is a sensor, the device or ID of the device to clone to. If this is a group, the object or ID of the group or probe to clone to.</param>
+        /// <param name="destinationObjectOrId">If this is a sensor, the device or ID of the device to clone to. If this is a group, the object or ID of the group or probe to clone to.</param>
         /// <returns>The ID of the object that was created.</returns>
-        public int CloneObject(Either<IPrtgObject, int> sourceObject, string cloneName, Either<DeviceOrGroupOrProbe, int> targetParentObject) =>
-            CloneObject(new CloneParameters(sourceObject.ToPrtgObject(), cloneName, targetParentObject.ToPrtgObject()), CancellationToken.None);
+        public int CloneObject(Either<IPrtgObject, int> objectOrId, string cloneName, Either<DeviceOrGroupOrProbe, int> destinationObjectOrId) =>
+            CloneObject(new CloneParameters(objectOrId.ToPrtgObject(), cloneName, destinationObjectOrId.ToPrtgObject()), CancellationToken.None);
 
         /// <summary>
         /// Clones a device to another group or probe.
@@ -3016,31 +3117,31 @@ namespace PrtgAPI
         /// <param name="deviceOrId">The device or ID of the device to clone.</param>
         /// <param name="cloneName">The name that should be given to the cloned device.</param>
         /// <param name="host">The hostname or IP Address that should be assigned to the new device.</param>
-        /// <param name="targetParentObject">The group or probe the device should be cloned to.</param>
+        /// <param name="destinationObjectOrId">The group or probe the device should be cloned to.</param>
         /// <returns>The ID of the object that was created.</returns>
-        public int CloneObject(Either<Device, int> deviceOrId, string cloneName, string host, Either<GroupOrProbe, int> targetParentObject) =>
-            CloneObject(new CloneParameters(deviceOrId, cloneName, targetParentObject, host), CancellationToken.None);
+        public int CloneObject(Either<Device, int> deviceOrId, string cloneName, string host, Either<GroupOrProbe, int> destinationObjectOrId) =>
+            CloneObject(new CloneParameters(deviceOrId, cloneName, destinationObjectOrId, host), CancellationToken.None);
 
         /// <summary>
         /// Asynchronously clones a sensor or group to another device or group.
         /// </summary>
-        /// <param name="sourceObject">The sensor or group to clone.</param>
+        /// <param name="objectOrId">The sensor or group to clone.</param>
         /// <param name="cloneName">The name that should be given to the cloned object.</param>
-        /// <param name="targetParentObject">If this is a sensor, the device or ID of the device to clone to. If this is a group, the object or ID of the group or probe to clone to.</param>
+        /// <param name="destinationObjectOrId">If this is a sensor, the device or ID of the device to clone to. If this is a group, the object or ID of the group or probe to clone to.</param>
         /// <returns>The ID of the object that was created.</returns>
-        public async Task<int> CloneObjectAsync(Either<IPrtgObject, int> sourceObject, string cloneName, Either<DeviceOrGroupOrProbe, int> targetParentObject) =>
-            await CloneObjectAsync(sourceObject, cloneName, targetParentObject, CancellationToken.None).ConfigureAwait(false);
+        public async Task<int> CloneObjectAsync(Either<IPrtgObject, int> objectOrId, string cloneName, Either<DeviceOrGroupOrProbe, int> destinationObjectOrId) =>
+            await CloneObjectAsync(objectOrId, cloneName, destinationObjectOrId, CancellationToken.None).ConfigureAwait(false);
 
         /// <summary>
         /// Asynchronously clones a sensor or group to another device or group with a specified cancellation token.
         /// </summary>
-        /// <param name="sourceObject">The sensor or group to clone.</param>
+        /// <param name="objectOrId">The sensor or group to clone.</param>
         /// <param name="cloneName">The name that should be given to the cloned object.</param>
-        /// <param name="targetParentObject">If this is a sensor, the device or ID of the device to clone to. If this is a group, the object or ID of the group or probe to clone to.</param>
+        /// <param name="destinationObjectOrId">If this is a sensor, the device or ID of the device to clone to. If this is a group, the object or ID of the group or probe to clone to.</param>
         /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>The ID of the object that was created.</returns>
-        public async Task<int> CloneObjectAsync(Either<IPrtgObject, int> sourceObject, string cloneName, Either<DeviceOrGroupOrProbe, int> targetParentObject, CancellationToken token) =>
-            await CloneObjectAsync(new CloneParameters(sourceObject.ToPrtgObject(), cloneName, targetParentObject.ToPrtgObject()), token).ConfigureAwait(false);
+        public async Task<int> CloneObjectAsync(Either<IPrtgObject, int> objectOrId, string cloneName, Either<DeviceOrGroupOrProbe, int> destinationObjectOrId, CancellationToken token) =>
+            await CloneObjectAsync(new CloneParameters(objectOrId.ToPrtgObject(), cloneName, destinationObjectOrId.ToPrtgObject()), token).ConfigureAwait(false);
 
         /// <summary>
         /// Asynchronously clones a device to another group or probe.
@@ -3048,10 +3149,10 @@ namespace PrtgAPI
         /// <param name="deviceOrId">The device or ID of the device to clone.</param>
         /// <param name="cloneName">The name that should be given to the cloned device.</param>
         /// <param name="host">The hostname or IP Address that should be assigned to the new device.</param>
-        /// <param name="targetParentObject">The group or probe the device should be cloned to.</param>
+        /// <param name="destinationObjectOrId">The group or probe the device should be cloned to.</param>
         /// <returns>The ID of the object that was created.</returns>
-        public async Task<int> CloneObjectAsync(Either<Device, int> deviceOrId, string cloneName, string host, Either<GroupOrProbe, int> targetParentObject) =>
-            await CloneObjectAsync(deviceOrId, cloneName, host, targetParentObject, CancellationToken.None).ConfigureAwait(false);
+        public async Task<int> CloneObjectAsync(Either<Device, int> deviceOrId, string cloneName, string host, Either<GroupOrProbe, int> destinationObjectOrId) =>
+            await CloneObjectAsync(deviceOrId, cloneName, host, destinationObjectOrId, CancellationToken.None).ConfigureAwait(false);
 
         /// <summary>
         /// Asynchronously clones a device to another group or probe with a specified cancellation token.
@@ -3059,11 +3160,11 @@ namespace PrtgAPI
         /// <param name="deviceOrId">The device or ID of the device to clone.</param>
         /// <param name="cloneName">The name that should be given to the cloned device.</param>
         /// <param name="host">The hostname or IP Address that should be assigned to the new device.</param>
-        /// <param name="targetParentObject">The group or probe the device should be cloned to.</param>
+        /// <param name="destinationObjectOrId">The group or probe the device should be cloned to.</param>
         /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>The ID of the object that was created.</returns>
-        public async Task<int> CloneObjectAsync(Either<Device, int> deviceOrId, string cloneName, string host, Either<GroupOrProbe, int> targetParentObject, CancellationToken token) =>
-            await CloneObjectAsync(new CloneParameters(deviceOrId, cloneName, targetParentObject, host), token).ConfigureAwait(false);
+        public async Task<int> CloneObjectAsync(Either<Device, int> deviceOrId, string cloneName, string host, Either<GroupOrProbe, int> destinationObjectOrId, CancellationToken token) =>
+            await CloneObjectAsync(new CloneParameters(deviceOrId, cloneName, destinationObjectOrId, host), token).ConfigureAwait(false);
 
         #endregion
         #region Get Object Properties
@@ -4379,7 +4480,7 @@ namespace PrtgAPI
             var approved = GetProbeApprovalStatus(probeOrId);
 
             if (approved)
-            throw new InvalidOperationException($"Cannot change approval status of probe with ID '{probeOrId}': probe has already been approved.");
+                throw new InvalidOperationException($"Cannot change approval status of probe with ID '{probeOrId}': probe has already been approved.");
 
             ApproveProbeInternal(probeOrId, action);
         }
@@ -4405,7 +4506,7 @@ namespace PrtgAPI
             var approved = await GetProbeApprovalStatusAsync(probeOrId, token).ConfigureAwait(false);
 
             if (approved)
-            throw new InvalidOperationException($"Cannot change approval status of probe with ID '{probeOrId}': probe has already been approved.");
+                throw new InvalidOperationException($"Cannot change approval status of probe with ID '{probeOrId}': probe has already been approved.");
 
             await ApproveProbeInternalAsync(probeOrId, action, token).ConfigureAwait(false);
         }

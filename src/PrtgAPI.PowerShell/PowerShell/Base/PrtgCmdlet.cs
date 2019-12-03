@@ -36,6 +36,8 @@ namespace PrtgAPI.PowerShell.Base
 
         internal CancellationToken CancellationToken => TokenSource.Token;
 
+        internal bool HasParameter(string name) => MyInvocation.BoundParameters.ContainsKey(name);
+
         /// <summary>
         /// Provides a one-time, preprocessing functionality for the cmdlet.
         /// </summary>
@@ -77,6 +79,14 @@ namespace PrtgAPI.PowerShell.Base
                     {
                         action();
                     }
+                    catch (NonTerminatingException ex)
+                    {
+                        WriteInvalidOperation(ex.InnerException, ex.TargetObject, ex.ErrorCategory);
+                    }
+                    catch (PrtgRequestException ex)
+                    {
+                        WriteInvalidOperation(ex);
+                    }
                     catch (Exception ex)
                     {
                         if (!(PipeToSelectObject() && ex is PipelineStoppedException))
@@ -110,6 +120,21 @@ namespace PrtgAPI.PowerShell.Base
             {
                 UnregisterEvents(true);
             }
+        }
+
+        internal void WriteInvalidOperation(Exception ex, object targetObject = null, ErrorCategory errorCategory = ErrorCategory.InvalidOperation)
+        {
+            WriteError(new ErrorRecord(
+                ex,
+                ex.GetType().Name,
+                errorCategory,
+                targetObject
+            ));
+        }
+
+        internal void WriteInvalidOperation(string message, object targetObject = null)
+        {
+            WriteInvalidOperation(new InvalidOperationException(message), targetObject);
         }
 
         /// <summary>
@@ -220,7 +245,7 @@ namespace PrtgAPI.PowerShell.Base
         {
             //Lazy values will execute in the context of the previous command when retrieved from the next cmdlet
             //(such as Select-Object)
-            if (CommandRuntime.GetInternalProperty("PipelineProcessor").GetInternalField("_permittedToWrite") == this)
+            if (CommandRuntime.GetInternalProperty("PipelineProcessor").GetInternalField("_permittedToWrite") == this || CommandRuntime is DummyRuntime)
                 WriteVerbose($"{MyInvocation.MyCommand}: {args.Message}");
 
             Debug.WriteLine($"{MyInvocation.MyCommand}: {args.Message}");

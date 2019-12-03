@@ -62,6 +62,7 @@
     <Compile Include="Dynamic\DynamicProxy.cs" />
     <Compile Include="Dynamic\ParameterProxy.cs" />
     <Compile Include="Dynamic\DynamicExpressionBuilder.cs" />
+    <Compile Include="Dynamic\TreeNodeProxy.cs" />
     <Compile Include="Enums\Deserialization\ClusterNodeType.cs" />
     <Compile Include="Enums\Deserialization\LicenseType.cs" />
     <Compile Include="Enums\Deserialization\LogStatus.cs" />
@@ -109,6 +110,7 @@
     <Compile Include="Enums\Deserialization\TicketStatus.cs" />
     <Compile Include="Enums\Deserialization\WmiServiceStatus.cs" />
     <Compile Include="Enums\DeviceInfoType.cs" />
+    <Compile Include="Enums\Enhanced\FlagEnum.cs" />
     <Compile Include="Enums\Enhanced\IEnumEx.cs" />
     <Compile Include="Enums\ExeType.cs" />
     <Compile Include="Enums\FilterMode.cs" />
@@ -128,7 +130,11 @@
     <Compile Include="Enums\ConfigFileType.cs" />
     <Compile Include="Enums\RequestVersion.cs" />
     <Compile Include="Enums\SystemInfoType.cs" />
+    <Compile Include="Linq\CachedEnumerableIterator.cs" />
     <Compile Include="Objects\Models\Either.cs" />
+    <Compile Include="Objects\WellKnownId.cs" />
+    <Compile Include="Parameters\Helpers\ConversionState.cs" />
+    <Compile Include="Parameters\Helpers\TypeConversionStateMachine.cs" />
     <Compile Include="Parameters\Interfaces\ISensorQueryTargetParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\AddSensor\ContinueAddSensorQueryParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\AddSensor\SensorMultiQueryTargetParameters.cs" />
@@ -136,6 +142,8 @@
     <Compile Include="Parameters\ObjectManipulation\AddSensor\SensorQueryTargetParameters.cs" />
     <Compile Include="Parameters\TriggerParameter.cs" />
     <Compile Include="Properties\Version.cs" />
+    <Compile Include="Request\EnumTranslation.cs" />
+    <Compile Include="Request\ForeignEnumValue.cs" />
     <Compile Include="Request\HtmlParser.cs" />
     <Compile Include="Request\LogVerboseEventArgs.cs" />
     <Compile Include="Exceptions\HttpDeserializationException.cs" />
@@ -154,8 +162,10 @@
     <Compile Include="Parameters\Interfaces\ICustomParameterContainer.cs" />
     <Compile Include="Parameters\ObjectManipulation\ApproveProbeParameters.cs" />
     <Compile Include="Parameters\ObjectManipulation\NewObjectParameters\Sensors\FactorySensorParameters.cs" />
+    <Compile Include="Request\NotificationTriggerTranslator.cs" />
     <Compile Include="Request\Serialization\ValueConverters\NotificationActionValueConverter.cs" />
     <Compile Include="Request\Serialization\ValueConverters\ValueLookupConverter.cs" />
+    <Compile Include="Request\TriggerPropertyEntry.cs" />
     <Compile Include="Request\Version\ChannelLimitAnalysis.cs" />
     <Compile Include="Request\Version\SetChannelPropertyGrouping.cs" />
     <Compile Include="Request\Version\SetChannelPropertyTask.cs" />
@@ -165,6 +175,144 @@
       <DependentUpon>VersionClient.Generated.tt</DependentUpon>
     </Compile>
     <Compile Include="Request\Version\VersionClient17_4.cs" />
+    <Compile Include="Tree\Converters\Text\CompareNodePrettyTreeVisitor.cs" />
+    <Compile Include="Tree\Converters\Text\InternalPrettyTreeVisitorBase.cs" />
+    <Compile Include="Tree\Converters\Text\Lines\PrettyColorLine.cs" />
+    <Compile Include="Tree\Converters\Text\Lines\PrettyLine.cs" />
+    <Compile Include="Tree\Converters\Text\PrettyPrintConstants.cs" />
+    <Compile Include="Tree\Converters\Text\PrtgNodePrettyTreeVisitor.cs" />
+    <Compile Include="Tree\Converters\Text\Writers\PrettyColorWriter.cs" />
+    <Compile Include="Tree\Converters\Text\Writers\PrettyWriter.cs" />
+    <Compile Include="Tree\Converters\Tree\CacheFactory\CachedDeviceFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\CacheFactory\CachedGroupFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\CacheFactory\CachedObjectManager.cs" />
+    <Compile Include="Tree\Converters\Tree\CacheFactory\CachedProbeFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\CacheFactory\CachedSensorFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\Factory\DeviceFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\Factory\GroupFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\Factory\ObjectFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\Factory\ObjectManager.cs" />
+    <Compile Include="Tree\Converters\Tree\Factory\ProbeFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\Factory\PropertyFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\Factory\SensorFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\Factory\TriggerFactory.cs" />
+    <Compile Include="Tree\Converters\Tree\TreeBuilder.cs" />
+    <Compile Include="Tree\Converters\Tree\TreeBuilderLevel.Generated.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>TreeBuilderLevel.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Tree\Enums\ListEditType.cs" />
+    <Compile Include="Tree\Enums\TreeRequestType.cs" />
+    <Compile Include="Tree\Enums\TreeNodeDifference.cs" />
+    <Compile Include="Tree\Enums\TreeParseOption.cs" />
+    <Compile Include="Tree\Model\Debug\CompareNodeCollectionDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\CompareNodeDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\CompareNodeGroupingDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\CompareOrphanCollectionDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\CompareOrphanDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\CompareOrphanGroupingDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\NodeListDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\NodeListDebugView`1.cs" />
+    <Compile Include="Tree\Model\Debug\OrphanListDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\OrphanListDebugView`1.cs" />
+    <Compile Include="Tree\Model\Debug\PrtgNodeCollectionDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\PrtgNodeDebugView`1.cs" />
+    <Compile Include="Tree\Model\Debug\PrtgNodeGroupingDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\PrtgOrphanCollectionDebugView.cs" />
+    <Compile Include="Tree\Model\Debug\PrtgOrphanDebugView`1.cs" />
+    <Compile Include="Tree\Model\Debug\PrtgOrphanGroupingDebugView.cs" />
+    <Compile Include="Tree\Model\Extensions\NodeExtensions.cs" />
+    <Compile Include="Tree\Model\Extensions\OrphanExtensions.cs" />
+    <Compile Include="Tree\Model\Node\Internal\List\LazyOrphanList.cs" />
+    <Compile Include="Tree\Model\Node\Internal\List\StrictOrphanList.cs" />
+    <Compile Include="Tree\Model\Node\Public\List\LazyNodeList.cs" />
+    <Compile Include="Tree\Model\Node\Public\List\StrictNodeList.cs" />
+    <Compile Include="Tree\Model\Progress\DefaultDepthManager.cs" />
+    <Compile Include="Tree\Model\Progress\ITreeProgressCallback.cs" />
+    <Compile Include="Tree\Model\ITreeValue.cs" />
+    <Compile Include="Tree\Model\Node\Internal\Collection\CompareOrphanCollection.cs" />
+    <Compile Include="Tree\Model\Node\Internal\Collection\CompareOrphanGrouping.cs" />
+    <Compile Include="Tree\Model\Node\Internal\Collection\PropertyOrphanCollection.cs" />
+    <Compile Include="Tree\Model\Node\Internal\Collection\PrtgOrphanCollection.cs" />
+    <Compile Include="Tree\Model\Node\Internal\Collection\PrtgOrphanGrouping.cs" />
+    <Compile Include="Tree\Model\Node\Internal\Collection\TriggerOrphanCollection.cs" />
+    <Compile Include="Tree\Model\Node\Internal\Collection\CompareOrphanRoot.cs" />
+    <Compile Include="Tree\Model\Node\Internal\CompareOrphan.cs" />
+    <Compile Include="Tree\Model\Node\Internal\DeviceOrphan.cs" />
+    <Compile Include="Tree\Model\Node\Internal\GroupOrphan.cs" />
+    <Compile Include="Tree\Model\Node\Internal\List\INodeGrouping.cs" />
+    <Compile Include="Tree\Model\Node\Internal\List\ArrayElement.cs" />
+    <Compile Include="Tree\Model\Node\Internal\List\INodeList.cs" />
+    <Compile Include="Tree\Model\Node\Internal\List\ListBase.cs" />
+    <Compile Include="Tree\Model\Node\Internal\List\OrphanList.cs" />
+    <Compile Include="Tree\Model\Node\Internal\List\OrphanList`1.cs" />
+    <Compile Include="Tree\Model\Node\Internal\ProbeOrphan.cs" />
+    <Compile Include="Tree\Model\Node\Internal\PropertyOrphan.cs" />
+    <Compile Include="Tree\Model\Node\Internal\SensorOrphan.cs" />
+    <Compile Include="Tree\Model\Node\Internal\PrtgOrphan.cs" />
+    <Compile Include="Tree\Model\Node\Internal\PrtgOrphan`1.cs" />
+    <Compile Include="Tree\Model\Node\Internal\TreeOrphan.cs" />
+    <Compile Include="Tree\Model\Node\Internal\TreeOrphan`1.cs" />
+    <Compile Include="Tree\Model\Node\Internal\TriggerOrphan.cs" />
+    <Compile Include="Tree\Model\Node\Public\Collection\CompareNodeCollection.cs" />
+    <Compile Include="Tree\Model\Node\Public\Collection\CompareNodeGrouping.cs" />
+    <Compile Include="Tree\Model\Node\Public\Collection\PropertyNodeCollection.cs" />
+    <Compile Include="Tree\Model\Node\Public\Collection\PrtgNodeCollection.cs" />
+    <Compile Include="Tree\Model\Node\Public\Collection\PrtgNodeGrouping.cs" />
+    <Compile Include="Tree\Model\Node\Public\Collection\TriggerNodeCollection.cs" />
+    <Compile Include="Tree\Model\Node\Public\Collection\CompareNodeRoot.cs" />
+    <Compile Include="Tree\Model\Node\Public\CompareNode.cs" />
+    <Compile Include="Tree\Model\Node\Public\DeviceNode.cs" />
+    <Compile Include="Tree\Model\Node\Public\GroupNode.cs" />
+    <Compile Include="Tree\Model\Node\Public\List\NodeList.cs" />
+    <Compile Include="Tree\Model\Node\Public\List\NodeList`1.cs" />
+    <Compile Include="Tree\Model\Node\Public\ProbeNode.cs" />
+    <Compile Include="Tree\Model\Node\Public\PropertyNode.cs" />
+    <Compile Include="Tree\Model\Node\Public\PrtgNode.cs" />
+    <Compile Include="Tree\Model\Node\Public\PrtgNode.Factory.cs" />
+    <Compile Include="Tree\Model\Node\Public\PrtgNodeFactory.cs" />
+    <Compile Include="Tree\Model\Node\Public\PrtgNode`1.cs" />
+    <Compile Include="Tree\Model\Node\Public\SensorNode.cs" />
+    <Compile Include="Tree\Model\Node\Public\TreeNode.cs" />
+    <Compile Include="Tree\Model\Node\Public\TreeNode`1.cs" />
+    <Compile Include="Tree\Model\Node\Public\TriggerNode.cs" />
+    <Compile Include="Tree\Model\Progress\DepthManager.cs" />
+    <Compile Include="Tree\Model\Progress\TreeProgressManager.cs" />
+    <Compile Include="Tree\Model\PropertyValuePair.cs" />
+    <Compile Include="Tree\Model\TreeNodeType.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareNodeDefaultVisitor.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareNodeDefaultVisitor`1.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareNodeRewriter.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareNodeVisitor.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareNodeVisitor`1.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareNodeWalker.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareOrphanDefaultVisitor.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareOrphanDefaultVisitor`1.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareOrphanRewriter.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareOrphanVisitor.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareOrphanVisitor`1.cs" />
+    <Compile Include="Tree\Model\Visitors\Compare\CompareOrphanWalker.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgNodeDefaultVisitor.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgNodeDefaultVisitor`1.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgNodeRewriter.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgNodeVisitor.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgNodeVisitor`1.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgNodeWalker.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgOrphanDefaultVisitor.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgOrphanDefaultVisitor`1.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgOrphanRewriter.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgOrphanVisitor.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgOrphanVisitor`1.cs" />
+    <Compile Include="Tree\Model\Visitors\Prtg\PrtgOrphanWalker.cs" />
+    <Compile Include="Tree\Converters\Tree\TreeBuilderLevel.cs" />
+    <Compile Include="Tree\Visitors\CompareNodeReducer.cs" />
+    <Compile Include="Tree\Visitors\CompareTreeVisitor.cs" />
+    <Compile Include="Tree\Visitors\PrtgNodeListEditor.cs" />
+    <Compile Include="Tree\Visitors\PrtgNodeRemover.cs" />
+    <Compile Include="Tree\Visitors\PrtgNodeReplacer.cs" />
+    <Compile Include="Tree\Visitors\VisitorUtilities.cs" />
+    <Compile Include="Utilities\ConvertUtilities.cs" />
     <Compile Include="Utilities\DynamicParameterPropertyTypes.cs" />
     <Compile Include="Utilities\FluentExpressions.cs" />
     <Compile Include="Utilities\ObjectExtensions.cs" />
@@ -315,7 +463,7 @@
     <Compile Include="Request\Serialization\CodeGen\XmlSerializerGenerator.cs" />
     <Compile Include="Request\Serialization\CodeGen\XmlSerializerMembers.cs" />
     <Compile Include="Request\StreamManager.cs" />
-    <Compile Include="Request\StringEnum.cs" />
+    <Compile Include="Enums\Enhanced\StringEnum.cs" />
     <Compile Include="Parameters\ObjectData\PrtgObjectParameters.cs" />
     <Compile Include="Utilities\Cache\AttributeCache.cs" />
     <Compile Include="Utilities\Cache\EnumCache.cs" />
@@ -563,6 +711,7 @@
     <Compile Include="Request\PrtgRequestMessage.cs" />
     <Compile Include="Request\PrtgWebClient.cs" />
     <None Include="Request\T4Functions.ttinc" />
+    <Compile Include="Tree\Model\Node\Internal\PrtgOrphan.Factory.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="PrtgAPI.nuspec" />
@@ -584,6 +733,10 @@
     <Content Include="Request\Version\VersionClient18_1.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>VersionClient18_1.Generated.cs</LastGenOutput>
+    </Content>
+    <Content Include="Tree\Converters\Tree\TreeBuilderLevel.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TreeBuilderLevel.Generated.cs</LastGenOutput>
     </Content>
   </ItemGroup>
   <ItemGroup>

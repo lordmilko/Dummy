@@ -6,7 +6,6 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -20,14 +19,16 @@ using PrtgAPI.Tests.UnitTests.Support;
 using PrtgAPI.Tests.UnitTests.Support.Serialization;
 using PrtgAPI.Tests.UnitTests.Support.TestItems;
 using PrtgAPI.Tests.UnitTests.Support.TestResponses;
+using PrtgAPI.Tree;
+using PrtgAPI.Tree.Progress;
 
 namespace PrtgAPI.Tests.UnitTests.Infrastructure
 {
     [TestClass]
     public class PrtgClientTests : BaseTest
     {
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_Constructor_RetrievesPassHash()
         {
             var webClient = new MockWebClient(new PassHashResponse());
@@ -37,8 +38,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.IsTrue(client.PassHash == "12345678");
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_Constructor_CantRetrievePassHash()
         {
             var webClient = new MockWebClient(new PassHashResponse("PRTG Network Monitor is starting"));
@@ -49,29 +50,29 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             );
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_Constructor_ServerCannotBeNull()
         {
             AssertEx.Throws<ArgumentNullException>(() => new PrtgClient(null, "username", "password"), $"Value cannot be null.{Environment.NewLine}Parameter name: server");
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_Constructor_UsernameCannotBeNull()
         {
             AssertEx.Throws<ArgumentNullException>(() => new PrtgClient("prtg.example.com", null, "password"), $"Value cannot be null.{Environment.NewLine}Parameter name: username");
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_Constructor_PasswordCannotBeNull()
         {
             AssertEx.Throws<ArgumentNullException>(() => new PrtgClient("prtg.example.com", "username", null), $"Value cannot be null.{Environment.NewLine}Parameter name: password");
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_RetriesWhileStreaming()
         {
             var response = new SensorResponse(Enumerable.Repeat(new SensorItem(), 1001).ToArray());
@@ -99,8 +100,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
 
         private int prtgClientRetriesNormally;
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_RetriesNormally()
         {
             prtgClientRetriesNormally = 0;
@@ -129,8 +130,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             prtgClientRetriesNormally++;
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_SyncAsync_Counterparts()
         {
             var methods = typeof (PrtgClient).GetMethods().ToList();
@@ -154,7 +155,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 "GetType"
             };
 
-            var syncMethods = methods.Where(m => !m.Name.EndsWith("Async") && !skipStartsWith.Any(m.Name.StartsWith) && !skipFull.Any(m.Name.StartsWith)).ToList();
+            var syncMethods = methods.Where(m => !m.Name.EndsWith("Async") && !m.Name.EndsWith("Lazy") && !skipStartsWith.Any(m.Name.StartsWith) && !skipFull.Any(m.Name.StartsWith)).ToList();
 
             var methodFullNames = methods.Select(m =>
             {
@@ -186,8 +187,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         }
 
         [TestMethod]
-        [TestCategory("SlowCoverage")]
-        [TestCategory("UnitTest")]
+        [UnitTest(TestCategory.SkipCoverage)]
         public void PrtgClient_StreamsSerial_WhenRequestingOver20000Items()
         {
             var count = 20001;
@@ -211,8 +211,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.AreEqual(count, sensors.Count);
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_ThrowsWithBadRequest()
         {
             var xml = new XElement("prtg",
@@ -223,8 +223,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             ExecuteFailedRequest(HttpStatusCode.BadRequest, xml.ToString(), null, "Some of the selected objects could not be deleted.");
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_ThrowsWithErrorUrl()
         {
             var address = "http://prtg.example.com/error.htm?errormsg=Something+bad+happened";
@@ -232,8 +232,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             ExecuteFailedRequest(HttpStatusCode.OK, string.Empty, address, "Something bad happened");
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_ThrowsWithHtml()
         {
             var html = new XElement("div",
@@ -254,8 +254,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             );
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_ParsesInvalidXml_List()
         {
             var xml = "<sensors totalcount=\"1\"><item><property><value>1\0</value></property></item></sensors>";
@@ -267,8 +267,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.AreEqual(true, result.Single().Property.Value);
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_ParsesInvalidXml_ListAsync()
         {
             var xml = "<sensors totalcount=\"1\"><item><property><value>1\0</value></property></item></sensors>";
@@ -280,8 +280,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.AreEqual(true, result.Single().Property.Value);
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_ParsesInvalidXml_Object()
         {
             var xml = "<property><value>\01</value></property>";
@@ -293,8 +293,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.AreEqual(true, result.Value);
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_ParsesInvalidXml_ObjectAsync()
         {
             var xml = "<property><value>\01</value></property>";
@@ -306,8 +306,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.AreEqual(true, result.Value);
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_ParsesInvalidXml_XDocument()
         {
             var xml = "<property><value>\01</value></property>";
@@ -319,8 +319,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.AreEqual("<property><value>1</value></property>", result.ToString(SaveOptions.DisableFormatting));
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_ParsesInvalidXml_XDocumentAsync()
         {
             var xml = "<property><value>\01</value></property>";
@@ -332,15 +332,15 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.AreEqual("<property><value>1</value></property>", result.ToString(SaveOptions.DisableFormatting));
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_ParsesInvalidXml_RetainsDirty()
         {
             var xml = "<property><value>\01</value></property>";
 
             var client = Initialize_Client(new BasicResponse(xml.ToString()));
 
-            var validator = new EventValidator<string>(new[]
+            var validator = new EventValidator(client, new[]
             {
                 //First - retry a dirty response
                 UnitRequest.Objects(),
@@ -350,18 +350,6 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 //Second - engine should be already marked as dirty
                 UnitRequest.Objects()
             });
-
-            client.LogVerbose += (s, e) =>
-            {
-                var message = e.Message;
-
-                if (message.StartsWith("Synchronously") || message.StartsWith("Asynchronously"))
-                {
-                    message = Regex.Replace(e.Message, "(.+ request )(.+)", "$2");
-                }
-
-                Assert.AreEqual(validator.Get(message), message);
-            };
 
             validator.MoveNext(3);
             var result = client.ObjectEngine.GetObject<DummyElementRoot>(new PrtgObjectParameters());
@@ -372,15 +360,15 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.IsTrue(validator.Finished, "Did not process all requests");
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_ParsesInvalidXml_RetainsDirtyAsync()
         {
             var xml = "<property><value>\01</value></property>";
 
             var client = Initialize_Client(new BasicResponse(xml.ToString()));
 
-            var validator = new EventValidator<string>(new[]
+            var validator = new EventValidator(client, new[]
             {
                 //First - retry a dirty response
                 UnitRequest.Objects(),
@@ -391,18 +379,6 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 UnitRequest.Objects()
             });
 
-            client.LogVerbose += (s, e) =>
-            {
-                var message = e.Message;
-
-                if (message.StartsWith("Synchronously") || message.StartsWith("Asynchronously"))
-                {
-                    message = Regex.Replace(e.Message, "(.+ request )(.+)", "$2");
-                }
-
-                Assert.AreEqual(validator.Get(message), message);
-            };
-
             validator.MoveNext(3);
             var result = await client.ObjectEngine.GetObjectAsync<DummyElementRoot>(new PrtgObjectParameters());
 
@@ -412,8 +388,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.IsTrue(validator.Finished, "Did not process all requests");
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_ParsesInvalidXml_Name()
         {
             var xml = "<property><value>\01</value></property>";
@@ -425,8 +401,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             Assert.AreEqual(true, result.Value);
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_ParsesInvalidXml_Value()
         {
             var xml = "<property\0><value>1</value></property>";
@@ -440,8 +416,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
 
         private int prtgClientLogVerboseHit;
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_LogVerbose()
         {
             prtgClientLogVerboseHit = 0;
@@ -478,15 +454,15 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             AssertEx.Throws<PrtgRequestException>(() => action(client), $"PRTG was unable to complete the request. The server responded with the following error: {expectedError}");
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_HandlesTimeoutSocketException()
         {
             AssertEx.Throws<TimeoutException>(() => ExecuteSocketException(SocketError.TimedOut), "Connection timed out while communicating with remote server");
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_SplitsRequests_BatchingOver1500Items()
         {
             var range = Enumerable.Range(1, 2000).ToArray();
@@ -507,8 +483,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             );
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_HandlesConnectionRefusedSocketException()
         {
             AssertEx.Throws<WebException>(() => ExecuteSocketException(SocketError.ConnectionRefused), "Server rejected HTTPS connection");
@@ -548,8 +524,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
 
         #region Either
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_Either_Object()
         {
             var urls = new[]
@@ -566,8 +542,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             }, urls);
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_Either_Id()
         {
             var urls = new[]
@@ -582,8 +558,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             );
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_Either_Null_Throws()
         {
             var client = Initialize_Client(new MultiTypeResponse());
@@ -594,8 +570,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             );
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_Either_Default_Throws()
         {
             var client = Initialize_Client(new MultiTypeResponse());
@@ -606,8 +582,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             );
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_Either_Default_ThrowsAsync()
         {
             var client = Initialize_Client(new MultiTypeResponse());
@@ -621,8 +597,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         #endregion
         #region Execute With Log Response
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_AllMethodsExecute_WithLogResponse()
         {
             var methods = GetMethods(false);
@@ -640,8 +616,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             }
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_AllMethodsExecute_WithoutLogResponse()
         {
             var methods = GetMethods(false);
@@ -659,8 +635,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             }
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_AllMethodsExecute_WithLogResponseAsync()
         {
             var methods = GetMethods(true);
@@ -678,8 +654,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             }
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_AllMethodsExecute_WithoutLogResponseAsync()
         {
             var methods = GetMethods(true);
@@ -725,7 +701,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             return methods.ToList();
         }
 
-        private MethodInfo GetCustomMethod(MethodInfo method)
+        internal static MethodInfo GetCustomMethod(MethodInfo method)
         {
             if (method.ContainsGenericParameters)
             {
@@ -738,7 +714,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             return method;
         }
 
-        private PrtgClient GetDefaultClient()
+        internal static PrtgClient GetDefaultClient(bool switchContext = false)
         {
             var client = Initialize_Client(new MultiTypeResponse
             {
@@ -751,7 +727,7 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                     [Content.Notifications] = 1,
                     [Content.Schedules] = 1
                 }
-            });
+            }, switchContext);
 
             return client;
         }
@@ -761,6 +737,21 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             if (method.Name == "GetNotificationTriggers" || method.Name == "GetNotificationTriggersAsync")
             {
                 return Initialize_Client(new NotificationTriggerResponse(NotificationTriggerItem.StateTrigger()));
+            }
+
+            if (method.Name.StartsWith("GetTree"))
+            {
+                return Initialize_Client(new MultiTypeResponse
+                {
+                    ItemOverride = new Dictionary<Content, BaseItem[]>
+                    {
+                        [Content.Groups] = new[] {new GroupItem(objid: "0")}
+                    },
+                    CountOverride = new Dictionary<Content, int>
+                    {
+                        [Content.Probes] = 0
+                    }
+                });
             }
 
             return defaultClient;
@@ -963,20 +954,30 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
 
                 return new Either<IPrtgObject, int>(1001);
             }
+            if (t == typeof(Either<PrtgObject, int>))
+                return new Either<PrtgObject, int>(new Group {Id = 0});
             if (t == typeof(Either<Sensor, int>))
                 return new Either<Sensor, int>(1001);
             if (t == typeof(Either<Device, int>))
                 return new Either<Device, int>(1001);
+            if (t == typeof(Either<Group, int>))
+                return new Either<Group, int>(1001);
             if (t == typeof(Either<Probe, int>))
                 return new Either<Probe, int>(1001);
             if (t == typeof(Either<GroupOrProbe, int>))
                 return new Either<GroupOrProbe, int>(1001);
             if (t == typeof(Either<DeviceOrGroupOrProbe, int>))
                 return new Either<DeviceOrGroupOrProbe, int>(1001);
+            if (t == typeof(PrtgObject))
+                return new Group {Id = 0};
+            if (t == typeof(ITreeProgressCallback))
+                return new DummyTreeProgressCallback();
             if (t == typeof(Dictionary<string, string>))
                 return new Dictionary<string, string>();
             if (parameter.Name == "versionSpecific")
                 return null;
+            if (t == typeof(FlagEnum<TreeParseOption>?))
+                return new FlagEnum<TreeParseOption>(TreeParseOption.Common);
 
             throw new NotImplementedException($"Don't know how to create instance for parameter {parameter}");
         }
@@ -1004,8 +1005,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         #endregion
         #region Execute With Null Arguments
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_AllMethodsExecute_WithNullArgumentValidations()
         {
             WithMethodParameters(false, null, (c, method, @params, p, i) =>
@@ -1036,8 +1037,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             });
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_AllMethodsExecute_WithNullArgumentValidationsAsync()
         {
             await WithMethodParametersAsync(true, null, async (c, method, @params, p, i) =>
@@ -1119,8 +1120,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         #endregion
         #region Execute With Null List Elements
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_AllMethodsExecute_WithNullListElements()
         {
             WithMethodParameters(
@@ -1145,8 +1146,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             );
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_AllMethodsExecute_WithNullListElementsAsync()
         {
             await WithMethodParametersAsync(
@@ -1199,8 +1200,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         #endregion
         #region Execute With Empty Lists
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_AllMethodsExecute_WithEmptyListValidations()
         {
             WithMethodParameters(
@@ -1227,8 +1228,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             );
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_AllMethodsExecute_WithEmptyListValidationsAsync()
         {
             await WithMethodParametersAsync(
@@ -1298,8 +1299,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         #endregion
         #region Execute With Injected Null List Elements
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_AllMethodsExecute_WithInjectedNullArrayElements()
         {
             WithMethodParameters(
@@ -1342,8 +1343,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             );
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_AllMethodsExecute_WithInjectedNullArrayElementsAsync()
         {
             await WithMethodParametersAsync(
@@ -1509,8 +1510,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         #endregion
         #region Execute With Null IParameter Properties
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public void PrtgClient_AllMethodsExecute_ParametersWithNullProperties()
         {
             WithMethodParameters(
@@ -1536,8 +1537,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 });
         }
 
+        [UnitTest]
         [TestMethod]
-        [TestCategory("UnitTest")]
         public async Task PrtgClient_AllMethodsExecute_ParametersWithNullPropertiesAsync()
         {
             await WithMethodParametersAsync(
@@ -1661,5 +1662,25 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         }
 
         #endregion
+    }
+
+    internal class DummyTreeProgressCallback : ITreeProgressCallback
+    {
+        public DepthManager DepthManager { get; }
+        public void OnLevelBegin(ITreeValue parent, PrtgNodeType parentType, int depth)
+        {
+        }
+
+        public void OnLevelWidthKnown(ITreeValue parent, PrtgNodeType parentType, int width)
+        {
+        }
+
+        public void OnProcessValue(ITreeValue value)
+        {
+        }
+
+        public void OnProcessType(PrtgNodeType type, int index, int total)
+        {
+        }
     }
 }

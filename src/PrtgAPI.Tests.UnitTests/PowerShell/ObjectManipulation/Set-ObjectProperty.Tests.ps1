@@ -22,11 +22,14 @@ Describe "Set-ObjectProperty" -Tag @("PowerShell", "UnitTest") {
         }
 
         It "sets a property with null on a type that allows null" {
-            $sensor | Set-ObjectProperty Name $null
+
+            WithResponseArgs "AddressValidatorResponse" ([Request]::EditSettings("id=4000,4001&name_=")) {
+                $sensor | Set-ObjectProperty Name $null
+            }
         }
 
         It "sets a property with null on a type that disallows null" {
-            { $sensor | Set-ObjectProperty InheritAccess $null } | Should Throw "Null may only be assigned to properties of type string, int and double"
+            { $sensor | Set-ObjectProperty InheritAccess $null } | Should Throw "Null may only be assigned to properties of type 'System.String', 'System.Int32' and 'System.Double'."
         }
 
         It "sets a nullable type with its underlying type" {
@@ -42,7 +45,7 @@ Describe "Set-ObjectProperty" -Tag @("PowerShell", "UnitTest") {
 
         It "setting an invalid enum value lists all valid possibilities" {
 
-            $expected = "'test' is not a valid value for enum IntervalErrorMode. Please specify one of " +
+            $expected = "'test' is not a valid value for type 'PrtgAPI.IntervalErrorMode'. Please specify one of " +
                 "'DownImmediately', 'OneWarningThenDown', 'TwoWarningsThenDown', 'ThreeWarningsThenDown', 'FourWarningsThenDown' or 'FiveWarningsThenDown'"
 
             { $sensor | Set-ObjectProperty IntervalErrorMode "test" } | Should Throw $expected
@@ -299,15 +302,7 @@ Describe "Set-ObjectProperty" -Tag @("PowerShell", "UnitTest") {
 
         It "doesn't specify any dynamic parameters" {
 
-            $messages = @(
-                "*Cannot process command because of one or more missing mandatory parameters: Property*"
-                "*Cannot convert value `"`" to type `"PrtgAPI.ObjectProperty`"*"
-            )
-
-            Invoke-Interactive @"
-`$device = New-Object PrtgAPI.Device
-`$device | Set-ObjectProperty
-"@ -AlternateExceptionMessage $messages
+            { $devices | Set-ObjectProperty } | Should Throw "At least one dynamic property or -Property and -Value must be specified."
         }
 
         It "splats dynamic parameters" {
@@ -332,5 +327,59 @@ Describe "Set-ObjectProperty" -Tag @("PowerShell", "UnitTest") {
 
             $devices | Set-ObjectProperty @splat
         }
-    }    
+    }
+
+    Context "Manual" {
+        It "sets a normal property" {
+            SetAddressValidatorResponse @(
+                [Request]::EditSettings("id=1001&name_=test")
+            )
+
+            Set-ObjectProperty -Id 1001 Name "test"
+        }
+
+        It "sets a raw property" {
+            SetAddressValidatorResponse @(
+                [Request]::EditSettings("id=1001&name_=test")
+            )
+
+            Set-ObjectProperty -Id 1001 -RawProperty name_ -RawValue "test" -Force
+        }
+
+        It "sets raw parameters" {
+            SetMultiTypeResponse
+
+            $schedule = Get-PrtgSchedule | Select -First 1
+
+            SetAddressValidatorResponse @(
+                [Request]::EditSettings("id=1001&scheduledependency=0&schedule_=623%7CWeekdays+%5BGMT%2B0800%5D%7C")
+            )
+
+            Set-ObjectProperty -Id 1001 -RawParameters @{
+                scheduledependency = 0
+                schedule_ = $schedule
+            } -Force
+        }
+
+        It "sets a dynamic property" {
+            SetAddressValidatorResponse @(
+                [Request]::EditSettings("id=1001&name_=test&interval_=300%7C5+minutes&intervalgroup=0")
+            )
+
+            Set-ObjectProperty -Id 1001 -Name "test" -Interval 00:05:00
+        }
+
+        It "shows a warning when a raw property doesn't contain an underscore" {
+
+            SetMultiTypeResponse
+
+            (Set-ObjectProperty -Id 1001 -RawProperty name -RawValue value -Force 3>&1) -join "" | Should BeLike "Property 'name' does not look correct*"
+        }
+
+        It "doesn't show a warning when a known literal value doesn't contain an underscore" {
+            SetMultiTypeResponse
+
+            (Set-ObjectProperty -Id 1001 -RawProperty intervalgroup -RawValue 1 -Force 3>&1) -join "" | Should BeNullOrEmpty
+        }
+    }
 }

@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using PrtgAPI.Parameters;
 using PrtgAPI.Utilities;
 using PrtgAPI.Tests.UnitTests.Support.TestItems;
 
@@ -39,6 +38,8 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
         public int[] HasSchedule { get; set; }
 
         public int? FixedCountOverride { get; set; }
+
+        public TriggerType[] ForceTriggerUninherited { get; set; } = new TriggerType[0];
 
         public string GetResponseText(ref string address)
         {
@@ -208,10 +209,10 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
 
             switch (content)
             {
-                case Content.Sensors: return Sensors(CreateSensor, count, columns, address, async);
-                case Content.Devices: return Devices(CreateDevice, count, columns, address, async);
-                case Content.Groups:  return Groups(CreateGroup,   count, columns, address, async);
-                case Content.Probes: return Probes(CreateProbe,    count, columns, address, async);
+                case Content.Sensors: return Sensors(count, columns, address, async);
+                case Content.Devices: return Devices(count, columns, address, async);
+                case Content.Groups:  return Groups(count, columns, address, async);
+                case Content.Probes:  return Probes(count, columns, address, async);
                 case Content.Logs:
                     if (IsGetTotalLogs(address))
                         return TotalLogsResponse();
@@ -220,16 +221,16 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                 case Content.History: return new ModificationHistoryResponse(new ModificationHistoryItem());
                 case Content.Notifications: return Notifications(CreateNotification, count);
                 case Content.Schedules: return Schedules(CreateSchedule, count);
-                case Content.Channels: return new ChannelResponse(GetItems(Content.Channels, i => new ChannelItem(), 1));
+                case Content.Channels: return AdvancedItem<ChannelItem, Channel>(i => new ChannelItem(), i => new ChannelResponse(i), Content.Channels, 1, columns, address, async);
                 case Content.Objects:
                     return Objects(address, function, components);
                 case Content.Triggers:
                     return new NotificationTriggerResponse(
-                        NotificationTriggerItem.StateTrigger(onNotificationAction: "300|Email to all members of group PRTG Users Group"),
-                        NotificationTriggerItem.ThresholdTrigger(onNotificationAction: "300|Email to all members of group PRTG Users Group", offNotificationAction: "300|Email to all members of group PRTG Users Group"),
-                        NotificationTriggerItem.SpeedTrigger(onNotificationAction: "300|Email to all members of group PRTG Users Group", offNotificationAction: "300|Email to all members of group PRTG Users Group"),
-                        NotificationTriggerItem.VolumeTrigger(onNotificationAction: "300|Email to all members of group PRTG Users Group"),
-                        NotificationTriggerItem.ChangeTrigger(onNotificationAction: "300|Email to all members of group PRTG Users Group")
+                        NotificationTriggerItem.StateTrigger(onNotificationAction: "300|Email to all members of group PRTG Users Group",                                                                                  parentId: ForceTriggerUninherited.Contains(TriggerType.State) ? components["id"] : "0"),
+                        NotificationTriggerItem.ThresholdTrigger(onNotificationAction: "300|Email to all members of group PRTG Users Group", offNotificationAction: "300|Email to all members of group PRTG Users Group", parentId: ForceTriggerUninherited.Contains(TriggerType.Threshold) ? components["id"] : "1"),
+                        NotificationTriggerItem.SpeedTrigger(onNotificationAction: "300|Email to all members of group PRTG Users Group", offNotificationAction: "300|Email to all members of group PRTG Users Group",     parentId: ForceTriggerUninherited.Contains(TriggerType.Speed) ? components["id"] : "1"),
+                        NotificationTriggerItem.VolumeTrigger(onNotificationAction: "300|Email to all members of group PRTG Users Group",                                                                                 parentId: ForceTriggerUninherited.Contains(TriggerType.Volume) ? components["id"] : "1"),
+                        NotificationTriggerItem.ChangeTrigger(onNotificationAction: "300|Email to all members of group PRTG Users Group",                                                                                 parentId: ForceTriggerUninherited.Contains(TriggerType.Change) ? components["id"] : "1")
                     );
                 case Content.SysInfo:
                     return new SystemInfoResponse(
@@ -241,10 +242,40 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
             }
         }
 
-        private IWebStreamResponse Sensors(Func<int, SensorItem> func, int count, string[] columns, string address, bool async) => FilterColumns<Sensor>(new SensorResponse(GetItems(Content.Sensors, func, count)), columns, address, async);
-        private IWebStreamResponse Devices(Func<int, DeviceItem> func, int count, string[] columns, string address, bool async) => FilterColumns<Device>(new DeviceResponse(GetItems(Content.Devices, func, count)), columns, address, async);
-        private IWebStreamResponse Groups(Func<int, GroupItem> func, int count, string[] columns, string address, bool async) => FilterColumns<Group>(new GroupResponse(GetItems(Content.Groups, func, count)), columns, address, async);
-        private IWebStreamResponse Probes(Func<int, ProbeItem> func, int count, string[] columns, string address, bool async) => FilterColumns<Probe>(new ProbeResponse(GetItems(Content.Probes, func, count)), columns, address, async);
+        private IWebStreamResponse Sensors(int count, string[] columns, string address, bool async) =>
+            AdvancedItem<SensorItem, Sensor>(CreateSensor, i => new SensorResponse(i), Content.Sensors, count, columns, address, async);
+
+        private IWebStreamResponse Devices(int count, string[] columns, string address, bool async) =>
+            AdvancedItem<DeviceItem, Device>(CreateDevice, i => new DeviceResponse(i), Content.Devices, count, columns, address, async);
+
+        private IWebStreamResponse Groups(int count, string[] columns, string address, bool async) =>
+            AdvancedItem<GroupItem, Group>(CreateGroup, i => new GroupResponse(i), Content.Groups, count, columns, address, async);
+
+        private IWebStreamResponse Probes(int count, string[] columns, string address, bool async) =>
+            AdvancedItem<ProbeItem, Probe>(CreateProbe, i => new ProbeResponse(i), Content.Probes, count, columns, address, async);
+
+        private IWebStreamResponse AdvancedItem<TItem, TObject>(Func<int, TItem> createItem,
+            Func<TItem[], IWebStreamResponse> createResponse,
+            Content content,
+            int count,
+            string[] columns,
+            string address,
+            bool async)
+            where TItem : BaseItem
+            where TObject : IObject
+        {
+            return new AdvancedItemGenerator<TItem, TObject>(
+                createItem,
+                createResponse,
+                content,
+                count,
+                columns,
+                address,
+                async,
+                this
+            ).GetResponse();
+        }
+
         private IWebResponse Messages(Func<int, MessageItem> func, int count) => new MessageResponse(GetItems(func, count));
         private IWebResponse Notifications(Func<int, NotificationActionItem> func, int count) => new NotificationActionResponse(GetItems(func, count));
         private IWebResponse Schedules(Func<int, ScheduleItem> func, int count) => new ScheduleResponse(GetItems(func, count));
@@ -371,7 +402,7 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                     if (id < 5000)
                         return GetObject("sensors", address, function);
 
-                    var text = new ObjectResponse(new SensorItem()).GetResponseText(ref address);
+                    var text = new ObjectResponse(new SensorItem(objid: "7000", baseType: "", typeRaw: "basenode")).GetResponseText(ref address);
 
                     return XDocument.Parse(text).Descendants("item").ToList();
                 }).ToArray();
@@ -403,63 +434,6 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
             var text = r.GetResponseText(ref address);
 
             return XDocument.Parse(text).Descendants("item").ToList();
-        }
-
-        private T[] GetItems<T>(Content content, Func<int, T> func, int count) where T : BaseItem
-        {
-            BaseItem[] items;
-            T[] typedItems;
-
-            if (ItemOverride != null && ItemOverride.TryGetValue(content, out items))
-                typedItems = items.Cast<T>().ToArray();
-            else
-                typedItems = GetItems(func, count);
-
-            return typedItems;
-        }
-
-        private IWebStreamResponse FilterColumns<T>(IWebStreamResponse response, string[] columns, string address, bool async) where T : PrtgObject
-        {
-            if (columns != null)
-            {
-                var defaultProperties = ContentParameters<T>.GetDefaultProperties();
-
-                var defaultPropertiesStr = defaultProperties.Select(p => p.GetDescription().ToLower()).ToList();
-
-                var missing = defaultPropertiesStr.Where(p => !columns.Contains(p)).ToList();
-
-                if (missing.Count > 0)
-                {
-                    string responseStr;
-
-                    if (async)
-                        responseStr = response.GetResponseTextStream(address).Result;
-                    else
-                        responseStr = response.GetResponseText(ref address);
-
-                    var xDoc = XDocument.Parse(responseStr);
-
-                    var toRemove = xDoc.Descendants("item").Descendants().Where(
-                        e =>
-                        {
-                            var str = e.Name.ToString();
-
-                            if (str.EndsWith("_raw"))
-                                str = str.Substring(0, str.Length - "_raw".Length);
-
-                            return missing.Contains(str);
-                        }).ToList();
-
-                    foreach (var elm in toRemove)
-                    {
-                        elm.Remove();
-                    }
-
-                    return new BasicResponse(xDoc.ToString());
-                }
-            }
-
-            return response;
         }
 
         private int GetCount(NameValueCollection components, Content? content)
@@ -517,6 +491,9 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
 
             var objectType = components["objecttype"]?.ToEnum<ObjectType>() ?? ObjectType.Sensor;
 
+            if (components["id"] == "810")
+                objectType = ObjectType.WebServerOptions;
+
             switch (objectType)
             {
                 case ObjectType.Sensor:
@@ -530,6 +507,8 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                     };
                 case ObjectType.Schedule:
                     return new ScheduleResponse();
+                case ObjectType.WebServerOptions:
+                    return new WebServerOptionsResponse();
                 default:
                     throw new NotImplementedException($"Unknown object type '{objectType}' requested from {nameof(MultiTypeResponse)}");
             }

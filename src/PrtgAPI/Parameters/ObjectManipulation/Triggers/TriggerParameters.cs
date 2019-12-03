@@ -318,7 +318,11 @@ namespace PrtgAPI.Parameters
 
                 v = TryInvokeTypeParser(parameter.Property, v, triggerParameters);
 
-                var parser = new Helpers.DynamicPropertyTypeParser(parameter.Property, propertyCache, v);
+                //Mainly just converts null to the None Notification Action (via the TriggerProperty's ValueConverter)
+                var parser = new Helpers.DynamicPropertyTypeParser(parameter.Property, propertyCache, v)
+                {
+                    AllowNull = false
+                };
                 var value = parser.DeserializeValue();
 
                 propertyCache.SetValue(triggerParameters, value);

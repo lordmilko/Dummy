@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using PrtgAPI.Reflection.Cache;
 
@@ -14,6 +15,8 @@ namespace PrtgAPI.Reflection
     static class ReflectionExtensions
     {
         private static BindingFlags internalFlags = BindingFlags.Instance | BindingFlags.NonPublic;
+
+        private static BindingFlags allFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
         public static CacheValue<TypeCache> GetCacheValue(this Type type) => ReflectionCacheManager.GetTypeCache(type);
 
@@ -170,7 +173,12 @@ namespace PrtgAPI.Reflection
         /// If more than one method is found with the specified name, this method throws a <see cref="AmbiguousMatchException"/></returns>
         public static MethodInfo GetInternalMethod(this object obj, string name)
         {
-            var method = obj.GetType().GetMethod(name, internalFlags);
+            return GetInternalMethod(obj.GetType(), name);
+        }
+
+        public static MethodInfo GetInternalMethod(this Type type, string name)
+        {
+            var method = type.GetMethod(name, internalFlags);
 
             return method;
         }
@@ -200,13 +208,98 @@ namespace PrtgAPI.Reflection
             return false;
         }
 
-        internal static bool IsPrtgAPIProperty(Type thisType, PropertyInfo property)
+        internal static bool ImplementsRawGenericInterface(this Type type, Type generic)
         {
-            var propertyAssembly = property.PropertyType.Assembly.FullName;
-            var thisAssembly = thisType.Assembly.FullName;
+            return type.GetInterfaces().Where(i => i.IsGenericType).Any(i => i.GetGenericTypeDefinition() == generic);
+        }
+
+        internal static bool IsPrtgAPIProperty(Type callerType, PropertyInfo property)
+        {
+            return IsPrtgAPIType(callerType, property.PropertyType);
+        }
+
+        internal static bool IsPrtgAPIType(Type callerType, Type unknownType)
+        {
+            //Any type that calls this method is implicitly part of PrtgAPI. Therefore, any type
+            //that is either in our assembly or the PrtgAPI.dll assembly is considered part of PrtgAPI
+
+            var unknownTypeAssembly = unknownType.Assembly.FullName;
+            var callerAssembly = callerType.Assembly.FullName;
             var prtgAPIAssembly = typeof(PrtgClient).Assembly.FullName;
 
-            return propertyAssembly == thisAssembly || propertyAssembly == prtgAPIAssembly;
+            return unknownTypeAssembly == callerAssembly || unknownTypeAssembly == prtgAPIAssembly;
+        }
+
+        internal static Func<object, object> CreateGetValue(MemberInfo member)
+        {
+            var @this = Expression.Parameter(typeof(object), "obj");
+            var val = Expression.Parameter(typeof(object), "val");
+
+            var thisCast = Expression.Convert(@this, member.DeclaringType);
+
+            var access = Expression.MakeMemberAccess(thisCast, member);
+            var accessCast = Expression.Convert(access, typeof(object));
+
+            var lambda = Expression.Lambda<Func<object, object>>(
+                accessCast,
+                @this
+            );
+
+            return lambda.Compile();
+        }
+
+        internal static Action<object, object> CreateSetValue(MemberInfo member, Type memberType)
+        {
+            var @this = Expression.Parameter(typeof(object), "obj");
+            var val = Expression.Parameter(typeof(object), "val");
+
+            var thisCast = Expression.Convert(@this, member.DeclaringType);
+            var valCast = Expression.Convert(val, memberType);
+
+            var access = Expression.MakeMemberAccess(thisCast, member);
+            var assignment = Expression.Assign(access, valCast);
+
+            var lambda = Expression.Lambda<Action<object, object>>(
+                assignment,
+                @this,
+                val
+            );
+
+            return lambda.Compile();
+        }
+
+        internal static Action<T> CreateAction<T>(string methodName)
+        {
+            return CreateAction<T>(typeof(T).GetMethod(methodName, allFlags));
+        }
+
+        internal static Action<T> CreateAction<T>(MethodInfo method)
+        {
+            return CreateInvokec<T, Action<T>>(method);
+        }
+
+        internal static Func<T1, TResult> CreateFunc<T1, TResult>(string methodName)
+        {
+            return CreateFunc<T1, TResult>(typeof(T1).GetMethod(methodName, allFlags));
+        }
+
+        internal static Func<T1, TResult> CreateFunc<T1, TResult>(MethodInfo method)
+        {
+            return CreateInvokec<T1, Func<T1, TResult>>(method);
+        }
+
+        private static TDelegate CreateInvokec<TParameter, TDelegate>(MethodInfo method)
+        {
+            var @this = Expression.Parameter(typeof(TParameter), "obj");
+
+            var call = Expression.Call(@this, method);
+
+            var lambda = Expression.Lambda<TDelegate>(
+                call,
+                @this
+            );
+
+            return lambda.Compile();
         }
     }
 }

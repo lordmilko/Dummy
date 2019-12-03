@@ -96,8 +96,15 @@ namespace PrtgAPI.PowerShell.Cmdlets
             if (Credential == null)
                 Credential = GetNewCredential(oldClient.UserName);
 
-            Connect(oldClient.Server, Credential);
+            //Invoke Connect-PrtgServer via PowerShell Invocation instead of just calling the cmdlet directly
+            //so we can mock it in Update-GoPrtgCredential's unit tests (otherwise the new PrtgClient's HttpClient
+            //would try and connect to a PRTG Server)
 
+            var argsVar = PrtgSessionState.PSEdition == PSEdition.Desktop ? "input" : "args";
+
+            InvokeCommand.InvokeScript($"Connect-PrtgServer -Server ${argsVar}[0] -Credential ${argsVar}[1] -Force", new object[] {oldClient.Server, Credential});
+
+            //Return the PrtgSessionState client
             return client;
         }
 

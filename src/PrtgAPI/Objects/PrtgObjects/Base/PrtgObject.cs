@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Xml.Serialization;
 using PrtgAPI.Attributes;
 using PrtgAPI.Request;
+using PrtgAPI.Tree;
 using PrtgAPI.Utilities;
 
 namespace PrtgAPI
@@ -10,11 +11,14 @@ namespace PrtgAPI
     /// <summary>
     /// <para type="description">Represents a uniquely identifiable object within PRTG.</para>
     /// </summary>
-    public class PrtgObject : IPrtgObject, ITableObject, ISerializable
+    [AlternateDescription("Object")]
+    public class PrtgObject : IPrtgObject, ITableObject, ITreeValue, ISerializable
     {
         // ################################## All Object Tables ##################################
 
         //prtg's documentation says these belong under ObjectTable, however i believe they may belong under PrtgObject
+
+        int? ITreeValue.Id => Id;
 
         /// <summary>
         /// Unique identifier of this object within PRTG.
@@ -50,7 +54,7 @@ namespace PrtgAPI
         /// </summary>
         [XmlElement("tags")]
         [XmlElement("injected_tags")]
-        [SplittableString(' ')]
+        [StandardSplittableString]
         [PropertyParameter(Property.Tags)]
         public string[] Tags
         {
@@ -92,7 +96,7 @@ namespace PrtgAPI
                 if (enumType == null && !string.IsNullOrEmpty(type))
                 {
                     if (baseType == BaseType.Sensor)
-                        enumType = new StringEnum<ObjectType>(type, ObjectType.Sensor);
+                        enumType = new StringEnum<ObjectType>(ObjectType.Sensor, type);
                     else
                         enumType = new StringEnum<ObjectType>(type);
                 }
@@ -129,7 +133,7 @@ namespace PrtgAPI
         /// <returns>A string that represents the current object.</returns>
         public override string ToString()
         {
-            return Name;
+            return Name ?? base.ToString();
         }
 
         /// <summary>

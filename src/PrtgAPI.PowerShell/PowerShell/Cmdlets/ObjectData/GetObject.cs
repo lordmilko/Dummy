@@ -23,6 +23,9 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// parameter. When filtering by sensors, the underlying raw type name must be specified (e.g. "ping", "wmivolume"). If the generic
     /// object type <see cref="ObjectType.Sensor"/> is specified, Get-Object will refrain from filtering by type server side,
     /// such that the complete type of each object may be inspected client side.</para>
+    ///
+    /// <para type="description">The PRTG object hierarchy can also be explored by specifying the parent -<see cref="Object"/> to retrieve children of.
+    /// When an -<see cref="Object"/> is specified, only children directly descended from the specified object will be returned.</para>
     /// 
     /// <example>
     ///     <code>C:\> Get-Object</code>
@@ -47,6 +50,11 @@ namespace PrtgAPI.PowerShell.Cmdlets
     /// <example>
     ///     <code>C:\> Get-Object -Type wmivolume -Resolve</code>
     ///     <para>Get all WMI Volume sensor objects and resolve them to objects of type <see cref="Sensor"/>.</para>
+    ///     <para/>
+    /// </example>
+    /// <example>
+    ///     <code>C:\> Get-Object -Id -3 | Get-Object</code>
+    ///     <para>Retrieve all objects under the system "Notifications" object.</para>
     /// </example>
     ///
     /// <para type="link" uri="https://github.com/lordmilko/PrtgAPI/wiki/Other-Objects#powershell">Online version:</para>
@@ -63,6 +71,12 @@ namespace PrtgAPI.PowerShell.Cmdlets
     [Cmdlet(VerbsCommon.Get, "Object")]
     public class GetObject : PrtgTableFilterCmdlet<PrtgObject, PrtgObjectParameters>
     {
+        /// <summary>
+        /// <para type="description">The object to retrieve direct descendents of.</para>
+        /// </summary>
+        [Parameter(Mandatory = false, ValueFromPipeline = true)]
+        public PrtgObject Object { get; set; }
+
         /// <summary>
         /// <para type="description">Specifies that returned objects should be resolved to their most derived object types (<see cref="Sensor"/>, <see cref="Device"/>, <see cref="Probe"/>, etc.</para>
         /// </summary>
@@ -92,7 +106,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
             records = FilterResponseRecordsByType(records);
 
             if (Resolve)
-                return LiftObjects(records);
+                return LiftObjects(client, records);
 
             return base.PostProcessAdditionalFilters(records).OrderBy(o => o.Id);
         }
@@ -105,7 +119,7 @@ namespace PrtgAPI.PowerShell.Cmdlets
             return records;
         }
 
-        private IEnumerable<PrtgObject> LiftObjects(IEnumerable<PrtgObject> objects)
+        internal static IEnumerable<PrtgObject> LiftObjects(PrtgClient client, IEnumerable<PrtgObject> objects)
         {
             var grouped = objects.GroupBy(d => d.Type);
 
@@ -114,27 +128,27 @@ namespace PrtgAPI.PowerShell.Cmdlets
                 switch (group.Key.Value)
                 {
                     case ObjectType.Sensor:
-                        foreach (var s in Sensors(group))
+                        foreach (var s in Sensors(client, group))
                             yield return s;
                         break;
                     case ObjectType.Device:
-                        foreach (var d in Devices(group))
+                        foreach (var d in Devices(client, group))
                             yield return d;
                         break;
                     case ObjectType.Group:
-                        foreach (var g in Groups(group))
+                        foreach (var g in Groups(client, group))
                             yield return g;
                         break;
                     case ObjectType.Probe:
-                        foreach (var p in Probes(group))
+                        foreach (var p in Probes(client, group))
                             yield return p;
                         break;
                     case ObjectType.Notification:
-                        foreach (var n in Notifications(group))
+                        foreach (var n in Notifications(client, group))
                             yield return n;
                         break;
                     case ObjectType.Schedule:
-                        foreach (var s in Schedules(group))
+                        foreach (var s in Schedules(client, group))
                             yield return s;
                         break;
                     default:
@@ -147,27 +161,31 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
         #region Lift
 
-        private IEnumerable<Sensor> Sensors(IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
-            StreamLift<Sensor, SensorParameters>(f => new SensorParameters(f), group);
+        private static IEnumerable<Sensor> Sensors(PrtgClient client, IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
+            StreamLift<Sensor, SensorParameters>(client, f => new SensorParameters(f), group);
 
-        private IEnumerable<Device> Devices(IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
-            StreamLift<Device, DeviceParameters>(f => new DeviceParameters(f), group);
+        private static IEnumerable<Device> Devices(PrtgClient client, IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
+            StreamLift<Device, DeviceParameters>(client, f => new DeviceParameters(f), group);
 
-        private IEnumerable<Group> Groups(IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
-            StreamLift<Group, GroupParameters>(f => new GroupParameters(f), group);
+        private static IEnumerable<Group> Groups(PrtgClient client, IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
+            StreamLift<Group, GroupParameters>(client, f => new GroupParameters(f), group);
 
-        private IEnumerable<Probe> Probes(IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
-            StreamLift<Probe, ProbeParameters>(f => new ProbeParameters(f), group);
+        private static IEnumerable<Probe> Probes(PrtgClient client, IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
+            StreamLift<Probe, ProbeParameters>(client, f => new ProbeParameters(f), group);
 
-        private IEnumerable<NotificationAction> Notifications(IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
+        private static IEnumerable<NotificationAction> Notifications(PrtgClient client, IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
             client.GetNotificationActions(Property.Id, group.Select(g => g.Id));
 
-        private IEnumerable<Schedule> Schedules(IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
+        private static IEnumerable<Schedule> Schedules(PrtgClient client, IGrouping<StringEnum<ObjectType>, PrtgObject> group) =>
             client.GetSchedules(Property.Id, group.Select(g => g.Id));
 
         #endregion
 
-        private IEnumerable<TObject> StreamLift<TObject, TParam>(Func<SearchFilter, TParam> getParams, IGrouping<StringEnum<ObjectType>, PrtgObject> group)
+        private static IEnumerable<TObject> StreamLift<TObject, TParam>(
+            PrtgClient client,
+            Func<SearchFilter, TParam> getParams,
+            IGrouping<StringEnum<ObjectType>, PrtgObject> group
+        )
             where TObject : IObject
             where TParam : ContentParameters<TObject>, IShallowCloneable<TParam>
         {
@@ -188,6 +206,9 @@ namespace PrtgAPI.PowerShell.Cmdlets
         /// </summary>
         protected override void ProcessAdditionalParameters()
         {
+            if (Object != null)
+                AddPipelineFilter(Property.ParentId, Object.Id);
+
             if (Type != null)
             {
                 //If any Type specified ObjectType.Sensor with no underlying type,

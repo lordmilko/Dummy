@@ -74,7 +74,12 @@ namespace PrtgAPI.PowerShell
             if (@object.Value.Type == ObjectType.Sensor && !string.IsNullOrWhiteSpace(str))
                 UpdateChannelFromChannel(parameter, @object, str);
             else
+            {
+                if (str == null)
+                    throw new ArgumentNullException($"Cannot specify 'null' for parameter '{parameter.Property}'. Value must non-null and convertable to one of {typeof(StandardTriggerChannel).FullName}, {typeof(Channel).FullName} or {typeof(int).FullName}.", (Exception) null);
+
                 parameter.Value = TriggerChannel.Parse(parameter.Value);
+            }
         }
 
         private void UpdateChannelFromChannel(TriggerParameter parameter, Lazy<PrtgObject> @object, string str)
@@ -103,12 +108,12 @@ namespace PrtgAPI.PowerShell
                 else
                     str2 = "No channels currently exist on this sensor";
 
-                throw new InvalidOperationException($"Channel '{str}' does not exist on sensor '{@object}' (ID: {@object.Value.Id}). {str2}.");
+                throw new NonTerminatingException($"Channel '{str}' does not exist on sensor '{@object}' (ID: {@object.Value.Id}). {str2}.");
             }
             if (matches.Length == 1)
                 parameter.Value = matches.Single();
             else
-                throw new InvalidOperationException($"Channel wildcard '{str}' on parameter '{parameter.Property}' is ambiguous between the channels: {matches.ToQuotedList()}.");
+                throw new NonTerminatingException($"Channel wildcard '{str}' on parameter '{parameter.Property}' is ambiguous between the channels: {matches.ToQuotedList()}.");
         }
 
         internal static Type GetPropertyType(TriggerProperty e)

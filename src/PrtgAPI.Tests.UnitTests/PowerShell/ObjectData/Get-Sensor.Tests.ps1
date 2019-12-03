@@ -422,7 +422,7 @@ Describe "Get-Sensor" -Tag @("PowerShell", "UnitTest") {
             Get-Sensor -Comments hello*
         }
 
-        It "specifies null to a a dynamic parameter" {
+        It "ignores null when assigned to a dynamic parameter" {
             SetAddressValidatorResponse "active&count=2&username"
 
             Get-Sensor -Comments $null -Count 2
@@ -434,7 +434,7 @@ Describe "Get-Sensor" -Tag @("PowerShell", "UnitTest") {
     }
 
     It "throws filtering by Status 0" {
-        { Get-Sensor -Status 0 } | Should Throw "is not a member of type PrtgAPI.Status"
+        { Get-Sensor -Status 0 } | Should Throw "is not a member of type 'PrtgAPI.Status'"
     }
 
     It "throws specifying an illegal string filter" {

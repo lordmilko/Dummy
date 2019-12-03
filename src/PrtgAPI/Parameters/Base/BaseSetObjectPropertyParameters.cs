@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using PrtgAPI.Reflection.Cache;
 using PrtgAPI.Parameters.Helpers;
@@ -14,6 +15,8 @@ namespace PrtgAPI.Parameters
     {
         HtmlFunction IHtmlParameters.Function => HtmlFunction.EditSettings;
 
+        [ExcludeFromCodeCoverage]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string DebuggerDisplay => string.Join(", ", CustomParameters);
 
         public List<CustomParameter> CustomParameters
@@ -72,6 +75,7 @@ namespace PrtgAPI.Parameters
             }
         }
 
+        [ExcludeFromCodeCoverage]
         int[] IMultiTargetParameters.ObjectIds
         {
             get { return ObjectIdsInternal; }

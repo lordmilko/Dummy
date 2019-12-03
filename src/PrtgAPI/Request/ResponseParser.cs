@@ -12,7 +12,6 @@ using PrtgAPI.Parameters;
 using PrtgAPI.Parameters.Helpers;
 using PrtgAPI.Reflection;
 using PrtgAPI.Schedules;
-using PrtgAPI.Targets;
 using PrtgAPI.Utilities;
 
 namespace PrtgAPI.Request
@@ -235,7 +234,7 @@ namespace PrtgAPI.Request
                 var version = Regex.Replace(versionMatch.Value, versionRegex, "$1", RegexOptions.Multiline);
                 var result = Regex.Replace(resultMatch.Value, resultRegex, "$1", RegexOptions.Multiline);
 
-                var newResult = result.Replace("&apos;", "'").Replace("&quot;", "\"").Replace("&gt;", ">").Replace("&lt;", "<").Replace("&amp;", "&");
+                var newResult = WebUtility.HtmlDecode(result);
 
                 var xml = new XElement("prtg",
                     new XElement("version", version),
@@ -510,7 +509,8 @@ namespace PrtgAPI.Request
             return new ContinueAddSensorQueryParameters(deviceId, tmpId, dict);
         }
 
-        internal static PrtgResponse GetSensorTargetTmpId(HttpResponseMessage message) => Regex.Replace(message.RequestMessage.RequestUri.ToString(), "(.+tmpid=)(\\d+)(.*)", "$2");
+        internal static PrtgResponse GetSensorTargetTmpId(HttpResponseMessage message) =>
+            Regex.Replace(message.RequestMessage.RequestUri.ToString(), "(.+tmpid=)(\\d+)(.*)", "$2", RegexOptions.Singleline);
 
         internal static void ValidateAddSensorProgressResult(AddSensorProgress p, bool addFull)
         {

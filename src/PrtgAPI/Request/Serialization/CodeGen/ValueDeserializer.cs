@@ -136,12 +136,12 @@ namespace PrtgAPI.Linq.Expressions.Serialization
                 return GetValue(XmlExpressionConstants.ToTimeSpan, false, XmlExpressionConstants.ToInt32, XmlExpressionConstants.ToTimeSpanFromInt32);
             else if (PropertyType == typeof(string[]))
             {
-                var attrib = mapping.PropertyCache.GetAttribute<SplittableStringAttribute>();
+                var attrib = mapping.PropertyCache.GetAttribute<SplittableStringAttribute>(true);
 
                 if (attrib != null)
-                    return ValueOrConverted(XmlExpressionConstants.ToSplittableStringArray(readStr, Expression.Constant(attrib.Character)));
+                    return ValueOrConverted(XmlExpressionConstants.ToSplittableStringArray(readStr, Expression.Constant(attrib.Characters)));
                 else
-                    throw new NotImplementedException();
+                    throw new NotImplementedException($"Cannot deserialize property {mapping.PropertyCache.Property}; array properties must contain a {nameof(SplittableStringAttribute)}.");
             }
             else if (PropertyType.IsEnum)
                 return ValueOrConverted(GetEnumSwitch(readStr, PropertyType));

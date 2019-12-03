@@ -40,6 +40,7 @@
         internal const string RawProperty = "RawPropertySet";
 
         internal const string Type = "TypeSet";
+        internal const string TypeManual = "TypeManualSet";
 
         internal const string RecordAge = "RecordAgeSet";
         internal const string DateTime = "DateTimeSet";
@@ -48,15 +49,22 @@
         internal const string Aggregate = "AggregateSet";
         internal const string Summary = "SummarySet";
 
+        internal const string LogicalAndTags = "LogicalAndTagsSet";
+        internal const string LogicalOrTags = "LogicalOrTagsSet";
+
         /// <summary>
         /// The parameter set that is used when performing an action whose effects will last until a specified <see cref="System.DateTime"/>.
         /// </summary>
         internal const string Until = "UntilSet";
 
+        internal const string UntilManual = "UntilManualSet";
+
         /// <summary>
         /// The parameter set that is used when performing an action whose effects will last forever.
         /// </summary>
         internal const string Forever = "ForeverSet";
+
+        internal const string ForeverManual = "ForeverManualSet";
 
         internal const string Device = "DeviceSet";
         internal const string Group = "GroupSet";
@@ -64,6 +72,7 @@
         internal const string Schedule = "ScheduleSet";
 
         internal const string Target = "TargetSet";
+        internal const string TargetManual = "TargetManualSet";
 
         internal const string Empty = "EmptySet";
 
@@ -75,17 +84,19 @@
         /// <summary>
         /// The parameter set that is used when adding a new object specifying an Object ID manually.
         /// </summary>
-        internal const string AddManual = "AddManual";
+        internal const string AddManual = "AddManualSet";
 
         /// <summary>
         /// The parameter set that is used when editing an object specifying the Object ID manually.
         /// </summary>
-        internal const string EditManual = "EditManual";
+        internal const string EditManual = "EditManualSet";
 
         /// <summary>
         /// The parameter set that is used when adding a new object from an existing object.
         /// </summary>
         internal const string AddFrom = "AddFromSet";
+
+        internal const string AddFromManual = "AddFromManualSet";
 
         /// <summary>
         /// The parameter set that is used when editing an existing object.
@@ -107,8 +118,13 @@
         internal const string TargetForSource = "TargetForSourceSet";
 
         internal const string Deny = "DenySet";
-        internal const string DenyManual = "DenyManual";
-        internal const string AutoDiscover = "AutoDiscover";
-        internal const string AutoDiscoverManual = "AutoDiscoverManual";
+        internal const string DenyManual = "DenyManualSet";
+        internal const string AutoDiscover = "AutoDiscoverSet";
+        internal const string AutoDiscoverManual = "AutoDiscoverManualSet";
+
+        internal const string ObjectWithManual = "ObjectWithManualSet";
+        internal const string ManualWithManual = "ManualWithManualSet";
+
+        internal const string Object = "ObjectSet";
     }
 }
