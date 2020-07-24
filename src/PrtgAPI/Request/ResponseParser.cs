@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
@@ -120,6 +122,31 @@ namespace PrtgAPI.Request
                 Content = x.Element("content").Value,
                 Id = Convert.ToInt32(x.Element("objid").Value)
             }).ToList();
+
+            for (var i = 0; i < xmlResponseContent.Count; i++)
+            {
+                var str = xmlResponseContent[i].Content;
+
+                var m = Regex.Match(str, "\\\"objectlink\\\":\\\".+?>(.+?)<");
+
+                if (m.Success)
+                {
+                    var parentName = m.Groups[1].Value;
+
+                    var cleaned = WebUtility.HtmlEncode(parentName);
+
+                    if (cleaned != parentName)
+                    {
+                        var newStr = str.Substring(0, m.Groups[1].Index) + cleaned + str.Substring(m.Groups[1].Index + m.Groups[1].Length);
+
+                        xmlResponseContent[i] = new
+                        {
+                            Content = newStr,
+                            Id = xmlResponseContent[i].Id
+                        };
+                    }
+                }
+            }
 
             var triggers = JsonDeserializer<NotificationTrigger>.DeserializeList(xmlResponseContent, e => e.Content,
                 (e, o) =>
@@ -435,9 +462,19 @@ namespace PrtgAPI.Request
         {
             //PRTG does not return a raw record if the sensor did not return a value
             //(such as because it was in an error state)
-            var rawRecord = history.ChannelRecordsRaw.FirstOrDefault(r => r.ChannelId == record.ChannelId);
+            var rawRecords = history.ChannelRecordsRaw.Where(r => r.ChannelId == record.ChannelId).ToArray();
 
-            return rawRecord?.Value;
+            if (rawRecords.Length < 2)
+                return rawRecords.FirstOrDefault()?.Value;
+
+            //We have a history record that contains multiple records for a specified channel ID (e.g. a Traffic Sensor)
+            var displayRecords = history.ChannelRecords.Where(r => r.ChannelId == record.ChannelId).ToList();
+
+            Debug.Assert(rawRecords.Length == displayRecords.Count, "Had different number of display and raw records!");
+
+            var thisIndex = displayRecords.IndexOf(record);
+
+            return rawRecords[thisIndex].Value;
         }
 
         #endregion
@@ -512,32 +549,39 @@ namespace PrtgAPI.Request
         internal static PrtgResponse GetSensorTargetTmpId(HttpResponseMessage message) =>
             Regex.Replace(message.RequestMessage.RequestUri.ToString(), "(.+tmpid=)(\\d+)(.*)", "$2", RegexOptions.Singleline);
 
-        internal static void ValidateAddSensorProgressResult(AddSensorProgress p, bool addFull)
+        internal static void ProcessAddSensorProgressFailed(NameValueCollection parts, string enhancedErrorHtml, bool addFull)
         {
-            if (p.TargetUrl.StartsWith("addsensorfailed"))
+            var message = parts["errormsg"];
+
+            var enhancedErrorPattern = "<div class=\"errormessage\">(.+?)<\\/div>";
+            var enhancedErrorMatch = Regex.Match(enhancedErrorHtml, enhancedErrorPattern);
+
+            string enhancedErrorMessage = null;
+
+            if (enhancedErrorMatch.Success)
             {
-                var parts = UrlUtilities.CrackUrl(p.TargetUrl);
-
-                var message = parts["errormsg"];
-
-                var action = addFull ? "add sensor" : "resolve sensor targets";
-
-                if (message != null)
-                {
-                    message = message.Trim('\r', '\n');
-
-                    //todo: does this work in other languages? Not sure how to replicate it
-                    if (message.StartsWith("Incomplete connection settings"))
-                        throw new PrtgRequestException("Failed to retrieve data from device; required credentials for sensor type may be missing. See PRTG UI for further details.");
-
-                    throw new PrtgRequestException($"An exception occurred while trying to {action}: {message.EnsurePeriod()}");
-                }
-
-                throw new PrtgRequestException($"An unspecified error occurred while trying to {action}. Specified sensor type may not be valid on this device, or sensor query target parameters may be incorrect. Check the Device 'Host' is still valid or try adding sensor with the PRTG UI.");
+                enhancedErrorMessage = Regex.Replace(enhancedErrorMatch.Value, enhancedErrorPattern, "$1");
             }
 
-            if (addFull && p.Percent == -1)
-                throw new PrtgRequestException($"PRTG was unable to complete the request. The server responded with the following error: '{p.Error.Replace("<br/><ul><li>", " ").Replace("</li></ul><br/>", " ")}'.");
+            var action = addFull ? "add sensor" : "resolve sensor targets";
+
+            if (message != null)
+            {
+                message = message.Trim('\r', '\n');
+
+                //todo: does this work in other languages? Not sure how to replicate it
+                if (message.StartsWith("Incomplete connection settings"))
+                    throw new PrtgRequestException("Failed to retrieve data from device; required credentials for sensor type may be missing. See PRTG UI for further details.");
+
+                throw new PrtgRequestException($"An exception occurred while trying to {action}: {message.EnsurePeriod()}");
+            }
+
+            if (enhancedErrorMessage != null)
+                throw new PrtgRequestException($"An exception occurred while trying to {action}: {enhancedErrorMessage.EnsurePeriod()}");
+            else
+            {
+                throw new PrtgRequestException($"An unspecified error occurred while trying to {action}. Specified sensor type may not be valid on this device, or sensor query target parameters may be incorrect. Check the Device 'Host' is still valid or try adding sensor with the PRTG UI.");
+            }
         }
 
         #endregion

@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Globalization;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrtgAPI.Tests.UnitTests.Support.TestItems;
 using PrtgAPI.Tests.UnitTests.Support.TestResponses;
@@ -121,6 +123,57 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
             var result = (await client.GetStatusAsync());
 
             AssertEx.AllPropertiesRetrieveValues(result);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void ServerStatus_DateTime_ServerUS_ClientUK()
+        {
+            //There's a legal mismatch, so we get the dates backwards
+            TestClock("1/12/2020 3:10:20 PM", "en-GB", new DateTime(2020, 12, 1, 4, 10, 20, DateTimeKind.Utc));
+
+            //There's an illegal mismatch, so we reparse the DateTime using US heuristics
+            TestClock("1/13/2020 3:10:20 PM", "en-GB", new DateTime(2020, 1, 13, 4, 10, 20, DateTimeKind.Utc));
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void ServerStatus_DateTime_ServerUS_ClientUS()
+        {
+            TestClock("1/12/2020 3:10:20 PM", "en-US", new DateTime(2020, 1, 12, 4, 10, 20, DateTimeKind.Utc));
+            TestClock("1/13/2020 3:10:20 PM", "en-US", new DateTime(2020, 1, 13, 4, 10, 20, DateTimeKind.Utc));
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void ServerStatus_DateTime_ServerUK_ClientUS()
+        {
+            //There's a legal mismatch, so we get the dates backwards
+            TestClock("12/1/2020 3:10:20 PM", "en-US", new DateTime(2020, 12, 1, 4, 10, 20, DateTimeKind.Utc));
+
+            //There's an illegal mismatch, so we reparse the DateTime using US heuristics
+            TestClock("13/1/2020 3:10:20 PM", "en-US", new DateTime(2020, 1, 13, 4, 10, 20, DateTimeKind.Utc));
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void ServerStatus_DateTime_ServerUK_ClientUK()
+        {
+            TestClock("12/1/2020 3:10:20 PM", "en-GB", new DateTime(2020, 1, 12, 4, 10, 20, DateTimeKind.Utc));
+            TestClock("13/1/2020 3:10:20 PM", "en-GB", new DateTime(2020, 1, 13, 4, 10, 20, DateTimeKind.Utc));
+        }
+
+        private void TestClock(string serverTime, string clientCulture, DateTime expectedInvariantUtc)
+        {
+            var client = Initialize_Client(new ServerStatusResponse(new ServerStatusItem(clock: serverTime)));
+
+            TestCustomCulture(() =>
+            {
+                var now = DateTime.Now.ToString();
+
+                var status = client.GetStatus();
+                Assert.AreEqual(expectedInvariantUtc, status.DateTime.ToUniversalTime());
+            }, CultureInfo.GetCultureInfo(clientCulture));
         }
 
         public ServerStatusItem GetItem() => new ServerStatusItem();

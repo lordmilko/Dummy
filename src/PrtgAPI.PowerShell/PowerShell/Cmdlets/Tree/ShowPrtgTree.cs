@@ -35,6 +35,13 @@ namespace PrtgAPI.PowerShell.Cmdlets
         public TreeNode Tree { get; set; }
 
         /// <summary>
+        /// <para type="description">Reduces the specified <see cref="Tree"/> before printing. If the specified
+        /// tree does not support reducing, a <see cref="ParameterBindingException"/> will be thrown.</para> 
+        /// </summary>
+        [Parameter(Mandatory = false, ParameterSetName = ParameterSet.Default)]
+        public SwitchParameter Reduce { get; set; }
+
+        /// <summary>
         /// <para type="description">The object whose tree should be printed.</para>
         /// </summary>
         [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSet.Object)]
@@ -66,6 +73,15 @@ namespace PrtgAPI.PowerShell.Cmdlets
             {
                 case ParameterSet.Default:
                     tree = Tree;
+
+                    if (Reduce)
+                    {
+                        if (tree is CompareNode)
+                            tree = ((CompareNode) tree).Reduce();
+                        else
+                            throw new ParameterBindingException($"Cannot reduce tree specified to parameter -{nameof(Tree)}: tree does not support reduction.");
+                    }
+
                     break;
 
                 case ParameterSet.Object:
@@ -90,12 +106,18 @@ namespace PrtgAPI.PowerShell.Cmdlets
 
         private void ProcessTree(TreeNode tree)
         {
-            if(tree is PrtgNode)
+            if (tree is PrtgNode)
                 ((PrtgNode) tree).PrettyPrint(new PowerShellPrettyColorWriter(this));
-            else if(tree is CompareNode)
+            else if (tree is CompareNode)
                 ((CompareNode) tree).PrettyPrint(new PowerShellPrettyColorWriter(this));
             else
             {
+                if (Reduce && tree == null)
+                {
+                    WriteWarning("The tree was reduced to nothing.");
+                    return;
+                }
+
                 if (Tree.GetType().ImplementsRawGenericInterface(typeof(INodeList<>)))
                 {
                     foreach (TreeNode node in ObjectExtensions.ToIEnumerable(Tree))

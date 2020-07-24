@@ -74,6 +74,7 @@
   <ItemGroup>
     <Compile Include="CSharp\Infrastructure\CancellationTests.cs" />
     <Compile Include="CSharp\Infrastructure\CodeGeneratorTests.cs" />
+    <Compile Include="CSharp\Infrastructure\ConversionTests.cs" />
     <Compile Include="CSharp\ObjectData\FlagEnumTests.cs" />
     <Compile Include="CSharp\ObjectData\QueryableObjectTests.cs" />
     <Compile Include="CSharp\ObjectData\ScheduleTests.cs" />
@@ -137,6 +138,7 @@
     <Compile Include="Support\TestResponses\NotificationTriggerTranslationResponse.cs" />
     <Compile Include="Support\TestResponses\ProgressOwnershipResponse.cs" />
     <Compile Include="Support\TestResponses\ReadOnlyResponse.cs" />
+    <Compile Include="Support\TestResponses\RecursiveRequest\Sensor\SensorNoRecurseDuplicateGroupScenario.cs" />
     <Compile Include="Support\TestResponses\SensorQueryTargetParametersResponse.cs" />
     <Compile Include="Support\TestResponses\SensorQueryTargetParametersValidatorResponse.cs" />
     <Compile Include="Support\TestResponses\SensorQueryTargetValidatorResponse.cs" />
@@ -171,6 +173,7 @@
     <Compile Include="Support\TestResponses\TakeIterator\SensorScenarios\Group\TakeUnfilteredSensorsFromGroupScenario.cs" />
     <Compile Include="Support\TestResponses\TakeIterator\SensorScenarios\Normal\TakeUnfilteredSensorsScenario.cs" />
     <Compile Include="Support\TestResponses\Tree\Scenarios\ActionPipeToContainerWithChildScenario.cs" />
+    <Compile Include="Support\TestResponses\Tree\Scenarios\AllObjectTypesScenario.cs" />
     <Compile Include="Support\TestResponses\Tree\Scenarios\ContainerWithChildScenario.cs" />
     <Compile Include="Support\TestResponses\Tree\Scenarios\ContainerWithGrandChildScenario.cs" />
     <Compile Include="Support\TestResponses\Tree\Scenarios\FastPathDevicesOnlyScenario.cs" />
@@ -179,6 +182,7 @@
     <Compile Include="Support\TestResponses\Tree\Scenarios\FastPathPropertiesOnlyScenario.cs" />
     <Compile Include="Support\TestResponses\Tree\Scenarios\FastPathSensorsOnlyScenario.cs" />
     <Compile Include="Support\TestResponses\Tree\Scenarios\FastPathTriggersOnlyScenario.cs" />
+    <Compile Include="Support\TestResponses\Tree\Scenarios\LazyReorderChildrenScenario.cs" />
     <Compile Include="Support\TestResponses\Tree\Scenarios\MultiLevelContainerScenario.cs" />
     <Compile Include="Support\TestResponses\Tree\Scenarios\ObjectPipeToContainerWithChildScenario.cs" />
     <Compile Include="Support\TestResponses\Tree\Scenarios\ObjectToFastPathScenario.cs" />
@@ -330,7 +334,7 @@
     <Compile Include="Support\TestResponses\RecursiveRequest\GroupScenario.cs" />
     <Compile Include="Support\TestResponses\RecursiveRequest\RecursiveRequestResponse.cs" />
     <Compile Include="Support\TestResponses\RecursiveRequest\RecursiveRequestScenario.cs" />
-    <Compile Include="Support\TestResponses\RecursiveRequest\Sensor\SensorNoRecurseScenario.cs" />
+    <Compile Include="Support\TestResponses\RecursiveRequest\Sensor\SensorNoRecurseUniqueGroupScenario.cs" />
     <Compile Include="Support\TestResponses\RecursiveRequest\Sensor\SensorUniqueChildGroupScenario.cs" />
     <Compile Include="Support\TestResponses\RecursiveRequest\Sensor\SensorUniqueGroupScenario.cs" />
     <Compile Include="Support\TestResponses\RestartProbeResponse.cs" />
@@ -460,6 +464,7 @@
     <None Include="PowerShell\ObjectManipulation\Simulate-ErrorStatus.Tests.ps1" />
     <None Include="PowerShell\ObjectManipulation\Sort-PrtgObject.Tests.ps1" />
     <None Include="PowerShell\ObjectManipulation\Start-AutoDiscovery.Tests.ps1" />
+    <None Include="PowerShell\Tree\Compare-PrtgTree.Tests.ps1" />
     <None Include="PowerShell\Tree\Get-PrtgTree.Tests.ps1" />
     <None Include="PowerShell\Tree\New-DeviceNode.Tests.ps1" />
     <None Include="PowerShell\Tree\New-GroupNode.Tests.ps1" />

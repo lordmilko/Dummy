@@ -2600,7 +2600,24 @@ namespace PrtgAPI.Tests.UnitTests.Tree
             var second = PrtgNode.Device(Device("Local Probe", 1001, 1));
             var comparison = first.CompareTo(second);
 
-            Assert.IsTrue(TreeNodeDifference.Type == comparison.Difference);
+            Assert.IsTrue(TreeNodeDifference.Type == comparison.Difference, $"Difference was actually '{comparison.Difference}'");
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Tree_CompareNode_Difference_Child_Type()
+        {
+            var first = PrtgNode.Probe(Probe(),
+                PrtgNode.Group(Group())
+            );
+
+            var second = PrtgNode.Probe(Probe(),
+                PrtgNode.Device(Device("Servers", 2001, 2))
+            );
+
+            var comparison = first.CompareTo(second);
+
+            Assert.IsTrue(TreeNodeDifference.Type == comparison.TreeDifference);
         }
 
         [UnitTest]
@@ -2992,7 +3009,7 @@ namespace PrtgAPI.Tests.UnitTests.Tree
             };
 
             var src = TestHelpers.GetProjectRoot(true);
-            var ps1xml = Path.Combine(src, "PrtgAPI.PowerShell\\PowerShell\\Resources\\PrtgAPI.Types.ps1xml");
+            var ps1xml = Path.Combine(src, "PrtgAPI.PowerShell/PowerShell/Resources/PrtgAPI.Types.ps1xml");
 
             if (!File.Exists(ps1xml))
                 throw new InvalidOperationException($"File '{ps1xml}' does not exist.");

@@ -209,12 +209,3 @@ namespace PrtgAPI.Tree
         }
     }
 }
-
-/*
-Wiki
--document powershell extension methods on wiki!
-
-Future
--when exporting/importing triggers to xml, skip the trigger if its inherited
--what if we specified multiple ids and tried to add a specified child value under multiple parents?
- */

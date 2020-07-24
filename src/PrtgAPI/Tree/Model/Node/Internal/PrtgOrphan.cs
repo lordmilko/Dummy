@@ -50,9 +50,9 @@ namespace PrtgAPI.Tree.Internal
         {
             //If we have a CachedEnumerableIterator we implicitly are a safe collection that doesn't need reducing
             if (children is CachedEnumerableIterator<PrtgOrphan>)
-                return children;
+                return ((CachedEnumerableIterator<PrtgOrphan>) children).Apply(OrderChildren);
 
-            return ReduceChildrenInternal(children);
+            return OrderChildren(ReduceChildrenInternal(children));
         }
 
         private static IEnumerable<PrtgOrphan> ReduceChildrenInternal(IEnumerable<PrtgOrphan> children)
@@ -72,6 +72,20 @@ namespace PrtgAPI.Tree.Internal
                         yield return g;
                 }
             }
+        }
+
+        private static IEnumerable<PrtgOrphan> OrderChildren(IEnumerable<PrtgOrphan> children)
+        {
+            //Sort by position, then sort so that positional objects are first
+            return children.OrderBy(c =>
+            {
+                var positional = c?.Value as ISensorOrDeviceOrGroupOrProbe;
+
+                if (positional != null)
+                    return positional.Position;
+                else
+                    return 0;
+            }).OrderBy(c => !(c?.Value is ISensorOrDeviceOrGroupOrProbe));
         }
 
         #endregion
@@ -133,5 +147,12 @@ namespace PrtgAPI.Tree.Internal
             IsTableNameEqual(name, comparison, orphan);
 
         public override TreeOrphan CreateIndexerGrouping(IEnumerable<TreeOrphan> orphans) => new PrtgOrphanGrouping(orphans.Cast<PrtgOrphan>());
+
+        /// <summary>
+        /// Indicates whether the essence of this orphan's identity is equal to another orphan's identity.
+        /// </summary>
+        /// <param name="other">The orphan to compare with.</param>
+        /// <returns>True if the other orphan's identity is equal to this object. Otherwise, false.</returns>
+        internal abstract bool EqualsIdentity(PrtgOrphan other);
     }
 }

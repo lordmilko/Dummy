@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Reflection;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrtgAPI.Reflection;
 using PrtgAPI.Request;
@@ -223,6 +224,57 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
 
         [UnitTest]
         [TestMethod]
+        public void NotificationTrigger_LoadsAction_Properties_Lazy()
+        {
+            var ignore = new[]
+            {
+                "Id",
+                "Name"
+            };
+
+            var properties = typeof(NotificationAction).GetProperties()
+                .Where(p => !ignore.Contains(p.Name) && p.GetCustomAttributes<XmlElementAttribute>().Any());
+
+            foreach (var property in properties)
+            {
+                var client = Initialize_Client(new NotificationTriggerResponse(
+                    NotificationTriggerItem.StateTrigger(offNotificationAction: "302|Email to all members of group PRTG Administrator")
+                ) {HasSchedule = new[] {302}});
+
+                var validator = new EventValidator(client, new[]
+                {
+                    //First - get all triggers
+                    UnitRequest.Triggers(1001),
+                    UnitRequest.RequestObjectData(810),
+
+                    //Second - touch a lazy propert of a Notification Action
+                    UnitRequest.Notifications("filter_objid=301&filter_objid=302"),
+                    UnitRequest.NotificationProperties(302)
+                });
+
+                try
+                {
+                    validator.MoveNext(2);
+                    var triggers = client.GetNotificationTriggers(1001);
+
+                    validator.MoveNext(2);
+                    var action = triggers.First().OffNotificationAction;
+                    var value = property.GetValue(action);
+
+                    Assert.IsTrue(validator.Finished, "Did not process all requests");
+                }
+                catch (Exception ex)
+                {
+                    if (ex is TargetInvocationException)
+                        ex = ex.InnerException;
+
+                    throw new AssertFailedException($"Encountered an error while processing property '{property.Name}': {ex.Message}", ex);
+                }
+            }
+        }
+
+        [UnitTest]
+        [TestMethod]
         public void NotificationTrigger_LoadsSchedule_Lazy()
         {
             var client = Initialize_Client(new NotificationTriggerResponse(
@@ -427,6 +479,15 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
                 AssertEx.AllPropertiesRetrieveValues(trigger.OnNotificationAction);
                 Assert.IsNull(trigger.OnNotificationAction.Schedule);
             }
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void NotificationTrigger_DoubleEscapeQuotes()
+        {
+            var client = Initialize_Client(new NotificationTriggerResponse(NotificationTriggerItem.StateTrigger(sensorName: "Test \"Name\"")));
+
+            var triggers = client.GetNotificationTriggers(1001);
         }
 
         private void ChangeTrigger_AllFields_HaveValues(string propertyName, object val)

@@ -102,6 +102,16 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                     this.scenario = new SlowPathPropertiesOnlyScenario();
                     break;
 
+                //All
+
+                case TreeRequestScenario.AllObjectTypes:
+                    this.scenario = new AllObjectTypesScenario();
+                    break;
+
+                case TreeRequestScenario.LazyReorderChildren:
+                    this.scenario = new LazyReorderChildrenScenario();
+                    break;
+
                 default:
                     throw new NotImplementedException($"Unknown scenario '{scenario}' passed to {GetType().Name}");
             }
