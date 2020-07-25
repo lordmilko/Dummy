@@ -15,7 +15,7 @@ install:
       Invoke-AppveyorInstall
 before_build:
   # Restore NuGet packages
-  - ps: - ps: $blockRdp = $true; iex (gc '.\enable-rdp.ps1')
+  - ps: $blockRdp = $true; iex (gc '.\enable-rdp.ps1')
   - ps: Invoke-AppveyorBeforeBuild
 build_script:
   # Build all target frameworks
