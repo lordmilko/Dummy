@@ -10,7 +10,6 @@ cache:
 install:
   # Install NuGet Provider, Chocolatey dependencies
   - ps: |
-      $blockRdp = $true; iex (gc '.\enable-rdp.ps1' -raw)
       Import-Module .\build\ci\Appveyor.psm1 -DisableNameChecking
       Set-AppveyorBuildMode -IsCore:$true
       Invoke-AppveyorInstall
