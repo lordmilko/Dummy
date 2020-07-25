@@ -130,18 +130,39 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         public void ServerStatus_DateTime_ServerUS_ClientUK()
         {
             //There's a legal mismatch, so we get the dates backwards
-            TestClock("1/12/2020 3:10:20 PM", "en-GB", new DateTime(2020, 12, 1, 4, 10, 20, DateTimeKind.Utc));
+            TestClockSmallDate(
+                "MM/d/yyyy",
+                "en-GB",
+                expectedClientMonth: 12,
+                expectedClientDay: 1
+            );
 
             //There's an illegal mismatch, so we reparse the DateTime using US heuristics
-            TestClock("1/13/2020 3:10:20 PM", "en-GB", new DateTime(2020, 1, 13, 4, 10, 20, DateTimeKind.Utc));
+            TestClockLargeDate(
+                "MM/d/yyyy",
+                "en-GB",
+                expectedClientMonth: 1,
+                expectedClientDay: 13
+            );
         }
 
         [UnitTest]
         [TestMethod]
         public void ServerStatus_DateTime_ServerUS_ClientUS()
         {
-            TestClock("1/12/2020 3:10:20 PM", "en-US", new DateTime(2020, 1, 12, 4, 10, 20, DateTimeKind.Utc));
-            TestClock("1/13/2020 3:10:20 PM", "en-US", new DateTime(2020, 1, 13, 4, 10, 20, DateTimeKind.Utc));
+            TestClockSmallDate(
+                "MM/d/yyyy",
+                "en-US",
+                expectedClientMonth: 1,
+                expectedClientDay: 12
+            );
+
+            TestClockLargeDate(
+                "MM/d/yyyy",
+                "en-US",
+                expectedClientMonth: 1,
+                expectedClientDay: 13
+            );
         }
 
         [UnitTest]
@@ -149,18 +170,61 @@ namespace PrtgAPI.Tests.UnitTests.ObjectData
         public void ServerStatus_DateTime_ServerUK_ClientUS()
         {
             //There's a legal mismatch, so we get the dates backwards
-            TestClock("12/1/2020 3:10:20 PM", "en-US", new DateTime(2020, 12, 1, 4, 10, 20, DateTimeKind.Utc));
+            TestClockSmallDate(
+                "dd/MM/yyyy",
+                "en-US",
+                expectedClientMonth: 12,
+                expectedClientDay: 1
+            );
 
             //There's an illegal mismatch, so we reparse the DateTime using US heuristics
-            TestClock("13/1/2020 3:10:20 PM", "en-US", new DateTime(2020, 1, 13, 4, 10, 20, DateTimeKind.Utc));
+            TestClockLargeDate(
+                "dd/MM/yyyy",
+                "en-US",
+                expectedClientMonth: 1,
+                expectedClientDay: 13
+            );
         }
 
         [UnitTest]
         [TestMethod]
         public void ServerStatus_DateTime_ServerUK_ClientUK()
         {
-            TestClock("12/1/2020 3:10:20 PM", "en-GB", new DateTime(2020, 1, 12, 4, 10, 20, DateTimeKind.Utc));
-            TestClock("13/1/2020 3:10:20 PM", "en-GB", new DateTime(2020, 1, 13, 4, 10, 20, DateTimeKind.Utc));
+            TestClockSmallDate(
+                "dd/MM/yyyy",
+                "en-GB",
+                expectedClientMonth: 1,
+                expectedClientDay: 12
+            );
+
+            TestClockLargeDate(
+                "dd/MM/yyyy",
+                "en-GB",
+                expectedClientMonth: 1,
+                expectedClientDay: 13
+            );
+        }
+
+        private void TestClockSmallDate(
+            string serverDateFormat,
+            string clientCulture,
+            int expectedClientMonth,
+            int expectedClientDay)
+        {
+            var serverTime = new DateTime(2020, 1, 12, 4, 10, 20, DateTimeKind.Utc).ToLocalTime().ToString($"{serverDateFormat} h:mm:ss tt");
+
+            TestClock(serverTime, clientCulture, new DateTime(2020, expectedClientMonth, expectedClientDay, 4, 10, 20, DateTimeKind.Utc));
+        }
+
+        private void TestClockLargeDate(
+            string serverDateFormat,
+            string clientCulture,
+            int expectedClientMonth,
+            int expectedClientDay)
+        {
+            var serverTime = new DateTime(2020, 1, 13, 4, 10, 20, DateTimeKind.Utc).ToLocalTime().ToString($"{serverDateFormat} h:mm:ss tt");
+
+            TestClock(serverTime, clientCulture, new DateTime(2020, expectedClientMonth, expectedClientDay, 4, 10, 20, DateTimeKind.Utc));
         }
 
         private void TestClock(string serverTime, string clientCulture, DateTime expectedInvariantUtc)
