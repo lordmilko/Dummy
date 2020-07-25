@@ -41,8 +41,8 @@
   <ItemGroup Condition="'$(FrameworkType)' == 'Core'">
     <PackageReference Include="System.Management" Version="$(SystemManagementVersion)" />
     <PackageReference Include="System.Net.Http" Version="$(SystemNetHttpVersion)" />
-    <PackageReference Include="System.Security.Principal.Windows" Version="SystemSecurityPrincipalWindowsVersion" />
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="SystemServiceServiceControllerVersion" />
+    <PackageReference Include="System.Security.Principal.Windows" Version="$(SystemSecurityPrincipalWindowsVersion)" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="$(SystemServiceServiceControllerVersion)" />
   </ItemGroup>
 
   <ItemGroup>

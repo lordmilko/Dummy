@@ -56,6 +56,7 @@
     <!-- PowerShell -->
     <PowerShellReferenceAssembliesVersion>1.1.0</PowerShellReferenceAssembliesVersion>   <!-- PrtgAPI.PowerShell, PrtgAPI.Tests.UnitTests -->
     <PowerShellStandardLibraryVersion>5.1.0</PowerShellStandardLibraryVersion>           <!-- PrtgAPI.PowerShell -->
+    <SystemManagementAutomationVersion>6.1.6</SystemManagementAutomationVersion>                       <!-- PrtgAPI.Tests.UnitTests -->
     <XmlDoc2CmdletDocVersion>0.2.13</XmlDoc2CmdletDocVersion>                            <!-- PrtgAPI.PowerShell -->
     
     <!-- Test -->
