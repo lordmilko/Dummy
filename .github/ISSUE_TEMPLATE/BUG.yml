@@ -23,6 +23,12 @@ body:
       description: Put the relevant code from your application that caused the issue to happen in the code block below
       placeholder: Code goes here!
       render: powershell
+  - type: textarea
+    id: diagnostic
+    attributes:
+      label: "What is the output of `Get-PrtgClient -Diagnostic?`"
+      placeholder: Output goes here!
+      render: powershell
   - type: checkboxes
     id: terms
     attributes:
