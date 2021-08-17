@@ -2,7 +2,7 @@
 name: "Documentation \U0001F4DA"
 about: Your epic documentation contains an epic issue!
 title: ''
-labels: 'proposed-documentation'
+labels: ''
 assignees: ''
 
 ---
@@ -16,4 +16,3 @@ Or does it!
 
 
 **Link to the page/s containing/MISSING! this information**
-

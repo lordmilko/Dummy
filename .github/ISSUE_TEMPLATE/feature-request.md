@@ -2,7 +2,7 @@
 name: "Feature request/Idea \U0001F680"
 about: Help improve PrtgAPI! ❤️
 title: ''
-labels: 'proposed-enhancement'
+labels: ''
 assignees: ''
 
 ---
