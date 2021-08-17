@@ -7,7 +7,7 @@ body:
     attributes:
       label: Describe the bug
       description: Clearly and concisely describe what you were trying to do, what happened and what you were expecting to happen
-      placeholder: Text goes here!
+      placeholder: Well, you see...
     validations:
       required: true
 
@@ -36,4 +36,4 @@ body:
     attributes:
       label: Additional context
       description: Anything else I should know to help solve the issue?
-      placeholder: Text goes here!
+      placeholder: So, basically...
