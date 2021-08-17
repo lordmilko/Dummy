@@ -1,6 +1,5 @@
 name: "Bug report2 \U0001F41B"
 description: "Report errors or unexpected behavior \U0001F914"
-title: ""
 labels: [alleged-bug]
 assignees:
   - octocat
