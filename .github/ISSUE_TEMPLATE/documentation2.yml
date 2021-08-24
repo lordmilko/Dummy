@@ -3,9 +3,11 @@ description: Your epic documentation contains an epic issue!
 labels: [proposed-documentation]
 body:
   - type: markdown
-    attributes:
-      value: |
-      Man, PrtgAPI has some [great documentation](https://github.com/lordmilko/PrtgAPI/wiki)
+    value: |
+    
+    Man, PrtgAPI has some [great documentation](https://github.com/lordmilko/PrtgAPI/wiki)
+    
+    Or does it!
 
   - type: textarea
     id: info
