@@ -6,3 +6,11 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug! If you need real-time help, join us on Discord.
+
+  - type: textarea
+    id: info
+    attributes:
+      label: The following information is wrong/spurious/misleading/missing. Fix it immediately!
+      placeholder: Feedback goes here
+    validations:
+      required: true
