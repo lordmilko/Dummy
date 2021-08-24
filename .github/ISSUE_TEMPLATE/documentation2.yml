@@ -3,7 +3,7 @@ description: Your epic documentation contains an epic issue!
 labels: [proposed-documentation]
 body:
   - type: markdown
-    value: "foo"
+    value: "## Welcome!"
 
   - type: textarea
     id: info
