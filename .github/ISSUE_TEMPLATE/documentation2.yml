@@ -5,14 +5,20 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug! If you need real-time help, join us on Discord.
-        
-        aaaa
+      Thanks for taking the time to fill out this bug! If you need real-time help, join us on Discord.
 
   - type: textarea
     id: info
     attributes:
       label: The following information is wrong/spurious/misleading/missing. Fix it immediately!
       placeholder: Feedback goes here
+    validations:
+      required: true
+
+  - type: textarea
+    id: pages
+    attributes:
+      label: Link to the page/s containing/MISSING! this information
+      placeholder: Links go here
     validations:
       required: true
