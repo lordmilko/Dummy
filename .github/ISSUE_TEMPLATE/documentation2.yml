@@ -4,10 +4,7 @@ labels: [proposed-documentation]
 body:
   - type: markdown
     attributes:
-      value: |
-      Man, PrtgAPI has some [great documentation](https://github.com/lordmilko/PrtgAPI/wiki)
-
-      Or does it!
+      value: "hey"
   - type: markdown
     attributes:
       value: "Thanks for taking the time to fill out this bug! If you need real-time help, join us on Discord."
