@@ -7,7 +7,8 @@ body:
     id: request
     attributes:
       label: "What's going on?"
-      placeholder: "Please note: generally speaking questions should be limited solely to utilizing the functions provided by the PrtgAPI library. Once you've pulled the information you need from PrtgAPI, you'll need to apply additional programming knowledge to transform this data in a way that is appropriate for your application."
+      description: "Please note: generally speaking questions should be limited solely to utilizing the functions provided by the PrtgAPI library. Once you've pulled the information you need from PrtgAPI, you'll need to apply additional programming knowledge to transform this data in a way that is appropriate for your application."
+      placeholder: "When I run the following code..."
 
   - type: checkboxes
     id: due-dilligance
