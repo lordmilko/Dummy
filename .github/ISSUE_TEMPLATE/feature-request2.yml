@@ -6,7 +6,7 @@ body:
     id: requested-feature
     attributes:
       label: What are you trying to do, and to what extent does PrtgAPI provide existing functionality around this?
-      placeholder: Suggestion goes here
+      placeholder: Well, you see...
     validations:
       required: true
 
@@ -14,7 +14,7 @@ body:
     id: prtg-parallel
     attributes:
       label: Is this something that has some sort of parallel in the PRTG UI? If so where do you go/how do you normally do it?
-      placeholder: Explanation goes here
+      placeholder: In the PRTG UI, if you go to...
     validations:
       required: true
 
