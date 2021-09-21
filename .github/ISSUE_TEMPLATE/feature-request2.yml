@@ -1,22 +1,22 @@
-name: "Feature request/Idea2 \U0001F680"
+name: "Feature request/Idea \U0001F680"
 description: "Help improve PrtgAPI! ❤️"
 labels: [proposed-enhancement]
 body:
-- type: textarea
-  id: requested-feature
-  attributes:
-    label: What are you trying to do, and to what extent does PrtgAPI provide existing functionality around this?
-    placeholder: Suggestion goes here
-  validations:
-    required: true
+  - type: textarea
+    id: requested-feature
+    attributes:
+      label: What are you trying to do, and to what extent does PrtgAPI provide existing functionality around this?
+      placeholder: Suggestion goes here
+    validations:
+      required: true
 
-- type: textarea
-  id: prtg-parallel
-  attributes:
-    label: Is this something that has some sort of parallel in the PRTG UI? If so where do you go/how do you normally do it?
-    placeholder: Explanation goes here
-  validations:
-    required: true
+  - type: textarea
+    id: prtg-parallel
+    attributes:
+      label: Is this something that has some sort of parallel in the PRTG UI? If so where do you go/how do you normally do it?
+      placeholder: Explanation goes here
+    validations:
+      required: true
 
   - type: checkboxes
     id: due-dilligance
