@@ -1,4 +1,4 @@
-name: "Documentation2 \U0001F4DA"
+name: "Documentation \U0001F4DA"
 description: Your epic documentation contains an epic issue!
 labels: [proposed-documentation]
 body:
@@ -13,7 +13,7 @@ body:
     id: info
     attributes:
       label: The following information is wrong/spurious/misleading/missing. Fix it immediately!
-      placeholder: Feedback goes here
+      placeholder: On the page about Quantum Widgets...
     validations:
       required: true
 
