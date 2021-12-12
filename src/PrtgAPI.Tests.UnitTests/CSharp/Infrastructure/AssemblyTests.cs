@@ -7,6 +7,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -214,7 +215,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 "Appveyor.Tests.ps1",
                 "Start-PrtgAPI.ps1",
                 "MethodXmlDocBuilder.cs",
-                "New-PowerShellPackage.ps1"
+                "New-PowerShellPackage.ps1",
+                "ChannelDefinitionConverter.cs"
             };
 
             var exprs = new[]
@@ -299,20 +301,20 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         {
             var allowedUsages = new object[]
             {
-                Tuple.Create("NewSensorDynamicParameterCategory.cs", "ValidateParameters",  "new InvalidOperationException(newMessage, ex)"),
-                Tuple.Create("NewNotificationTriggerParameters.cs",  "CreateParameters",    "ex.InnerException"),
-                Tuple.Create("PrtgCmdlet.cs",                        "BeginProcessing",     "new InvalidOperationException(\"You are not connected to a PRTG Server. Please connect first using Connect-PrtgServer.\")"),
-                Tuple.Create("GetPrtgClient.cs",                     "WriteDiagnostic",     "new InvalidOperationException(\"You are not connected to a PRTG Server. Please connect first using Connect-PrtgServer.\")"),
-                Tuple.Create("GetSensorHistory.cs",                  "ProcessRecordEx",     "new InvalidOperationException($\"Cannot retrieve downtime with an {nameof(Average)} of 0.\")"),
-                Tuple.Create("NewSensorParameters.cs",               "CreateRawParameters", "new InvalidOperationException($\"Hashtable record '{NameParameter}' is mandatory, however a value was not specified.\")"),
-                Tuple.Create("NewSensorParameters.cs",               "CreateRawParameters", "new InvalidOperationException($\"Hashtable record '{SensorTypeParameter}' is mandatory, however a value was not specified.\")"),
-                Tuple.Create("ConnectPrtgServer.cs",                 "Connect",             "new InvalidOperationException($\"Already connected to server {PrtgSessionState.Client.Server}. To override please specify -Force.\")"),
-                Tuple.Create("RestartProbe.cs",                      "WriteProbeProgress",  "new TimeoutException($\"Timed out waiting for {remaining} {(\"probe\".Plural(remaining))} to restart.\")"),
-                Tuple.Create("RestartPrtgCore.cs",                   "WriteProgress",       "new TimeoutException($\"Timed out waiting for PRTG Core Service to restart.\")"),
-                Tuple.Create("NewSensorFactoryDefinition.cs",        "MakeChannel",         "new InvalidOperationException($\"'{value}' is not a valid channel expression. Expression must not be null, empty or whitespace.\")"),
-                Tuple.Create("NewSensorFactoryDefinition.cs",        "GetChannelName",      "new InvalidOperationException($\"'{finalName}' is not a valid channel name. Name must not be null, empty or whitespace.\")"),
-                Tuple.Create("SetObjectPosition.cs",                 "ProcessRecordEx",     "new InvalidOperationException($\"Cannot modify position of object '{obj}' (ID: {obj.Id}, Type: {obj.Type}). Object must be a sensor, device, group or probe.\")"),
-                Tuple.Create("PrtgTableNodeCmdlet.cs",               "ProcessValues",       "new InvalidOperationException($\"Expected -{nameof(ScriptBlock)} to return one or more values of type '{nameof(PrtgNode)}', however response contained an invalid value of type '{invalid[0].GetType().FullName}'.\")"),
+                Tuple.Create("NewSensorDynamicParameterCategory.cs", "ValidateParameters",   "new InvalidOperationException(newMessage, ex)"),
+                Tuple.Create("NewNotificationTriggerParameters.cs",  "CreateParameters",     "ex.InnerException"),
+                Tuple.Create("PrtgCmdlet.cs",                        "BeginProcessing",      "new InvalidOperationException(\"You are not connected to a PRTG Server. Please connect first using Connect-PrtgServer.\")"),
+                Tuple.Create("GetPrtgClient.cs",                     "WriteDiagnostic",      "new InvalidOperationException(\"You are not connected to a PRTG Server. Please connect first using Connect-PrtgServer.\")"),
+                Tuple.Create("GetSensorHistory.cs",                  "ProcessSensorHistory", "new InvalidOperationException($\"Cannot retrieve downtime with an {nameof(Average)} of 0.\")"),
+                Tuple.Create("NewSensorParameters.cs",               "CreateRawParameters",  "new InvalidOperationException($\"Hashtable record '{NameParameter}' is mandatory, however a value was not specified.\")"),
+                Tuple.Create("NewSensorParameters.cs",               "CreateRawParameters",  "new InvalidOperationException($\"Hashtable record '{SensorTypeParameter}' is mandatory, however a value was not specified.\")"),
+                Tuple.Create("ConnectPrtgServer.cs",                 "Connect",              "new InvalidOperationException($\"Already connected to server {PrtgSessionState.Client.Server}. To override please specify -Force.\")"),
+                Tuple.Create("RestartProbe.cs",                      "WriteProbeProgress",   "new TimeoutException($\"Timed out waiting for {remaining} {(\"probe\".Plural(remaining))} to restart.\")"),
+                Tuple.Create("RestartPrtgCore.cs",                   "WriteProgress",        "new TimeoutException($\"Timed out waiting for PRTG Core Service to restart.\")"),
+                Tuple.Create("NewSensorFactoryDefinition.cs",        "MakeChannel",          "new InvalidOperationException($\"'{value}' is not a valid channel expression. Expression must not be null, empty or whitespace.\")"),
+                Tuple.Create("NewSensorFactoryDefinition.cs",        "GetChannelName",       "new InvalidOperationException($\"'{finalName}' is not a valid channel name. Name must not be null, empty or whitespace.\")"),
+                Tuple.Create("SetObjectPosition.cs",                 "ProcessRecordEx",      "new InvalidOperationException($\"Cannot modify position of object '{obj}' (ID: {obj.Id}, Type: {obj.Type}). Object must be a sensor, device, group or probe.\")"),
+                Tuple.Create("PrtgTableNodeCmdlet.cs",               "ProcessValues",        "new InvalidOperationException($\"Expected -{nameof(ScriptBlock)} to return one or more values of type '{nameof(PrtgNode)}', however response contained an invalid value of type '{invalid[0].GetType().FullName}'.\")"),
                 Tuple.Create("NewSensorParameters.cs",               "GetImplicit"),
                 Tuple.Create("TriggerParameterParser.cs",            "UpdateNotificationAction"),
                 Tuple.Create("UpdateGoPrtgCredential.cs"),
@@ -645,6 +647,49 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             });
         }
 
+
+        [TestMethod]
+        [UnitTest(TestCategory.SkipCoverage)]
+        public void AllXmlDocComments_ThatIncludeReturns_AreFilledInProperly()
+        {
+            var failures = new List<string>();
+
+            WithTree((file, tree, model) =>
+            {
+                foreach (var method in tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>())
+                {
+                    var trivia = method.GetLeadingTrivia().Select(t => t.GetStructure()).OfType<DocumentationCommentTriviaSyntax>().FirstOrDefault();
+
+                    if (trivia == null)
+                        continue;
+
+                    var returnXml = trivia.ChildNodes().OfType<XmlElementSyntax>().SingleOrDefault(e => e.StartTag.Name.ToString() == "returns");
+
+                    if (returnXml != null)
+                    {
+                        var message = returnXml.Content.ToString();
+
+                        if (message == string.Empty)
+                        {
+                            var type = method.FirstAncestorOrSelf<TypeDeclarationSyntax>(t => true);
+
+                            failures.Add($"{type.Identifier.Text}.{method.Identifier.Text}");
+                        }
+                    }
+                }
+            }, solution: true);
+
+            if (failures.Count > 0)
+            {
+                var str = string.Join(Environment.NewLine, failures);
+
+                if (failures.Count == 1)
+                    Assert.Fail($"1 method is missing a <returns></returns> XML comment: {str}");
+                else
+                    Assert.Fail($"{failures.Count} methods are missing a <returns></returns> XML comment:{Environment.NewLine}{Environment.NewLine}{str}");
+            }
+        }
+
         [TestMethod]
         [UnitTest(TestCategory.SkipCoverage)]
         public void AllPowerShellExamples_Have_ProperSpacingBetweenEachOne()
@@ -755,7 +800,8 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                                     "ex",
                                     "(Exception) null",
                                     "Object",
-                                    "Parameters"
+                                    "Parameters",
+                                    "exception"
                                 };
 
                                 if (str[0] == "paramName" && str.Count == 2)
@@ -808,6 +854,389 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             }
 
             return true;
+        }
+
+        [TestMethod]
+        [UnitTest(TestCategory.SkipCoverage)]
+        public void UpdatePublicAPI()
+        {
+            var sln = TestHelpers.GetProjectRoot(true);
+            
+            ProcessPublicAPI(Path.Combine(sln, "PrtgAPI"), typeof(PrtgClient));
+        }
+
+        private void ProcessPublicAPI(string root, Type typeFromAssembly)
+        {
+            var apiFile = Path.Combine(root, "PublicAPI.txt");
+
+            string[] knownAPIs = new string[0];
+
+            if (File.Exists(apiFile))
+                knownAPIs = File.ReadAllLines(apiFile);
+
+            var types = typeFromAssembly.Assembly.GetTypes();
+
+            var actualAPIs = new List<string>();
+
+            foreach (var type in types)
+            {
+                if (type.IsPublic)
+                {
+                    var typeName = GetTypeName(type, true);
+
+                    var typeType = GetTypeType(type);
+
+                    actualAPIs.Add($"{typeName} => {typeType}");
+
+                    if (type.IsEnum)
+                        ProcessEnum(type, typeName, actualAPIs);
+                    else
+                    {
+                        ProcessProperties(type, typeName, actualAPIs);
+                        ProcessFields(type, typeName, actualAPIs);
+                        ProcessMethods(type, typeName, actualAPIs);
+                        ProcessEvents(type, typeName, actualAPIs);
+                    }
+                }
+            }
+
+            var sorted = actualAPIs.OrderBy(a => a).ToArray();
+
+            if (knownAPIs.Length == sorted.Length)
+            {
+                var different = false;
+
+                for (var i = 0; i < knownAPIs.Length; i++)
+                {
+                    if (knownAPIs[i] != sorted[i])
+                    {
+                        different = true;
+                        break;
+                    }
+                }
+
+                if (!different)
+                    return;
+            }
+
+            File.WriteAllLines(apiFile, sorted);
+        }
+
+        private void ProcessEnum(Type type, string typeName, List<string> actualAPIs)
+        {
+            var names = Enum.GetNames(type);
+
+            foreach (var name in names)
+            {
+                var str = $"{typeName}.{name} -> Value";
+
+                actualAPIs.Add(str);
+            }
+        }
+
+        private void ProcessProperties(Type type, string typeName, List<string> actualAPIs)
+        {
+            var properties = type.GetProperties();
+
+            foreach (var property in properties)
+            {
+                var builder = new StringBuilder();
+
+                var propertyTypeName = GetTypeName(property.PropertyType);
+
+                builder.Append(typeName).Append(" ").Append(property.Name).Append(" ").Append("{");
+
+                if (property.GetGetMethod(false) != null)
+                    builder.Append(" get;");
+
+                if (property.GetSetMethod(false) != null)
+                    builder.Append(" set;");
+
+                builder.Append(" }").Append(" -> ").Append(propertyTypeName);
+
+                actualAPIs.Add(builder.ToString());
+            }
+        }
+
+        private void ProcessFields(Type type, string typeName, List<string> actualAPIs)
+        {
+            var fields = type.GetFields();
+
+            foreach (var field in fields)
+            {
+                var fieldTypeName = GetTypeName(field.FieldType);
+
+                var str = $"{typeName} {field.Name} -> {fieldTypeName}";
+
+                actualAPIs.Add(str);
+            }
+        }
+
+        private void ProcessMethods(Type type, string typeName, List<string> actualAPIs)
+        {
+            var methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+            foreach (var method in methods)
+            {
+                var ignorePrefix = new[]
+                {
+                    "get_",
+                    "set_",
+                    "add_",
+                    "remove_"
+                };
+
+                if (ignorePrefix.Any(i => method.Name.StartsWith(i)))
+                    continue;
+
+                var ignoreName = new[]
+                {
+                    nameof(MemberwiseClone),
+                    "Finalize"
+                };
+
+                if (ignoreName.Any(n => method.Name == n))
+                    continue;
+
+                if (!(method.IsPublic || method.IsFamily || method.IsFamilyOrAssembly))
+                    continue;
+
+                var builder = new StringBuilder();
+
+                var methodReturnType = GetTypeName(method.ReturnType);
+                var parameters = method.GetParameters();
+
+                builder.Append(typeName).Append(" ").Append(method.Name);
+
+                if (method.IsGenericMethod)
+                {
+                    var genericTypeParameters = method.GetGenericArguments();
+
+                    builder.Append("<");
+
+                    for (int i = 0; i < genericTypeParameters.Length; i++)
+                    {
+                        builder.Append(GetTypeName(genericTypeParameters[i]));
+
+                        if (i < genericTypeParameters.Length - 1)
+                            builder.Append(",");
+                    }
+
+                    builder.Append(">");
+                }
+
+                builder.Append("(");
+
+                for (var i = 0; i < parameters.Length; i++)
+                {
+                    if (parameters[i].GetCustomAttribute<ParamArrayAttribute>() != null)
+                        builder.Append("params ");
+
+                    var parameterTypeName = GetTypeName(parameters[i].ParameterType);
+
+                    builder.Append($"{parameterTypeName} {parameters[i].Name}");
+
+                    if (parameters[i].HasDefaultValue)
+                    {
+                        var value = parameters[i].DefaultValue;
+
+                        if (value != null)
+                        {
+                            var valueType = value.GetType();
+
+                            if (valueType.IsEnum)
+                                value = valueType.Name + "." + value.ToString();
+                            else if (valueType == typeof(int))
+                                value = value.ToString();
+                            else if (valueType == typeof(bool))
+                                value = value.ToString().ToLower();
+                            else
+                                Assert.Fail($"Don't know how to handle default value of type '{valueType.Name}'");
+                        }
+                        else
+                        {
+                            var parameterType = parameters[i].ParameterType;
+
+                            var nullable = new[]
+                            {
+                                typeof(string),
+                                typeof(PrtgObject)
+                            };
+
+                            var nullableGeneric = new[]
+                            {
+                                typeof(Func<,>),
+                                typeof(Nullable<>)
+                            };
+
+                            var defaultType = new[]
+                            {
+                                typeof(CancellationToken)
+                            };
+
+                            if (nullable.Any(t => parameterType == t) || parameterType.IsArray || parameterType.IsInterface)
+                                value = "null";
+                            else if (parameterType.IsGenericType && nullableGeneric.Any(t => parameterType.GetGenericTypeDefinition() == t))
+                                value = "null";
+                            else if (defaultType.Any(t => t == parameterType))
+                                value = $"default({parameterType.Name})";
+                            else
+                                Assert.Fail($"Don't know how to handle parameter value of type '{parameterType.Name}'");
+                        }
+
+                        builder.Append($" = {value}");
+                    }
+
+                    if (i < parameters.Length - 1)
+                        builder.Append(", ");
+                }
+
+                builder.Append(")");
+
+                builder.Append(" -> ").Append(methodReturnType);
+
+                actualAPIs.Add(builder.ToString());
+            }
+        }
+
+        private void ProcessEvents(Type type, string typeName, List<string> actualAPIs)
+        {
+            var events = type.GetEvents();
+
+            foreach (var @event in events)
+            {
+                var builder = new StringBuilder();
+
+                builder.Append(typeName).Append(" ");
+
+                var eventTypeName = GetTypeName(@event.EventHandlerType);
+
+                builder.Append(@event.Name);
+
+                builder.Append(" -> ").Append(eventTypeName);
+
+                actualAPIs.Add(builder.ToString());
+            }
+        }
+
+        private string GetTypeName(Type type, bool fullName = false)
+        {
+            if (type.IsGenericType)
+            {
+                var underlying = Nullable.GetUnderlyingType(type);
+
+                if (underlying != null)
+                    return GetTypeName(underlying) + "?";
+
+                var builder = new StringBuilder();
+
+                builder.Append(
+                    Regex.Replace(
+                        (fullName
+                            ? (type.FullName ?? $"{type.Namespace}.{type.Name}")
+                            : type.Name)
+                        , "(.+)`\\d+(.*)", "$1$2"
+                    )
+                ).Append("<");
+                
+                var args = type.GetGenericArguments();
+
+                for (int i = 0; i < args.Length; i++)
+                {
+                    builder.Append(GetTypeName(args[i]));
+
+                    if(i < args.Length - 1)
+                        builder.Append(",");
+                }
+
+                builder.Append(">");
+
+                return builder.ToString();
+            }
+            else
+            {
+                if (type.IsArray)
+                {
+                    var rank = type.GetArrayRank();
+
+                    var elementType = GetTypeName(type.GetElementType());
+
+                    var builder = new StringBuilder();
+                    builder.Append(elementType);
+
+                    for (var i = 0; i < rank; i++)
+                        builder.Append("[]");
+
+                    return builder.ToString();
+                }
+
+                var simple = GetSimpleTypeName(type);
+
+                //Type T on generic type parameters does not have a FullName
+                if (simple != type.Name || type.FullName == null || !fullName)
+                    return simple;
+
+                return type.FullName;
+            }
+        }
+
+        private string GetSimpleTypeName(Type type)
+        {
+            if (type == typeof(void))
+                return "void";
+            if (type == typeof(object))
+                return "object";
+
+            if (type.IsEnum)
+                return type.Name;
+
+            switch (Type.GetTypeCode(type))
+            {
+                case TypeCode.Boolean:
+                    return "bool";
+                case TypeCode.Byte:
+                    return "byte";
+                case TypeCode.Char:
+                    return "char";
+                case TypeCode.Decimal:
+                    return "decimal";
+                case TypeCode.Double:
+                    return "double";
+                case TypeCode.Int16:
+                    return "short";
+                case TypeCode.Int32:
+                    return "int";
+                case TypeCode.Int64:
+                    return "long";
+                case TypeCode.SByte:
+                    return "sbyte";
+                case TypeCode.Single:
+                    return "float";
+                case TypeCode.String:
+                    return "string";
+                case TypeCode.UInt16:
+                    return "ushort";
+                case TypeCode.UInt32:
+                    return "uint";
+                case TypeCode.UInt64:
+                    return "ulong";
+                default:
+                    return type.Name;
+            }
+        }
+
+        private string GetTypeType(Type type)
+        {
+            if (type.IsEnum)
+                return "Enum";
+
+            if (type.IsInterface)
+                return "Interface";
+
+            if (type.IsClass)
+                return "Class";
+
+            return "Struct";
         }
 
         [TestMethod]
@@ -1046,9 +1475,9 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
             return false;
         }
 
-        private void WithTree(Action<string, SyntaxTree, Lazy<SemanticModel>> action, bool powerShell = false)
+        private void WithTree(Action<string, SyntaxTree, Lazy<SemanticModel>> action, bool powerShell = false, bool solution = false)
         {
-            var path = TestHelpers.GetProjectRoot();
+            var path = TestHelpers.GetProjectRoot(solution);
 
             if (powerShell)
                 path += ".PowerShell";

@@ -27,9 +27,9 @@ Describe "Set-ObjectProperty_Sensors_IT" -Tag @("PowerShell", "IntegrationTest")
     It "Sensor Display" {
         #if we're going to use Channel as the type for PrimaryChannel, we need to be able to handle the case where the primary channel is downtime
 
-        $object = Get-Sensor -Id (Settings UpSensor)
+        $object = Get-Sensor -Id (Settings WarningSensor)
 
-        #SetValue "PrimaryChannel" BLAH
+        SetValue "PrimaryChannel" "Processor 1"
         SetValue "GraphType" "Stacked"
         #SetValue "StackUnit" BLAH #how do we get a list of valid units? what happens if you set an invalid one? maybe do channel.unit?
     }
@@ -68,10 +68,10 @@ Describe "Set-ObjectProperty_Sensors_IT" -Tag @("PowerShell", "IntegrationTest")
         SetValue "Url"                  "https://"
         SetValue "HttpRequestMethod"    "POST"
         SetChild "PostData"             "blah"       "HttpRequestMethod" "POST"
-        { SetValue "UseCustomPostContent" $true } | Should Throw (ForeignMessage "Required field, not defined")
         SetGrandChild "PostContentType" "customType" "UseCustomPostContent" $true "HttpRequestMethod" "POST"
         #GetValue "SNI" "blah"
         SetValue "UseSNIFromUrl" $true
+        TestRequiredField { SetValue "UseCustomPostContent" $true } (ForeignMessage "Required field, not defined")
     }
 
     It "Sensor Settings (EXE/XML)" {

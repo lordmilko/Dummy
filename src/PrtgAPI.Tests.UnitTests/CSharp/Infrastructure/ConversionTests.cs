@@ -1,10 +1,12 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System;
+using System.Globalization;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrtgAPI.Utilities;
 
 namespace PrtgAPI.Tests.UnitTests.Infrastructure
 {
     [TestClass]
-    public class ConversionTests
+    public class ConversionTests : BaseTest
     {
         [UnitTest]
         [TestMethod]
@@ -180,6 +182,149 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
         [TestMethod]
         public void Convert_ToDouble_EU_Incomprehensible_Over1000() =>
             TestDouble("1.234", 772526.123, 1234);
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_US_CloseRounding()
+        {
+            //Due to how .NET extracts the decimal point, .10975 could become .1097499999... and thus fail to round to 4 decimal places properly
+            TestDouble("20,10975", 20.1098, 20.10975);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_EU_CloseRounding()
+        {
+            //Due to how .NET extracts the decimal point, .10975 could become .1097499999... and thus fail to round to 4 decimal places properly
+            TestDouble("20.10975", 20.1098, 20.10975);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_US_CloseRounding_AwayFromZero()
+        {
+            TestDouble("97,17305", 97.1731, 97.17305);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_EU_CloseRounding_AwayFromZero()
+        {
+            TestDouble("97.17305", 97.1731, 97.17305);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_US_CloseRounding_CascadeRound()
+        {
+            TestDouble("2,826947", 2.8269, 2.826947);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_EU_CloseRounding_CascadeRound()
+        {
+            TestDouble("2.826947", 2.8269, 2.826947);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_US_CloseRounding_SilentTruncate()
+        {
+            TestDouble("112,12165", 112.1216, 112.12165);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_EU_CloseRounding_SilentTruncate()
+        {
+            TestDouble("112.12165", 112.1216, 112.12165);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_US_RawInteger_DecimalDisplay()
+        {
+            TestDouble("19.00001", 19, 19.00001);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_US_RawInteger_DecimalDisplay_Thousands()
+        {
+            //Will take multiple marks "easy path"
+            TestDouble("1,019.00001", 1019, 1019.00001);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_EU_RawInteger_DecimalDisplay()
+        {
+            TestDouble("19,00001", 19, 19.00001);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_EU_RawInteger_DecimalDisplay_Thousands()
+        {
+            //Will take multiple marks "easy path"
+            TestDouble("1.019,00001", 1019, 1019.00001);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_ToDouble_RawDecimal_IntegerDisplay()
+        {
+            //We're only interested in converting the _display value_, so if the raw value is different, who cares!
+            TestDouble("19", 19.00001, 19);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_AllCultures_NoMarks()
+        {
+            TestAllCultures(123);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_AllCultures_OneNumberMark_Thousands()
+        {
+            TestAllCultures(1234);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_AllCultures_OneNumberMark_Decimal()
+        {
+            TestAllCultures(123.456);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void Convert_AllCultures_TwoNumberMarks()
+        {
+            TestAllCultures(1234.5678);
+        }
+
+        private void TestAllCultures(double number)
+        {
+            var cultures = CultureInfo.GetCultures(CultureTypes.AllCultures);
+
+            foreach (var culture in cultures)
+            {
+                var str = number.ToString("#,##0.####", culture);
+
+                try
+                {
+                    TestDouble(str, number, number);
+                }
+                catch (Exception ex)
+                {
+                    throw new AssertFailedException($"Failed to convert number '{str}' in culture '{culture}': {ex.Message}", ex);
+                }
+            }
+        }
 
         private void TestDouble(string s, double d, double expected)
         {

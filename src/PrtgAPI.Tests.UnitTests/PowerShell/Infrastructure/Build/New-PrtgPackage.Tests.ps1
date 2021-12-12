@@ -67,11 +67,13 @@ Describe "New-PrtgPackage" -Tag @("PowerShell", "Build") {
             "pack"
             Join-PathEx $root PrtgAPI PrtgAPI.csproj
             "-Exclude"
-            "**/*.tt;**/Resources/*.txt;*PrtgClient.Methods.xml;**/*.json"
+            "**/*.tt;**/Resources/*.txt;PublicAPI.txt;*PrtgClient.Methods.xml;**/*.json"
             "-outputdirectory"
             $tempRepository
             "-NoPackageAnalysis"
             "-symbols"
+            "-SymbolPackageFormat"
+            "snupkg"
             "-version 1.2.3"
             "-properties"
             "Configuration=$name"

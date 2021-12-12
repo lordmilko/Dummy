@@ -39,6 +39,37 @@ function SetSensorHistoryResponse
     SetResponseAndClientWithArguments "SensorHistoryResponse" @($item2, $item1)
 }
 
+function SetSensorHistoryScalingResponse
+{
+    param(
+        [Parameter(Mandatory=$true, Position = 0)]
+        [string]$DisplayValue,
+
+        [Parameter(Mandatory=$false, Position = 1)]
+        [string]$RawValue,
+
+        [Parameter(Mandatory=$false)]
+        [string]$Multiplication,
+
+        [Parameter(Mandatory=$false)]
+        [string]$Division
+    )
+
+    $item1 = New-Object PrtgAPI.Tests.UnitTests.Support.TestItems.SensorHistoryItem -ArgumentList @("22/10/2017 3:19:54 PM", "43030.1804871528", $null, "100 %", "0000010000")
+
+    $item2 = CreateData -DisplayValue2 $DisplayValue -Value2 $RawValue
+
+    $response = SetResponseAndClientWithArguments "SensorHistoryResponse" @($item2, $item1)
+
+    $channelItem = New-Object PrtgAPI.Tests.UnitTests.Support.TestItems.ChannelItem -ArgumentList @("26 %", "0000000000000260.0000", "1", "0000000001", "Backup State")
+    $channelItem.ScalingMultiplication = $Multiplication
+    $channelItem.ScalingDivision = $Division
+
+    $response.Channels = $channelItem
+
+    return $response
+}
+
 function ValidateChannels($file, $labels, $properties)
 {
     $lines = gc $file.FullName
@@ -93,6 +124,17 @@ function GetTableColumnHeader($obj, $propertyName)
     $header = $headers[$propertyIndex]
 
     return $header.Label
+}
+
+function SetSensorHistoryReportResponse($id, $start, $end)
+{
+    $expected = @(
+        [Request]::SensorHistoryReport($id, $start, $end)
+    )
+
+    $innerResponse = New-Object PrtgAPI.Tests.UnitTests.Support.TestResponses.SensorHistoryReportResponse $true
+    $response = SetResponseAndClientWithArguments "AddressValidatorResponse" @($expected, $true, $innerResponse)
+    $response.AllowSecondDifference = $true
 }
 
 Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
@@ -154,10 +196,14 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
         $start = Get-Date
         $end = $start.AddDays(-1)
 
-        SetAddressValidatorResponse @(
+        $response = SetAddressValidatorResponse @(
+            [Request]::Channels(2203)
             [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&sortby=-datetime&count=0")
             [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&sortby=-datetime&count=500")
         )
+
+        $response.AllowSecondDifference = $true
+        $response.CountOverride = GetCustomCountDictionary @{ Channels = 0 }
 
         $items = $sensor | Get-SensorHistory -StartDate $start -EndDate $end
 
@@ -254,7 +300,12 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
             $start = Get-Date
             $end = $start.AddHours(-1).AddMinutes(-4)
 
-            SetAddressValidatorResponse "historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&count=4&sortby=-datetime"
+            $response = SetAddressValidatorResponse @(
+                [Request]::Channels(2203)
+                [Request]::ChannelProperties(2203, 1)
+                [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&count=4&sortby=-datetime")
+            )
+            $response.AllowSecondDifference = $true
 
             $items = $sensor | Get-SensorHistory -Count 4 -StartDate $start
 
@@ -266,10 +317,14 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
             $start = Get-Date
             $end = $start.AddDays(-1)
 
-            SetAddressValidatorResponse @(
+            $response = SetAddressValidatorResponse @(
+                [Request]::Channels(2203)
                 [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&count=0&sortby=-datetime")
                 [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&sortby=-datetime&count=500")
             )
+
+            $response.AllowSecondDifference = $true
+            $response.CountOverride = GetCustomCountDictionary @{ Channels = 0 }
 
             $items = @($sensor | Get-SensorHistory -StartDate $start -EndDate $end -Count 1)
 
@@ -284,9 +339,13 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
             $s = Run Sensor { Get-Sensor }
             $s.Interval | Should Be "00:01:00"
 
-            SetAddressValidatorResponse @(
+            $response = SetAddressValidatorResponse @(
+                [Request]::Channels(2203)
                 [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&count=120&sortby=-datetime")
             )
+
+            $response.AllowSecondDifference = $true
+            $response.CountOverride = GetCustomCountDictionary @{ Channels = 0 }
 
             $s | Get-SensorHistory -Count 120
         }
@@ -299,10 +358,14 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
             $s = Run Sensor { Get-Sensor }
             $s.Interval | Should Be "00:01:00"
 
-            SetAddressValidatorResponse @(
+            $response = SetAddressValidatorResponse @(
+                [Request]::Channels(2203)
                 [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&count=0&sortby=-datetime")
                 [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&sortby=-datetime&count=500")
             )
+
+            $response.AllowSecondDifference = $true
+            $response.CountOverride = GetCustomCountDictionary @{ Channels = 0 }
 
             $s | Get-SensorHistory -Count 120 -StartDate $start -EndDate $end
         }
@@ -311,9 +374,13 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
             $start = (Get-Date)
             $end = $start.AddDays(-20).AddHours(-1)
             
-            SetAddressValidatorResponse @(
+            $response = SetAddressValidatorResponse @(
+                [Request]::Channels(2203)
                 [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&count=20&sortby=-datetime")
             )
+
+            $response.AllowSecondDifference = $true
+            $response.CountOverride = GetCustomCountDictionary @{ Channels = 0 }
 
             $s = Run Sensor { Get-Sensor }
             $s.Interval = "01:00:00:00"
@@ -327,10 +394,14 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
             $start = (Get-Date)
             $end = $start.AddHours(-2).AddMinutes(-10)
             
-            SetAddressValidatorResponse @(
+            $response = SetAddressValidatorResponse @(
+                [Request]::Channels(4000)
+                [Request]::ChannelProperties(4000, 1)
                 [Request]::Sensors("filter_objid=4000", [Request]::DefaultObjectFlags)
                 [Request]::Get("api/historicdata.xml?id=4000&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&count=70&sortby=-datetime")
             )
+
+            $response.AllowSecondDifference = $true
 
             Get-SensorHistory -Id 4000 -Count 70 -StartDate $start
         }
@@ -340,9 +411,13 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
             $start = (Get-Date)
             $end = $start.AddHours(-7).AddMinutes(-40)
             
-            SetAddressValidatorResponse @(
+            $response = SetAddressValidatorResponse @(
+                [Request]::Channels(2203)
                 [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=300&count=80&sortby=-datetime")
             )
+
+            $response.AllowSecondDifference = $true
+            $response.CountOverride = GetCustomCountDictionary @{ Channels = 0 }
 
             $s = Run Sensor { Get-Sensor }
             $s.Interval | Should Be "00:01:00"
@@ -355,9 +430,12 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
             $start = (Get-Date)
             $end = $start.AddHours(-6).AddMinutes(-50)
 
-            SetAddressValidatorResponse @(
+            $response = SetAddressValidatorResponse @(
+                [Request]::Channels(4000)
                 [Request]::Get("api/historicdata.xml?id=4000&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=300&count=70&sortby=-datetime")
             )
+            $response.AllowSecondDifference = $true
+            $response.CountOverride = GetCustomCountDictionary @{ Channels = 0 }
 
             Get-SensorHistory -Id 4000 -Count 70 -Average 300
         }
@@ -368,12 +446,15 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
         $end = $start.AddDays(-1)
 
         $response = SetAddressValidatorResponse @(
+            [Request]::Channels(2203)
             [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&count=0&sortby=-datetime")
             [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&sortby=-datetime&count=500")
             [Request]::Get("api/historicdata.xml?id=2203&edate=$($start.ToString($format))&sdate=$($end.ToString($format))&avg=0&sortby=-datetime&count=500&start=500")
         )
 
+        $response.AllowSecondDifference = $true
         $response.FixedCountOverride = 1000
+        $response.CountOverride = GetCustomCountDictionary @{ Channels = 0 }
 
         $items = @($sensor | Get-SensorHistory -StartDate $start -EndDate $end -Count 1000)
 
@@ -435,5 +516,103 @@ Describe "Get-SensorHistory" -Tag @("PowerShell", "UnitTest") {
         $dir = gci $formats
 
         $dir.Count | Should BeGreaterThan 1
+    }
+
+    It "specifies a scaling multiplication" {
+
+        WithCustomResponse {
+            SetSensorHistoryScalingResponse -DisplayValue 86.664 -RawValue 1.4444 -Multiplication 60
+
+            $result = Get-SensorHistory -Id 1001
+
+            $result[0].AvailableMemory | Should Be 86.664
+        }
+    }
+
+    It "specifies a scaling division" {
+        WithCustomResponse {
+            SetSensorHistoryScalingResponse -DisplayValue 1.4444 -RawValue 86.661 -Division 60
+
+            $result = Get-SensorHistory -Id 1001
+
+            $result[0].AvailableMemory | Should Be 1.4444
+        }
+    }
+
+    It "specifies a scaling multiplication and division" {
+
+        WithCustomResponse {
+            SetSensorHistoryScalingResponse -DisplayValue 129.9915 -RawValue 86.661 -Multiplication 60 -Division 40
+
+            $result = Get-SensorHistory -Id 1001
+
+            $result[0].AvailableMemory | Should Be 129.9915
+        }
+    }
+
+    It "specifies a scaling multiplication with -Raw" {
+
+        WithCustomResponse {
+            SetSensorHistoryScalingResponse -DisplayValue 86.664 -RawValue 1.4444 -Multiplication 60
+
+            $result = Get-SensorHistory -Id 1001 -Raw
+
+            $result[0].AvailableMemory | Should Be 1.4444
+        }
+    }
+
+    It "specifies a scaling division -Raw" {
+        WithCustomResponse {
+            SetSensorHistoryScalingResponse -DisplayValue 1.4444 -RawValue 86.661 -Division 60
+
+            $result = Get-SensorHistory -Id 1001 -Raw
+
+            $result[0].AvailableMemory | Should Be 86.661
+        }
+    }
+
+    It "specifies a scaling multiplication and division -Raw" {
+        WithCustomResponse {
+            SetSensorHistoryScalingResponse -DisplayValue 129.9915 -RawValue 86.661 -Multiplication 60 -Division 40
+
+            $result = Get-SensorHistory -Id 1001 -Raw
+
+            $result[0].AvailableMemory | Should Be 86.661
+        }
+    }
+
+    Context "Report" {
+
+        It "generates reports for a sensor" {
+
+            $start = Get-Date
+            $end = $start.AddDays(-1)
+
+            SetSensorHistoryReportResponse 2203 $start $end
+
+            $sensor = Run Sensor { Get-Sensor }
+
+            $sensor | Get-SensorHistory -Report
+        }
+
+        It "generates reports for a sensor ID" {
+            $start = Get-Date
+            $end = $start.AddDays(-1)
+
+            SetSensorHistoryReportResponse 1001 $start $end
+
+            Get-SensorHistory -Id 1001 -Report
+        }
+
+        It "specifies a custom start and end date" {
+            $start = (Get-Date).AddDays(-3)
+            $end = $start.AddDays(-5)
+
+            SetSensorHistoryReportResponse 2203 $start $end
+
+            $sensor = Run Sensor { Get-Sensor }
+
+            $sensor | Get-SensorHistory -Report -StartDate $start -EndDate $end
+        }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -660,6 +661,100 @@ namespace PrtgAPI
             return Convert.ToInt32(data.TotalCount);
         }
 
+        internal List<SensorHistoryReportItem> GetSensorHistoryReportInternal(Either<Sensor, int> sensorOrId, PrtgResponse response)
+        {
+            var rows = HtmlParser.Default.GetTableData(response, "table_statereporttable");
+
+            var results = new List<SensorHistoryReportItem>();
+
+            if (rows.Count == 1 && rows.Single().Data.All(d => d.Content == "-"))
+                return new List<SensorHistoryReportItem>();
+
+            foreach (var row in rows)
+            {
+                var status = GetStatus(row.Data[0].Content);
+
+                var escaped = WebUtility.HtmlDecode(row.Data[1].Content);
+
+                var timeStr = Regex.Match(escaped, "<nobr>(.+?) − (.+?) <span.+");
+
+                if (!timeStr.Success)
+                    throw new InvalidOperationException($"Failed to read timespan of sensor history report item for sensor ID '{sensorOrId.GetId()}' from string '{escaped}'.");
+
+                var startStr = timeStr.Groups[1].Value;
+                var endStr = timeStr.Groups[2].Value;
+
+                var start = DateTime.Parse(startStr);
+                var end = DateTime.Parse(endStr);
+
+                results.Add(new SensorHistoryReportItem(sensorOrId.GetId(), status, start, end));
+            }
+
+            return results;
+        }
+
+        private Status GetStatus(string str)
+        {
+            var match = Regex.Match(str, "<div class=\"(.+?)\"");
+
+            //Newer PRTG versions have a CSS class defined that allows us to easily scrape the status name
+            if (match.Success)
+            {
+                var classes = match.Groups[1].Value.Split(' ');
+
+                var colorFlag = classes.FirstOrDefault(c => c.StartsWith("colorflag_"));
+
+                if (colorFlag != null)
+                    return GetStatusInternal(colorFlag);
+            }
+
+            var semicolon = str.LastIndexOf(';');
+
+            var name = str.Substring(semicolon + 1);
+
+            var colorFallback = Regex.Match(str, "background-color:(.+?)(\"|;| )");
+
+            return GetStatusInternal(name, colorFallback);
+        }
+
+        private Status GetStatusInternal(string str, Match colorFallback = null)
+        {
+            switch (str)
+            {
+                case "Up":
+                case "colorflag_statusup":
+                    return Status.Up;
+
+                case "Down":
+                case "colorflag_statusdown":
+                    return Status.Down;
+
+                case "Unknown":
+                case "colorflag_statusunknown":
+                    return Status.Unknown;
+
+                default:
+                    if (colorFallback != null && colorFallback.Success)
+                    {
+                        var color = colorFallback.Groups[1].Value.ToLower();
+
+                        switch (color)
+                        {
+                            case "#b4cc38":
+                                return Status.Up;
+                            case "#d71920":
+                                return Status.Down;
+                            case "#808282":
+                                return Status.Unknown;
+                            default:
+                                throw new NotImplementedException($"Don't know how to handle history status '{str}' and couldn't handle color fallback '{color}'.");
+                        }
+                    }
+
+                    throw new NotImplementedException($"Don't know how to handle history status '{str}'.");
+            }
+        }
+
         #endregion
     #endregion
     #region Object Manipulation
@@ -725,6 +820,19 @@ namespace PrtgAPI
 
             var data = ResponseParser.GetObjectProperties<T>(response, ObjectEngine.XmlEngine, mandatoryProperty);
 
+            if (data is SensorSettings)
+            {
+                var sensor = (SensorSettings) (object) data;
+
+                if (sensor.primaryChannelStr != null)
+                {
+                    sensor.primaryChannel = new LazyValue<Channel>(
+                        sensor.primaryChannelStr,
+                        () => GetChannel(objectOrId.GetId(), PrtgObject.GetId(sensor.primaryChannelStr))
+                    );
+                }
+            }
+
             if (data is TableSettings)
             {
                 var table = (TableSettings) (object) data;
@@ -752,9 +860,21 @@ namespace PrtgAPI
 
             var data = ResponseParser.GetObjectProperties<T>(response, ObjectEngine.XmlEngine, mandatoryProperty);
 
+            if (data is SensorSettings)
+            {
+                var sensor = (SensorSettings) (object) data;
+
+                if (sensor.primaryChannelStr != null)
+                {
+                    var channel = await GetChannelAsync(objectOrId.GetId(), PrtgObject.GetId(sensor.primaryChannelStr), token).ConfigureAwait(false);
+
+                    sensor.primaryChannel = new LazyValue<Channel>(sensor.primaryChannelStr, () => channel);
+                }
+            }
+
             if (data is TableSettings)
             {
-                var table = (TableSettings)(object)data;
+                var table = (TableSettings) (object) data;
 
                 if (table.scheduleStr == null || PrtgObject.GetId(table.scheduleStr) == -1)
                     table.schedule = new LazyValue<Schedule>(table.scheduleStr, () => new Schedule(table.scheduleStr));
@@ -835,10 +955,10 @@ namespace PrtgAPI
         #region Set Object Properties
 
         internal void SetObjectProperty<T>(BaseSetObjectPropertyParameters<T> parameters, int numObjectIds, CancellationToken token) =>
-            RequestEngine.ExecuteRequest(parameters, m => ResponseParser.ParseSetObjectPropertyUrl(numObjectIds, m), token);
+            RequestEngine.ExecuteRequest(parameters, m => ResponseParser.ParseSetObjectPropertyUrl(parameters, numObjectIds, m), token);
 
         internal async Task SetObjectPropertyAsync<T>(BaseSetObjectPropertyParameters<T> parameters, int numObjectIds, CancellationToken token) =>
-            await RequestEngine.ExecuteRequestAsync(parameters, m => Task.FromResult<PrtgResponse>(ResponseParser.ParseSetObjectPropertyUrl(numObjectIds, m)), token).ConfigureAwait(false);
+            await RequestEngine.ExecuteRequestAsync(parameters, m => Task.FromResult<PrtgResponse>(ResponseParser.ParseSetObjectPropertyUrl(parameters, numObjectIds, m)), token).ConfigureAwait(false);
 
         #endregion
         #region System Administration
@@ -922,7 +1042,7 @@ namespace PrtgAPI
         /// </summary>
         /// <param name="address">The address to resolve.</param>
         /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns></returns>
+        /// <returns>The resolved coordinates of the specified address.</returns>
         internal Location ResolveAddress(string address, CancellationToken token)
         {
             if (string.IsNullOrWhiteSpace(address))
@@ -966,7 +1086,7 @@ namespace PrtgAPI
         /// </summary>
         /// <param name="address">The address to resolve.</param>
         /// <param name="token">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns></returns>
+        /// <returns>The resolved coordinates of the specified address.</returns>
         internal async Task<Location> ResolveAddressAsync(string address, CancellationToken token)
         {
             if (address == null)

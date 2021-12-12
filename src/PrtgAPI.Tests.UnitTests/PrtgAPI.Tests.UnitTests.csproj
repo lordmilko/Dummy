@@ -131,6 +131,7 @@
     <Compile Include="Support\Infrastructure\Progress\ProgressHierarchy.cs" />
     <Compile Include="Support\TestItems\SystemInfoItem.cs" />
     <Compile Include="Support\TestResponses\GeoLocatorResponse.cs" />
+    <Compile Include="Support\TestResponses\HttpToHttpsResponse.cs" />
     <Compile Include="Support\TestResponses\InfiniteLogPostProcessValidatorResponse.cs" />
     <Compile Include="Support\TestResponses\InfiniteLogResponse.cs" />
     <Compile Include="Support\TestResponses\InfiniteLogValidatorResponse.cs" />
@@ -283,7 +284,7 @@
     <Compile Include="Support\TestResponses\Objects\ChannelResponse.cs" />
     <Compile Include="Support\TestResponses\CloneResponse.cs" />
     <Compile Include="Support\TestResponses\Objects\DeviceResponse.cs" />
-    <Compile Include="Support\TestResponses\DeviceSettingsResponse.cs" />
+    <Compile Include="Support\TestResponses\Objects\DeviceSettingsResponse.cs" />
     <Compile Include="Support\TestResponses\DiffBasedResolveResponse.cs" />
     <Compile Include="Support\TestResponses\ExceptionResponse.cs" />
     <Compile Include="Support\TestResponses\Objects\ObjectResponse.cs" />

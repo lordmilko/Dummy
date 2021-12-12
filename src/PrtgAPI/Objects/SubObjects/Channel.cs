@@ -28,6 +28,7 @@ namespace PrtgAPI
         /// </summary>
         [XmlElement("name")]
         [PropertyParameter(Property.Name)]
+        [PropertyParameter(ChannelProperty.Name)]
         public string Name { get; set; }
 
         // ################################## Sensors, Channel ##################################
@@ -44,8 +45,6 @@ namespace PrtgAPI
             get { return displayLastvalue; }
             set { displayLastvalue = string.IsNullOrEmpty(value) ? null : value.Trim(); }
         }
-
-        //todo: update wiki to show displaylastvalue and lastvalue, also update channel formats.ps1xml to use displaylastvalue
 
         /// <summary>
         /// The raw last value of this channel.<para/>
@@ -86,10 +85,11 @@ namespace PrtgAPI
         public bool? ShowInGraph { get; set; } //Show, Hide
 
         /// <summary>
-        /// Whether this channel should be shown in tables and API responses. If this value is set to false you will be unable to restore visibility without manual intervention or an existing reference to this object.
+        /// Whether this channel should be shown in tables and API responses. Note: PrtgAPI will always force hidden channels to be returned even if they are marked as hidden.
         /// </summary>
         [Undocumented]
         [XmlElement("injected_show")]
+        [PropertyParameter(ChannelProperty.ShowInTable)]
         public bool? ShowInTable { get; set; }
 
         /// <summary>

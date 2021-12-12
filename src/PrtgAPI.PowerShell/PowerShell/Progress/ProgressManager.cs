@@ -678,7 +678,7 @@ namespace PrtgAPI.PowerShell.Progress
             }
 
             if (cmdlet.ProgressManagerEx.CurrentRecord != null)
-                CurrentRecord.ProgressWritten = cmdlet.ProgressManagerEx.CurrentRecord.ProgressWritten;
+                CurrentRecord.ProgressPreviouslyWritten = cmdlet.ProgressManagerEx.CurrentRecord.ProgressWritten;
 
             cmdlet.ProgressManagerEx.CurrentRecord = CurrentRecord;
             cmdlet.ProgressManagerEx.PreviousRecord = PreviousRecord;
@@ -868,7 +868,7 @@ namespace PrtgAPI.PowerShell.Progress
             if (cmdlet.CommandRuntime is DummyRuntime)
                 val = DummyRuntime._lastUsedSourceId;
             else
-                val = Convert.ToInt64(cmdlet.CommandRuntime.PSGetInternalStaticField("s_lastUsedSourceId", "_lastUsedSourceId"));
+                val = Convert.ToInt64(cmdlet.CommandRuntime.PSGetInternalStaticField("s_lastUsedSourceId", "_lastUsedSourceId", cmdlet));
 
             if (PipeFromVariableWithProgress && FirstInChain)
             {
@@ -954,6 +954,14 @@ namespace PrtgAPI.PowerShell.Progress
 
                 if (progressManagerEx.CurrentRecord.Completed)
                     return;
+
+                if (progressManagerEx.CurrentRecord.ProgressOnlyPreviouslyWritten)
+                {
+                    //We're probably in an EndProcessing block and we previously wrote progress in our ProcessRecord block. We need to get rid
+                    //of that progress; nobody else will do it but us!
+                    progressManagerEx.CurrentRecord.Activity = progressManagerEx.CachedRecord.Activity;
+                    progressManagerEx.CurrentRecord.StatusDescription = progressManagerEx.CachedRecord.StatusDescription;
+                }
 
                 progressManagerEx.CurrentRecord.RecordType = ProgressRecordType.Completed;
 

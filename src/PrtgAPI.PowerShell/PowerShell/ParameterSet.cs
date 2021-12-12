@@ -126,5 +126,11 @@
         internal const string ManualWithManual = "ManualWithManualSet";
 
         internal const string Object = "ObjectSet";
+
+        internal const string HashTable = "HashTableSet";
+
+        internal const string Report = "ReportSet";
+
+        internal const string ReportManual = "ReportManualSet";
     }
 }

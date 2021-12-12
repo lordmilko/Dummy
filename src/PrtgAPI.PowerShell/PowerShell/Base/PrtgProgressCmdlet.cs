@@ -58,7 +58,9 @@ namespace PrtgAPI.PowerShell.Base
             }
         }
 
-        internal void WriteProcessProgressRecords(Func<Func<int, string, bool>, object> getItems)
+        internal delegate bool DisplayProgressCallback(int percentage, string operation);
+
+        internal void WriteProcessProgressRecords(Func<DisplayProgressCallback, object> getItems)
         {
             var items = getItems(DisplayProgress);
 
@@ -423,7 +425,7 @@ namespace PrtgAPI.PowerShell.Base
         /// <param name="func">The first operation to execute.</param>
         /// <param name="typeDescription">The type description use for the progress.</param>
         /// <param name="operationDescription">The progress description to use for the first operation.</param>
-        /// <returns></returns>
+        /// <returns>A new <see cref="ProgressTask{TResult}"/> that encapsulates the specified progress operation.</returns>
         protected ProgressTask<TResult> First<TResult>(Func<List<TResult>> func, string typeDescription, string operationDescription)
         {
             return ProgressTask<TResult>.Create(func, this, typeDescription, operationDescription);

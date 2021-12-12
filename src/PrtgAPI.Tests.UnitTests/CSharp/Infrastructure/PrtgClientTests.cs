@@ -73,6 +73,17 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
 
         [UnitTest]
         [TestMethod]
+        public void PrtgClient_Constructor_RemovesTrailingServerSlash()
+        {
+            var response = new AddressValidatorResponse(new[] {"https://prtg.example.com/api/getpasshash.htm?password=password&username=username"}, true, new PassHashResponse());
+
+            var client = new PrtgClient("prtg.example.com/", "username", "password", AuthMode.Password, new MockWebClient(response));
+
+            Assert.AreEqual("prtg.example.com", client.Server);
+        }
+
+        [UnitTest]
+        [TestMethod]
         public void PrtgClient_RetriesWhileStreaming()
         {
             var response = new SensorResponse(Enumerable.Repeat(new SensorItem(), 1001).ToArray());
@@ -463,6 +474,37 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
 
         [UnitTest]
         [TestMethod]
+        public void PrtgClient_RedirectsHttpUrlToHttps()
+        {
+            var httpServer = "http://prtg.example.com";
+            var httpsServer = "https://prtg.example.com";
+
+            var client = new PrtgClient(httpServer, "username", "password", AuthMode.PassHash, new MockWebClient(new HttpToHttpsResponse()));
+
+            Assert.AreEqual(httpServer, client.Server);
+
+            client.GetSensors();
+
+            Assert.AreEqual(httpsServer, client.Server);
+        }
+
+        [UnitTest]
+        [TestMethod]
+        public void PrtgClient_DoesntModifyHttpsToHttps()
+        {
+            var httpsServer = "https://prtg.example.com";
+
+            var client = new PrtgClient(httpsServer, "username", "password", AuthMode.PassHash, new MockWebClient(new HttpToHttpsResponse()));
+
+            Assert.AreEqual(httpsServer, client.Server);
+
+            client.GetSensors();
+
+            Assert.AreEqual(httpsServer, client.Server);
+        }
+
+        [UnitTest]
+        [TestMethod]
         public void PrtgClient_SplitsRequests_BatchingOver1500Items()
         {
             var range = Enumerable.Range(1, 2000).ToArray();
@@ -734,9 +776,11 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
 
         private PrtgClient GetCustomClient(MethodInfo method, PrtgClient defaultClient)
         {
-            if (method.Name == "GetNotificationTriggers" || method.Name == "GetNotificationTriggersAsync")
+            switch (method.Name)
             {
-                return Initialize_Client(new NotificationTriggerResponse(NotificationTriggerItem.StateTrigger()));
+                case "GetNotificationTriggers":
+                case "GetNotificationTriggersAsync":
+                    return Initialize_Client(new NotificationTriggerResponse(NotificationTriggerItem.StateTrigger()));
             }
 
             if (method.Name.StartsWith("GetTree"))
@@ -978,6 +1022,11 @@ namespace PrtgAPI.Tests.UnitTests.Infrastructure
                 return null;
             if (t == typeof(FlagEnum<TreeParseOption>?))
                 return new FlagEnum<TreeParseOption>(TreeParseOption.Common);
+            if (t == typeof(Func<DateTime, DateTime>))
+            {
+                Func<DateTime, DateTime> f = d => d;
+                return f;
+            }
 
             throw new NotImplementedException($"Don't know how to create instance for parameter {parameter}");
         }

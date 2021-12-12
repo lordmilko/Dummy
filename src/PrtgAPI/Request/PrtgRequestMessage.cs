@@ -18,7 +18,15 @@ namespace PrtgAPI.Request
         bool passFound;
         bool hasQueries;
 
-        public string Url { get; }
+        public string Url => Uri.OriginalString;
+
+        public Uri Uri { get; }
+
+        /// <summary>
+        /// Gets a parser capable of modifying the request response. If a custom parser external to this request message
+        /// is specified for the API request, this parser is ignored.
+        /// </summary>
+        public IResponseParser Parser { get; }
 
         internal PrtgRequestMessage(ConnectionDetails connectionDetails, XmlFunction function, IParameters parameters) :
             this(connectionDetails, GetResourcePath(function), parameters)
@@ -69,7 +77,9 @@ namespace PrtgAPI.Request
                 AddParameter(urlBuilder, Parameter.PassHash, connectionDetails.PassHash);
             }
 
-            Url = urlBuilder.ToString();
+            Uri = new Uri(urlBuilder.ToString());
+
+            Parser = parameters as IResponseParser;
 
 #if DEBUG
             Debug.WriteLine(Url);
@@ -78,7 +88,7 @@ namespace PrtgAPI.Request
         
         internal static string AddUrlPrefix(string server)
         {
-            if (server.StartsWith("http://") || server.StartsWith("https://"))
+            if (server.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || server.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 return server;
 
             return $"https://{server}";
@@ -147,7 +157,7 @@ namespace PrtgAPI.Request
         /// Serialize one or more <see cref="CustomParameter"/> objects.
         /// </summary>
         /// <param name="value">The value to serialize</param>
-        /// <returns></returns>
+        /// <returns>The serialized form of the specified value.</returns>
         private string ProcessCustomParameter(object value)
         {
             if (value == null)
@@ -203,7 +213,7 @@ namespace PrtgAPI.Request
         /// <param name="name">The name to use for the parameter</param>
         /// <param name="val">The value to assign to the parameter</param>
         /// <param name="isEnum">Whether the specified value is an <see cref="Enum"/></param>
-        /// <returns></returns>
+        /// <returns>The serialized form of the specified parameter.</returns>
         private string FormatSingleParameterWithValEncode(string name, object val, bool isEnum = false)
         {
             return FormatSingleParameterInternal(name, val, true, isEnum);
@@ -215,7 +225,7 @@ namespace PrtgAPI.Request
         /// <param name="name">The name to use for the parameter</param>
         /// <param name="val">The value to assign to the parameter</param>
         /// <param name="isEnum">Whether the specified value is an <see cref="Enum"/> </param>
-        /// <returns></returns>
+        /// <returns>The serialized form of the specified parameter.</returns>
         private string FormatSingleParameterWithoutValEncode(string name, object val, bool isEnum = false)
         {
             return FormatSingleParameterInternal(name, val, false, isEnum);
@@ -268,7 +278,7 @@ namespace PrtgAPI.Request
         /// Retrieves the value of a <see cref="ParameterType.MultiValue"/> parameter. Result is in the form val1,val2,val3
         /// </summary>
         /// <param name="enumerable">The values to assign to the parameter</param>
-        /// <returns></returns>
+        /// <returns>The serialized list of values.</returns>
         private string GetMultiValueStr(IEnumerable enumerable)
         {
             var builder = new StringBuilder();
@@ -306,7 +316,7 @@ namespace PrtgAPI.Request
         /// </summary>
         /// <param name="enumerable">The values to assign to the parameter</param>
         /// <param name="description">The serialized name of the parameter</param>
-        /// <returns></returns>
+        /// <returns>The serialized list of values.</returns>
         private string FormatMultiParameter(IEnumerable enumerable, string description)
         {
             var builder = new StringBuilder();

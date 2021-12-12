@@ -5,29 +5,33 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: ['ubuntu-latest', 'macos-latest']
+        os: [ubuntu-latest, macos-latest]
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
     steps:
       - uses: actions/checkout@v2
+
+      - name: Remove Existing .NET versions
+        run: rm -rf ~/.dotnet
+
+      - name: Remove Bad Versions of Pester
+        run: sudo pwsh -c "Get-Module Pester -ListAvailable | Uninstall-Module -Force"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 2.1.605
 
-      - name: Debugging with ssh
-        uses: lhotari/action-upterm@v1
-
       - name: Install Dependencies
-        shell: pwsh
-        run: |
-          ipmo ./build/CI/GitHub.psm1 -DisableNameChecking
-          Invoke-GitHubInstall
+        run: pwsh -c "ipmo ./build/CI/GitHub.psm1 -DisableNameChecking; Invoke-GitHubInstall"
+
+      #- name: Setup tmate session
+      #  uses: mxschmitt/action-tmate@v3
 
       - name: Build/Test
-        shell: pwsh
         run: |
-          ipmo ./build/CI/GitHub.psm1 -DisableNameChecking
-          Invoke-GitHubScript
+          LANG="en_US.utf8"
+          export LANG
+          pwsh -c "ipmo ./build/CI/GitHub.psm1 -DisableNameChecking; Invoke-GitHubScript"

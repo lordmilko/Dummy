@@ -409,7 +409,7 @@ Describe "Get-Sensor" -Tag @("PowerShell", "UnitTest") {
         )
 
         $multipleCases = @(
-            @{name = "DateTime";   expr = { Get-Sensor -LastUp $date1,$date2 };      expected = "filter_lastup=36801.5070023148&filter_lastup=36802.5070023148"} #todo: this is now failing on linux because we're now getting an additional two decimal places - 15
+            @{name = "DateTime";   expr = { Get-Sensor -LastUp $date1,$date2 };      expected = "filter_lastup=36801.5070023148&filter_lastup=36802.5070023148"}
             @{name = "integer";    expr = { Get-Sensor -ParentId 1,2 }; expected = "filter_parentid=1&filter_parentid=2"}
             @{name = "StringEnum"; expr = { Get-Sensor -Type aggregation,ping };   expected = "filter_type=@sub(aggregation)&filter_type=@sub(ping)"}
             @{name = "TimeSpan";   expr = { Get-Sensor -UpDuration 00:01:00,00:02:00}; expected = "filter_uptimesince=000000000000060&filter_uptimesince=000000000000120"}

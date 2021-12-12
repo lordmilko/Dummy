@@ -145,7 +145,7 @@ namespace PrtgAPI.PowerShell.Progress
         /// <summary>
         /// Retrieves the next <see cref="PrtgCmdlet"/> in the pipeline. If there are no more PrtgAPI cmdlets in the pipeline, this method returns null. 
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The next <see cref="PrtgCmdlet"/> in the pipeline, or null if no such cmdlets exist.</returns>
         public PrtgCmdlet GetNextPrtgCmdlet() => nextPrtgCmdlet.Value;
 
         /// <summary>
@@ -165,7 +165,7 @@ namespace PrtgAPI.PowerShell.Progress
             }
 
             if (cmdlet.CommandRuntime is DummyRuntime)
-                return ((DummyRuntime) cmdlet.CommandRuntime).Owner;
+                return (PrtgCmdlet) ((DummyRuntime) cmdlet.CommandRuntime).Owner;
 
             return null;
         }
@@ -337,7 +337,8 @@ namespace PrtgAPI.PowerShell.Progress
         /// <summary>
         /// Indicates whether the current pipeline contains progress compatible cmdlets all the way to the next <see cref="PrtgCmdlet"/>. Returns false if there are no more <see cref="PrtgCmdlet"/> objects in the pipeline.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>True if the current pipeline contains progress compatible cmdlets all the way to the next <see cref="PrtgCmdlet"/>. If the current
+        /// pipeline is not progress pure, or does not contain any additional <see cref="PrtgCmdlet"/> items, returns False.</returns>
         public bool PipelineIsProgressPureToNextPrtgCmdlet()
         {
             var commands = GetPipelineCommands();
@@ -389,7 +390,7 @@ namespace PrtgAPI.PowerShell.Progress
         /// <summary>
         /// Retrieve the input to the entire pipeline.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The input to the entire pipeline.</returns>
         public Pipeline GetPipelineInput()
         {
             var processor = runtimePipelineProcessorCommandProcessors.Value.First();
@@ -404,7 +405,7 @@ namespace PrtgAPI.PowerShell.Progress
         /// <summary>
         /// Retrieve the input to the current cmdlet.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The pipeline input to the current cmdlet.</returns>
         public Pipeline GetCmdletPipelineInput()
         {
             return GetCmdletPipelineInput(cmdlet.CommandRuntime, cmdlet);
@@ -414,7 +415,7 @@ namespace PrtgAPI.PowerShell.Progress
         {
             var command = (PSCmdlet)GetUpstreamCmdletNotOfType<WhereObjectCommand>();
 
-            var queue = (Queue<PSObject>) command.PSGetInternalField("_selectObjectQueue", "selectObjectQueue");
+            var queue = (Queue<PSObject>) command.PSGetInternalField("_selectObjectQueue", "selectObjectQueue", command);
 
             var cmdletPipeline = GetCmdletPipelineInput();
 
@@ -438,7 +439,7 @@ namespace PrtgAPI.PowerShell.Progress
         /// </summary>
         /// <param name="commandRuntime">The runtime of the cmdlet whose pipeline should be retrieved.</param>
         /// <param name="cmdlet">The cmdlet whose pipeline should be retrieved.</param>
-        /// <returns></returns>
+        /// <returns>The pipeline input to the specified cmdlet.</returns>
         private static Pipeline GetCmdletPipelineInput(ICommandRuntime commandRuntime, InternalCommand cmdlet)
         {
             var inputPipe = commandRuntime.GetInternalProperty("InputPipe");
@@ -462,10 +463,10 @@ namespace PrtgAPI.PowerShell.Progress
 
                 IEnumerable<object> list;
 
-                if (declaringType == typeof(Array) || enumeratorType.Name == "SZArrayEnumerator") //It's a SZArrayEnumerator (piping straight from a variable). In .NET Core 3.1 SZArrayEnumerator is no longer nested
+                if (declaringType == typeof(Array) || enumeratorType.Name == "SZArrayEnumerator" || enumeratorType.Name == "ArrayEnumerator") //It's a SZArrayEnumerator (piping straight from a variable). In .NET Core 3.1 SZArrayEnumerator is no longer nested
                     list = ((object[]) enumerator.GetInternalField("_array"));
                 else if (declaringType == typeof(List<>)) //It's a List<T>.Enumerator (piping from $groups[0].Group)
-                    list = enumerator.PSGetInternalField("_list", "list").ToIEnumerable();
+                    list = enumerator.PSGetInternalField("_list", "list", null).ToIEnumerable();
                 else if (enumeratorType.IsGenericType && enumeratorType.GetGenericTypeDefinition() == typeof(ReadOnlyListEnumerator<>))
                     list = enumerator.GetInternalField("list").ToIEnumerable();
                 else
@@ -503,7 +504,7 @@ namespace PrtgAPI.PowerShell.Progress
         /// <summary>
         /// Retrieves the CommandProcessor of the next cmdlet.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The CommandProcessor of the next cmdlet.</returns>
         public object GetDownstreamCmdletProcessor() => runtimeOutputPipeDownstreamCmdletProcessor.Value;
 
         public CommandInfo GetDownstreamCmdletInfo() => runtimeOutputPipeDownstreamCmdletCommandInfo.Value;

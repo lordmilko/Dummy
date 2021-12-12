@@ -40,6 +40,11 @@ namespace PrtgAPI
     public enum ChannelProperty
     {
         /// <summary>
+        /// The name of this channel.
+        /// </summary>
+        Name,
+
+        /// <summary>
         /// The unit that is displayed next to this sensor's value. Note that only certain sensor types (such as SNMP) support modifying the channel unit.
         /// </summary>
         Unit,
@@ -66,7 +71,10 @@ namespace PrtgAPI
         /// </summary>
         ShowInGraph,
 
-        //ShowInTable,
+        /// <summary>
+        /// Whether this channel should be shown in tables.
+        /// </summary>
+        ShowInTable,
 
         /// <summary>
         /// Whether the line color of this channel in graphs should be automatically chosen or defined manually.

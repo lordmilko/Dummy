@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PrtgAPI.Request.Serialization;
 using PrtgAPI.Utilities;
 
 namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
@@ -18,6 +19,8 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
         private IWebResponse alternateResponse;
 
         public bool AllowReorder { get; set; }
+
+        public bool AllowSecondDifference { get; set; }
 
         [Obsolete("Do not create AddressValidatorResponse objects directly; use BaseTest.Execute instead")]
         public AddressValidatorResponse(string str)
@@ -101,7 +104,10 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                             if (AllowReorder)
                                 AssertEx.UrlsEquivalent(strArray[arrayPos], address);
                             else
-                                throw GetDifference(strArray[arrayPos], address, ex);
+                            {
+                                if (!(AllowSecondDifference && AssertSecondDifferenceEqual(strArray[arrayPos], address)))
+                                    throw GetDifference(strArray[arrayPos], address, ex);
+                            }
                         }
                     }
 
@@ -120,6 +126,42 @@ namespace PrtgAPI.Tests.UnitTests.Support.TestResponses
                 if (!address.Contains(str))
                     Assert.Fail($"Address '{address}' did not contain '{str}'");
             }
+        }
+
+        private bool AssertSecondDifferenceEqual(string expected, string actual)
+        {
+            var expectedParts = UrlUtilities.CrackUrl(expected);
+            var actualParts = UrlUtilities.CrackUrl(actual);
+
+            var differingParts = actualParts.AllKeys.Select(k => new
+            {
+                Expected = expectedParts[k],
+                Actual = actualParts[k],
+                Key = k
+            }).Where(a => a.Expected != a.Actual).ToArray();
+
+            if (differingParts.All(p =>
+            {
+                switch (p.Key)
+                {
+                    case "sdate":
+                    case "edate":
+                        var expectedDate = TypeHelpers.StringToDate(p.Expected);
+                        var actualDate = TypeHelpers.StringToDate(p.Actual);
+
+                        if (expectedDate.AddSeconds(1) == actualDate)
+                            return true;
+
+                        return false;
+                    default:
+                        return false;
+                }
+            }))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private AssertFailedException GetDifference(string expected, string actual, AssertFailedException originalException)

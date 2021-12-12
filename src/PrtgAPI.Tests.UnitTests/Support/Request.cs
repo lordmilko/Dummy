@@ -20,6 +20,8 @@ namespace PrtgAPI.Tests.UnitTests.Support
         public static string Sensors(string url = "", UrlFlag? flags = DefaultObjectFlags) =>
             RequestObject(url, flags, "sensors", DefaultSensorProperties);
 
+        public static string SensorProperties(int id) => RequestObjectData(id, "sensor");
+
         public static string DeviceCount => Count("devices");
         public static string Devices(string url = "", UrlFlag? flags = DefaultObjectFlags) =>
             RequestObject(url, flags, "devices", DefaultDeviceProperties);
@@ -39,7 +41,7 @@ namespace PrtgAPI.Tests.UnitTests.Support
             RequestObject(url, flags, "messages", DefaultLogProperties);
 
         public static string Channels(int sensorId) =>
-            RequestObject($"id={sensorId}", DefaultObjectFlags, "channels", DefaultChannelProperties);
+            RequestObject($"showhide=1&id={sensorId}", DefaultObjectFlags, "channels", DefaultChannelProperties);
         public static string ChannelProperties(int sensorId, int channelId) =>
             Get($"controls/channeledit.htm?id={sensorId}&channel={channelId}");
 
@@ -94,6 +96,9 @@ namespace PrtgAPI.Tests.UnitTests.Support
 
         public static string RequestObjectData(int id) =>
             Get($"controls/objectdata.htm?id={id}");
+
+        public static string SensorHistoryReport(int id, DateTime start, DateTime end) =>
+            Get($"historicdata_html.htm?id={id}&edate={start.ToString("yyyy-MM-dd-HH-mm-ss")}&sdate={end.ToString("yyyy-MM-dd-HH-mm-ss")}&avg=3600");
 
         #region Columns
 

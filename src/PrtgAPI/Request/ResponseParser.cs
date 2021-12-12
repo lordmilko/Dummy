@@ -43,7 +43,7 @@ namespace PrtgAPI.Request
         /// <typeparam name="T">The type of object returned by the response.</typeparam>
         /// <param name="obj">The object to amend.</param>
         /// <param name="action">A modification function to apply to the object.</param>
-        /// <returns></returns>
+        /// <returns>A collection of modified objects.</returns>
         [ExcludeFromCodeCoverage]
         internal static T Amend<T>(T obj, Action<T> action)
         {
@@ -59,7 +59,7 @@ namespace PrtgAPI.Request
         /// <typeparam name="TRet">The type of object to return.</typeparam>
         /// <param name="obj">The object to transform.</param>
         /// <param name="action">A modification function that transforms the response from one type to another.</param>
-        /// <returns></returns>
+        /// <returns>A collection of modified objects.</returns>
         internal static TRet Amend<TSource, TRet>(TSource obj, Func<TSource, TRet> action)
         {
             var val = action(obj);
@@ -67,6 +67,49 @@ namespace PrtgAPI.Request
             return val;
         }
 
+        #region Probes
+
+        internal static PrtgResponse ParseProbeResponse(string content)
+        {
+            /* PRTG 21.2.67 introduces the new PRTG Core Server node, which is returned
+             * from API requests for probes since probes request children of parent ID 0
+             * and "probenode" is not really a valid content type. Attempting to filter
+             * for type == "probenode" seems like an obvious workaround, however in fact
+             * PRTG doesn't always parse this filter properly; as such, we have no choice
+             * but to filter for type == "probenode" locally
+             */
+
+            var xDoc = XDocument.Parse(content);
+
+            var probeNode = xDoc.Element("probenode");
+
+            var items = probeNode.Elements("item").ToArray();
+
+            var toRemove = new List<XElement>();
+
+            var remainingItems = 0;
+
+            foreach (var item in items)
+            {
+                if (item.Element("type_raw").Value != "probenode" && !(item.Element("type_raw").Value?.StartsWith("probenode[") == true))
+                    toRemove.Add(item);
+                else
+                    remainingItems++;
+            }
+
+            foreach (var item in toRemove)
+                item.Remove();
+
+            if (toRemove.Count > 0)
+            {
+                var totalCount = probeNode.Attribute("totalcount");
+                totalCount.Value = remainingItems.ToString();
+            }
+
+            return xDoc.ToString();
+        }
+
+        #endregion
         #region Notifications
 
         internal static XElement GroupNotificationActionProperties(XElement xml)
@@ -333,15 +376,48 @@ namespace PrtgAPI.Request
         #endregion
         #region Set Object Properties
 
-        internal static string ParseSetObjectPropertyUrl(int numObjectIds, HttpResponseMessage response)
+        internal static string ParseSetObjectPropertyUrl<T>(BaseSetObjectPropertyParameters<T> parameters, int numObjectIds, HttpResponseMessage response)
         {
-            if (numObjectIds > 1)
+            if (numObjectIds > 1 || IgnoreChannelPropertyError(parameters as SetChannelPropertyParameters))
             {
+                /* When object properties across multiple objects are specified, PRTG doesn't know which one to redirect to
+                 * after the properties have been set. As such, we need to replace the response URI from the error page to
+                 * the true page that PRTG otherwise would have redirected to (e.g. /sensor.htm?id=1001).
+                 * In PRTG 20.4.64 however, for some object properties (e.g. setting the Percent Value of a sensor) PRTG
+                 * will freak out if the ID of the object is not POST'd (which is an issue because we always GET). When this behavior occurs,
+                 * the request is in fact successfully executed (and executing it _again_ without changing the existing value (e.g. Percent Mode
+                 * (the dependent property of Percent Value)) to something else won't trigger the error). As such, now we simply totally ignore
+                 * instances where we hit /error.htm for channels only. This is kind of an issue, however theoretically we should be catching
+                 * failed property manipulations in our integration tests.
+                 */
+
                 if (response.RequestMessage?.RequestUri?.AbsolutePath == "/error.htm")
                     RequestEngine.SetErrorUrlAsRequestUri(response);
             }
 
             return null;
+        }
+
+        private static bool IgnoreChannelPropertyError(SetChannelPropertyParameters parameters)
+        {
+            if (parameters == null)
+                return false;
+
+            //Bad properties that erroneously give errors when they are successfully set
+            var ignoreList = new[]
+            {
+                ChannelProperty.PercentValue
+            };
+
+            foreach (var customParameter in parameters.CustomParameters)
+            {
+                var value = parameters.GetChannelPropertyFromName(customParameter.Name);
+
+                if (value != null && ignoreList.Any(p => p.Equals(value)) && !string.IsNullOrEmpty(customParameter.Value?.ToString()))
+                    return true;
+            }
+
+            return false;
         }
 
         #endregion
@@ -569,19 +645,19 @@ namespace PrtgAPI.Request
             {
                 message = message.Trim('\r', '\n');
 
-                //todo: does this work in other languages? Not sure how to replicate it
+                //todo: does this work in other languages? Not sure how to replicate it. when we test with every single sensor type we get this in an _enhanced_ exception message below
                 if (message.StartsWith("Incomplete connection settings"))
                     throw new PrtgRequestException("Failed to retrieve data from device; required credentials for sensor type may be missing. See PRTG UI for further details.");
 
                 throw new PrtgRequestException($"An exception occurred while trying to {action}: {message.EnsurePeriod()}");
             }
 
+            var invalidStr = "Specified sensor type may not be valid on this device, or sensor query target parameters may be incorrect. Check the Device 'Host' is still valid or try adding sensor with the PRTG UI.";
+
             if (enhancedErrorMessage != null)
-                throw new PrtgRequestException($"An exception occurred while trying to {action}: {enhancedErrorMessage.EnsurePeriod()}");
+                throw new PrtgRequestException($"An exception occurred while trying to {action}: {enhancedErrorMessage.EnsurePeriod()} {invalidStr.EnsurePeriod()}");
             else
-            {
-                throw new PrtgRequestException($"An unspecified error occurred while trying to {action}. Specified sensor type may not be valid on this device, or sensor query target parameters may be incorrect. Check the Device 'Host' is still valid or try adding sensor with the PRTG UI.");
-            }
+                throw new PrtgRequestException($"An unspecified error occurred while trying to {action}. {invalidStr.EnsurePeriod()}");
         }
 
         #endregion
