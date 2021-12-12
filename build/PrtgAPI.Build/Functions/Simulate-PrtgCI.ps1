@@ -3,7 +3,7 @@
 Simulates building PrtgAPI under a Continuous Integration environment
 
 .DESCRIPTION
-The Simulate-PrtgCI simulates the entire workflow of building PrtgAPI under either Appveyor or Travis CI. By default, Simulate-PrtgCI will invoke all steps that would normally be performed as part of the CI process. This can be limited by specifying a specific list of tasks that should be simulated via the -Task parameter.
+The Simulate-PrtgCI simulates the entire workflow of building PrtgAPI under either Appveyor, Travis CI or GitHub Actions. By default, Simulate-PrtgCI will invoke all steps that would normally be performed as part of the CI process. This can be limited by specifying a specific list of tasks that should be simulated via the -Task parameter.
 
 .PARAMETER Appveyor
 Specifies to simulate Appveyor CI
@@ -38,6 +38,9 @@ function Test-PrtgCI
 
         [Parameter(Mandatory = $true, ParameterSetName = "Travis")]
         [switch]$Travis,
+
+        [Parameter(Mandatory = $true, ParameterSetName = "GitHub")]
+        [switch]$GitHub,
 
         [Parameter(Mandatory = $false, Position = 0, ParameterSetName="Appveyor")]
         [ValidateSet("Install", "Restore", "Build", "Package", "Test", "Coverage")]
@@ -98,6 +101,9 @@ function Test-PrtgCI
         }
         "Travis" {
             Simulate-Travis -Configuration $Configuration
+        }
+        "GitHub" {
+            Simulate-GitHub -Configuration $Configuration
         }
     }
 }

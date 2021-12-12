@@ -51,11 +51,13 @@ function New-CSharpPackage
             "pack"
             Join-Path $BuildFolder "src\PrtgAPI\PrtgAPI.csproj"
             "-Exclude"
-            "**/*.tt;**/Resources/*.txt;*PrtgClient.Methods.xml;**/*.json"
+            "**/*.tt;**/Resources/*.txt;PublicAPI.txt;*PrtgClient.Methods.xml;**/*.json"
             "-outputdirectory"
             "$OutputFolder"
             "-NoPackageAnalysis"
             "-symbols"
+            "-SymbolPackageFormat"
+            "snupkg"
             "-version"
             $Version
             "-properties"
@@ -69,10 +71,5 @@ function New-CSharpPackage
 
     Write-Verbose "Executing command '$nuget $nugetArgs'"
 
-    $result = Invoke-Process { & $nuget @nugetArgs }
-
-    if($result)
-    {
-        Write-LogInfo $result
-    }
+    Invoke-Process { & $nuget @nugetArgs }
 }

@@ -1,0 +1,33 @@
+name: .NET
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest']
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 2.1.605
+
+      - name: Debugging with ssh
+        uses: lhotari/action-upterm@v1
+
+      - name: Install Dependencies
+        shell: pwsh
+        run: |
+          ipmo ./build/CI/GitHub.psm1 -DisableNameChecking
+          Invoke-GitHubInstall
+
+      - name: Build/Test
+        shell: pwsh
+        run: |
+          ipmo ./build/CI/GitHub.psm1 -DisableNameChecking
+          Invoke-GitHubScript

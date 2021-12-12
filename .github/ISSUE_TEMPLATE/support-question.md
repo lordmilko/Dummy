@@ -3,7 +3,7 @@ name: Support Question ❓
 about: Ask questions about using PrtgAPI that are not already covered by the wiki
   (https://github.com/lordmilko/PrtgAPI/wiki)
 title: ''
-labels: question
+labels: 'question'
 assignees: ''
 
 ---

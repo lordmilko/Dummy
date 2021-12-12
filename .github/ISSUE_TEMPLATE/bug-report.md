@@ -2,7 +2,7 @@
 name: "Bug report \U0001F41B"
 about: "Report errors or unexpected behavior \U0001F914"
 title: ''
-labels: ''
+labels: 'alleged-bug'
 assignees: ''
 
 ---
