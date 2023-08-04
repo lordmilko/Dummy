@@ -253,6 +253,8 @@ function Invoke-AppveyorRequestInternal
 
     $result = Invoke-RestMethod @restArgs
 
+    Write-Host $result
+
     return $result
 }
 
